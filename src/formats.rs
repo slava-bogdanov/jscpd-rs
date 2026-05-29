@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use crate::cli::FormatMappings;
+
 const EXTENSION_FORMATS: &[(&str, &str)] = &[
     ("c", "c"),
     ("h", "c"),
@@ -39,15 +41,29 @@ const NAME_FORMATS: &[(&str, &str)] = &[
     ("Makefile", "makefile"),
 ];
 
-pub fn format_for_path(path: &Path) -> Option<&'static str> {
+pub fn format_for_path<'a>(
+    path: &Path,
+    formats_exts: &'a FormatMappings,
+    formats_names: &'a FormatMappings,
+) -> Option<&'a str> {
     let file_name = path.file_name()?.to_string_lossy();
+    if !formats_names.is_empty()
+        && let Some(format) = formats_names.find_format_for_value(&file_name)
+    {
+        return Some(format);
+    }
+
+    let ext = path.extension()?.to_string_lossy().to_ascii_lowercase();
+    if !formats_exts.is_empty() {
+        return formats_exts.find_format_for_value(&ext);
+    }
+
     for (name, format) in NAME_FORMATS {
         if file_name == *name {
             return Some(format);
         }
     }
 
-    let ext = path.extension()?.to_string_lossy().to_ascii_lowercase();
     EXTENSION_FORMATS
         .iter()
         .find_map(|(candidate, format)| (*candidate == ext).then_some(*format))

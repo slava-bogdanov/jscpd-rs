@@ -201,7 +201,7 @@ fn prepare_file(
     format_id: FormatId,
     options: &Options,
 ) -> PreparedSource {
-    let tokens = tokenize_for_detection(&file.content, options);
+    let tokens = tokenize_for_detection(&file.content, &file.format, options);
     let (hashes, spans) = split_tokens(tokens);
 
     PreparedSource {

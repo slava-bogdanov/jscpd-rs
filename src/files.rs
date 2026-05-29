@@ -95,7 +95,9 @@ fn collect_candidate(
         return Ok(());
     }
 
-    let Some(format) = formats::format_for_path(path) else {
+    let Some(format) =
+        formats::format_for_path(path, &options.formats_exts, &options.formats_names)
+    else {
         if options.verbose {
             eprintln!("skipped unsupported format: {}", path.display());
         }

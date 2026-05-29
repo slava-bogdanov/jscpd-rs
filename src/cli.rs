@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use regex::Regex;
 use serde::Deserialize;
 
 #[derive(Debug, Parser)]
@@ -86,6 +87,15 @@ pub struct Cli {
 
     #[arg(long = "skipComments")]
     pub skip_comments: bool,
+
+    #[arg(long = "ignore-pattern")]
+    pub ignore_pattern: Option<String>,
+
+    #[arg(long = "formats-exts")]
+    pub formats_exts: Option<String>,
+
+    #[arg(long = "formats-names")]
+    pub formats_names: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, clap::ValueEnum)]
@@ -104,6 +114,9 @@ pub struct Options {
     pub reporters: Vec<String>,
     pub output: PathBuf,
     pub formats: Option<HashSet<String>>,
+    pub formats_exts: FormatMappings,
+    pub formats_names: FormatMappings,
+    pub ignore_pattern: Vec<Regex>,
     pub min_lines: usize,
     pub min_tokens: usize,
     pub max_lines: usize,
@@ -130,6 +143,9 @@ struct FileConfig {
     reporters: Option<OneOrMany>,
     output: Option<PathBuf>,
     format: Option<OneOrMany>,
+    formats_exts: Option<FormatMappingsConfig>,
+    formats_names: Option<FormatMappingsConfig>,
+    ignore_pattern: Option<OneOrMany>,
     min_lines: Option<usize>,
     min_tokens: Option<usize>,
     max_lines: Option<usize>,
@@ -163,6 +179,44 @@ impl OneOrMany {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct FormatMappings(Vec<(String, Vec<String>)>);
+
+impl FormatMappings {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn find_format_for_value(&self, value: &str) -> Option<&str> {
+        self.0.iter().find_map(|(format, values)| {
+            values
+                .iter()
+                .any(|item| item == value)
+                .then_some(format.as_str())
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum FormatMappingsConfig {
+    String(String),
+    Map(std::collections::HashMap<String, Vec<String>>),
+}
+
+impl FormatMappingsConfig {
+    fn into_mappings(self) -> FormatMappings {
+        match self {
+            Self::String(value) => parse_format_mappings(&value),
+            Self::Map(map) => {
+                let mut items = map.into_iter().collect::<Vec<_>>();
+                items.sort_by(|a, b| a.0.cmp(&b.0));
+                FormatMappings(items)
+            }
+        }
+    }
+}
+
 impl Default for Options {
     fn default() -> Self {
         Self {
@@ -172,6 +226,9 @@ impl Default for Options {
             reporters: vec!["console".to_string()],
             output: PathBuf::from("./report"),
             formats: None,
+            formats_exts: FormatMappings::default(),
+            formats_names: FormatMappings::default(),
+            ignore_pattern: Vec::new(),
             min_lines: 5,
             min_tokens: 50,
             max_lines: 1000,
@@ -195,6 +252,9 @@ impl Options {
     pub fn from_cli(cli: Cli) -> Result<Self> {
         let mut options = Self::default();
 
+        if let Some((config, config_dir)) = read_package_json_config()? {
+            apply_config(&mut options, config, &config_dir)?;
+        }
         if let Some((config, config_dir)) = read_config(cli.config.as_deref())? {
             apply_config(&mut options, config, &config_dir)?;
         }
@@ -216,6 +276,16 @@ impl Options {
         }
         if let Some(format) = cli.format {
             options.formats = Some(split_csv(&format).into_iter().collect());
+        }
+        if let Some(formats_exts) = cli.formats_exts {
+            options.formats_exts = parse_format_mappings(&formats_exts);
+        }
+        if let Some(formats_names) = cli.formats_names {
+            options.formats_names = parse_format_mappings(&formats_names);
+        }
+        if let Some(ignore_pattern) = cli.ignore_pattern {
+            options.ignore_pattern = compile_patterns(split_csv(&ignore_pattern))
+                .context("invalid --ignore-pattern value")?;
         }
         if let Some(min_lines) = cli.min_lines {
             options.min_lines = min_lines;
@@ -296,6 +366,38 @@ fn read_config(path: Option<&Path>) -> Result<Option<(FileConfig, PathBuf)>> {
     Ok(Some((config, config_dir)))
 }
 
+fn read_package_json_config() -> Result<Option<(FileConfig, PathBuf)>> {
+    let path = std::env::current_dir()?.join("package.json");
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let data = match fs::read_to_string(&path) {
+        Ok(data) => data,
+        Err(error) => {
+            eprintln!("Warning: Could not read {}: {error}", path.display());
+            return Ok(None);
+        }
+    };
+    let value = match serde_json::from_str::<serde_json::Value>(&data) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("Warning: Could not parse {}: {error}", path.display());
+            return Ok(None);
+        }
+    };
+    let Some(jscpd) = value.get("jscpd") else {
+        return Ok(None);
+    };
+    let config = serde_json::from_value::<FileConfig>(jscpd.clone())
+        .with_context(|| format!("failed to parse jscpd config in `{}`", path.display()))?;
+    let config_dir = path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .to_path_buf();
+    Ok(Some((config, config_dir)))
+}
+
 fn apply_config(options: &mut Options, config: FileConfig, config_dir: &Path) -> Result<()> {
     if let Some(paths) = config.path {
         options.paths = paths
@@ -318,6 +420,16 @@ fn apply_config(options: &mut Options, config: FileConfig, config_dir: &Path) ->
     }
     if let Some(format) = config.format {
         options.formats = Some(format.into_vec().into_iter().collect());
+    }
+    if let Some(formats_exts) = config.formats_exts {
+        options.formats_exts = formats_exts.into_mappings();
+    }
+    if let Some(formats_names) = config.formats_names {
+        options.formats_names = formats_names.into_mappings();
+    }
+    if let Some(ignore_pattern) = config.ignore_pattern {
+        options.ignore_pattern = compile_patterns(ignore_pattern.into_vec())
+            .context("invalid ignorePattern in config")?;
     }
     if let Some(min_lines) = config.min_lines {
         options.min_lines = min_lines;
@@ -386,6 +498,26 @@ fn split_csv(value: &str) -> Vec<String> {
         .collect()
 }
 
+fn parse_format_mappings(value: &str) -> FormatMappings {
+    let mappings = value
+        .split(';')
+        .filter_map(|entry| {
+            let (format, values) = entry.split_once(':')?;
+            let values = split_csv(values);
+            (!format.trim().is_empty() && !values.is_empty())
+                .then(|| (format.trim().to_string(), values))
+        })
+        .collect();
+    FormatMappings(mappings)
+}
+
+fn compile_patterns(patterns: Vec<String>) -> Result<Vec<Regex>> {
+    patterns
+        .into_iter()
+        .map(|pattern| Regex::new(&pattern).with_context(|| format!("invalid regex `{pattern}`")))
+        .collect()
+}
+
 fn parse_size(value: &str) -> Result<u64> {
     let trimmed = value.trim().to_ascii_lowercase();
     let split_at = trimmed
@@ -407,12 +539,20 @@ fn parse_size(value: &str) -> Result<u64> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_size;
+    use super::{parse_format_mappings, parse_size};
 
     #[test]
     fn parses_size_suffixes() {
         assert_eq!(parse_size("1b").unwrap(), 1);
         assert_eq!(parse_size("100kb").unwrap(), 102400);
         assert_eq!(parse_size("2mb").unwrap(), 2 * 1024 * 1024);
+    }
+
+    #[test]
+    fn parses_format_mappings() {
+        let mappings = parse_format_mappings("javascript:js,ts;python:py");
+        assert_eq!(mappings.find_format_for_value("ts"), Some("javascript"));
+        assert_eq!(mappings.find_format_for_value("py"), Some("python"));
+        assert_eq!(mappings.find_format_for_value("rs"), None);
     }
 }

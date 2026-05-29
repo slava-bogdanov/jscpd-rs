@@ -19,6 +19,9 @@ primary reference for behavior.
   not an afterthought.
 - Prefer battle-tested crates over custom code. Keep project-specific logic as
   small as practical.
+- For JS/TS syntax tokenization, prefer Oxc-backed token processing over a
+  hand-rolled lexer. Keep only the glue needed for jscpd-compatible filtering,
+  positions, hashing, and reporting.
 - Keep it simple. Use KIS: straightforward data flow, small modules, and minimal
   abstraction until real complexity requires it.
 - Use SOTA libraries and algorithms where they materially improve correctness,
@@ -37,4 +40,3 @@ primary reference for behavior.
   on upstream behavior.
 - Document intentional deviations from upstream in the relevant code, tests, or
   project documentation.
-
