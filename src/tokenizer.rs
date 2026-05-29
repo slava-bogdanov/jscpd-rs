@@ -2,12 +2,13 @@ use std::path::Path;
 
 use oxc_allocator::Allocator;
 use oxc_parser::{
-    config::TokensLexerConfig,
-    lexer::{Kind, Lexer},
+    Kind, Parser,
+    config::{TokensLexerConfig, TokensParserConfig},
+    lexer::Lexer,
 };
 use oxc_span::SourceType;
 use serde::Serialize;
-use xxhash_rust::xxh3::xxh3_128;
+use xxhash_rust::xxh3::xxh3_64;
 
 use crate::cli::{Mode, Options};
 
@@ -20,7 +21,7 @@ pub struct Location {
 
 #[derive(Clone, Debug)]
 pub struct DetectionToken {
-    pub hash: u128,
+    pub hash: u64,
     pub start: Location,
     pub end: Location,
     pub range: [usize; 2],
@@ -29,6 +30,11 @@ pub struct DetectionToken {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TokenKind {
     Comment,
+    Keyword,
+    Number,
+    Operator,
+    Punctuation,
+    String,
     Default,
 }
 
@@ -157,6 +163,29 @@ fn tokenize_oxc(
     options: &Options,
     ignore_regions: &[[usize; 2]],
 ) -> Vec<DetectionToken> {
+    if needs_contextual_parser(format, content) {
+        return tokenize_oxc_with_parser(content, format, options, ignore_regions);
+    }
+
+    let lexed = tokenize_oxc_with_lexer(content, format, options, ignore_regions);
+    if lexed.needs_parser {
+        tokenize_oxc_with_parser(content, format, options, ignore_regions)
+    } else {
+        lexed.tokens
+    }
+}
+
+struct OxcLexedTokens {
+    tokens: Vec<DetectionToken>,
+    needs_parser: bool,
+}
+
+fn tokenize_oxc_with_lexer(
+    content: &str,
+    format: &str,
+    options: &Options,
+    ignore_regions: &[[usize; 2]],
+) -> OxcLexedTokens {
     let context = TokenContext {
         content,
         options,
@@ -168,6 +197,7 @@ fn tokenize_oxc(
     let line_index = LineIndex::new(content);
     let mut tokens = Vec::with_capacity(content.len().saturating_div(6));
     let mut previous_end = 0usize;
+    let mut needs_parser = false;
     let mut token = lexer.first_token();
 
     while !token.kind().is_eof() {
@@ -175,6 +205,16 @@ fn tokenize_oxc(
         let end_byte = (token.end() as usize).min(content.len());
         if start_byte > previous_end {
             push_comments_in_gap(&mut tokens, &context, previous_end, start_byte, &line_index);
+        }
+        if token.kind() == Kind::NoSubstitutionTemplate
+            && context
+                .slice(ByteSpan {
+                    start: start_byte,
+                    end: end_byte,
+                })
+                .contains("${")
+        {
+            needs_parser = true;
         }
         push_oxc_token(
             &mut tokens,
@@ -191,16 +231,89 @@ fn tokenize_oxc(
     }
 
     if previous_end < content.len() {
-        push_comments_in_gap(
+        if has_code_in_gap(content, previous_end, content.len()) {
+            needs_parser = true;
+        } else {
+            push_comments_in_gap(
+                &mut tokens,
+                &context,
+                previous_end,
+                content.len(),
+                &line_index,
+            );
+        }
+    }
+
+    OxcLexedTokens {
+        tokens,
+        needs_parser,
+    }
+}
+
+fn tokenize_oxc_with_parser(
+    content: &str,
+    format: &str,
+    options: &Options,
+    ignore_regions: &[[usize; 2]],
+) -> Vec<DetectionToken> {
+    let context = TokenContext {
+        content,
+        options,
+        ignore_regions,
+    };
+    let allocator = Allocator::new();
+    let source_type = source_type_for_format(format);
+    let parser_return = Parser::new(&allocator, content, source_type)
+        .with_config(TokensParserConfig)
+        .parse();
+    let line_index = LineIndex::new(content);
+    let mut tokens = Vec::with_capacity(content.len().saturating_div(6));
+    let mut previous_end = 0usize;
+
+    for token in parser_return.tokens {
+        let start_byte = (token.start() as usize).min(content.len());
+        let end_byte = (token.end() as usize).min(content.len());
+        if start_byte > previous_end {
+            push_comments_in_gap(&mut tokens, &context, previous_end, start_byte, &line_index);
+        }
+        push_oxc_token(
             &mut tokens,
             &context,
-            previous_end,
-            content.len(),
+            token.kind(),
+            ByteSpan {
+                start: start_byte,
+                end: end_byte,
+            },
             &line_index,
         );
+        previous_end = previous_end.max(end_byte);
+    }
+
+    if previous_end < content.len() {
+        if has_code_in_gap(content, previous_end, content.len()) {
+            tokenize_js_like_range(
+                &mut tokens,
+                &context,
+                previous_end,
+                content.len(),
+                &line_index,
+            );
+        } else {
+            push_comments_in_gap(
+                &mut tokens,
+                &context,
+                previous_end,
+                content.len(),
+                &line_index,
+            );
+        }
     }
 
     tokens
+}
+
+fn needs_contextual_parser(format: &str, content: &str) -> bool {
+    matches!(format, "jsx" | "tsx") || has_template_substitution(content)
 }
 
 fn source_type_for_format(format: &str) -> SourceType {
@@ -227,11 +340,71 @@ fn push_oxc_token(
         return;
     }
     tokens.push(DetectionToken {
-        hash: hash_oxc_token(kind, context.slice(span), context.options.ignore_case),
+        hash: hash_token(
+            token_kind_for_oxc(kind),
+            context.slice(span),
+            context.options.ignore_case,
+        ),
         start: line_index.location(span.start),
         end: line_index.location(span.end),
         range: [span.start, span.end],
     });
+}
+
+fn tokenize_js_like_range(
+    tokens: &mut Vec<DetectionToken>,
+    context: &TokenContext<'_>,
+    range_start: usize,
+    range_end: usize,
+    line_index: &LineIndex,
+) {
+    let bytes = context.content.as_bytes();
+    let mut idx = range_start;
+
+    while idx < range_end {
+        let ch = context.content[idx..].chars().next().unwrap_or('\0');
+        if ch.is_whitespace() {
+            idx += ch.len_utf8();
+            continue;
+        }
+
+        let (end, kind) = if idx + 1 < range_end && bytes[idx] == b'/' && bytes[idx + 1] == b'/' {
+            (scan_line_comment(bytes, idx, range_end), TokenKind::Comment)
+        } else if idx + 1 < range_end && bytes[idx] == b'/' && bytes[idx + 1] == b'*' {
+            (
+                scan_block_comment(bytes, idx, range_end),
+                TokenKind::Comment,
+            )
+        } else if matches!(bytes[idx], b'\'' | b'"' | b'`') {
+            (
+                scan_string(bytes, idx, bytes[idx], range_end),
+                TokenKind::String,
+            )
+        } else if is_identifier_start(ch) {
+            let end = scan_identifier(context.content, idx, range_end);
+            let value = &context.content[idx..end];
+            let kind = if is_js_keyword(value) {
+                TokenKind::Keyword
+            } else {
+                TokenKind::Default
+            };
+            (end, kind)
+        } else if bytes[idx].is_ascii_digit() {
+            (scan_number(bytes, idx, range_end), TokenKind::Number)
+        } else {
+            scan_operator_or_punctuation(bytes, idx, range_end)
+        };
+
+        push_token(
+            tokens,
+            context,
+            kind,
+            ByteSpan { start: idx, end },
+            line_index.location(idx),
+            line_index.location(end),
+        );
+        idx = end.max(idx + 1);
+    }
 }
 
 fn push_comments_in_gap(
@@ -368,23 +541,189 @@ fn is_commentish(value: &str) -> bool {
         || value.starts_with("<!--")
 }
 
-fn hash_token(kind: TokenKind, value: &str, ignore_case: bool) -> u128 {
+fn hash_token(kind: TokenKind, value: &str, ignore_case: bool) -> u64 {
     let kind_hash = match kind {
-        TokenKind::Comment => 0x01_u128,
-        TokenKind::Default => 0x07_u128,
+        TokenKind::Comment => 0x01_u64,
+        TokenKind::Keyword => 0x02_u64,
+        TokenKind::Number => 0x03_u64,
+        TokenKind::Operator => 0x04_u64,
+        TokenKind::Punctuation => 0x05_u64,
+        TokenKind::String => 0x06_u64,
+        TokenKind::Default => 0x07_u64,
     };
     hash_value(value, ignore_case) ^ kind_hash
 }
 
-fn hash_oxc_token(kind: Kind, value: &str, ignore_case: bool) -> u128 {
-    hash_value(value, ignore_case) ^ ((kind as u8 as u128) << 120)
+fn hash_value(value: &str, ignore_case: bool) -> u64 {
+    if ignore_case {
+        xxh3_64(value.to_lowercase().as_bytes())
+    } else {
+        xxh3_64(value.as_bytes())
+    }
 }
 
-fn hash_value(value: &str, ignore_case: bool) -> u128 {
-    if ignore_case {
-        xxh3_128(value.to_lowercase().as_bytes())
+fn token_kind_for_oxc(kind: Kind) -> TokenKind {
+    if kind.is_number() {
+        return TokenKind::Number;
+    }
+    if matches!(
+        kind,
+        Kind::Str
+            | Kind::NoSubstitutionTemplate
+            | Kind::TemplateHead
+            | Kind::TemplateMiddle
+            | Kind::TemplateTail
+            | Kind::RegExp
+    ) {
+        return TokenKind::String;
+    }
+    if is_oxc_keyword(kind) {
+        return TokenKind::Keyword;
+    }
+    if is_oxc_punctuation(kind) {
+        return TokenKind::Punctuation;
+    }
+    if is_oxc_operator(kind) {
+        return TokenKind::Operator;
+    }
+    TokenKind::Default
+}
+
+fn is_oxc_keyword(kind: Kind) -> bool {
+    matches!(
+        kind,
+        Kind::Await
+            | Kind::Break
+            | Kind::Case
+            | Kind::Catch
+            | Kind::Class
+            | Kind::Const
+            | Kind::Continue
+            | Kind::Debugger
+            | Kind::Default
+            | Kind::Delete
+            | Kind::Do
+            | Kind::Else
+            | Kind::Enum
+            | Kind::Export
+            | Kind::Extends
+            | Kind::Finally
+            | Kind::For
+            | Kind::Function
+            | Kind::If
+            | Kind::Import
+            | Kind::In
+            | Kind::Instanceof
+            | Kind::New
+            | Kind::Return
+            | Kind::Super
+            | Kind::Switch
+            | Kind::This
+            | Kind::Throw
+            | Kind::Try
+            | Kind::Typeof
+            | Kind::Var
+            | Kind::Void
+            | Kind::While
+            | Kind::With
+            | Kind::Async
+            | Kind::From
+            | Kind::Get
+            | Kind::Of
+            | Kind::Set
+            | Kind::As
+            | Kind::Type
+            | Kind::Undefined
+            | Kind::Implements
+            | Kind::Interface
+            | Kind::Let
+            | Kind::Package
+            | Kind::Private
+            | Kind::Protected
+            | Kind::Public
+            | Kind::Static
+            | Kind::Yield
+            | Kind::True
+            | Kind::False
+            | Kind::Null
+    )
+}
+
+fn is_oxc_punctuation(kind: Kind) -> bool {
+    matches!(
+        kind,
+        Kind::Colon
+            | Kind::Comma
+            | Kind::Dot
+            | Kind::Dot3
+            | Kind::LBrack
+            | Kind::LCurly
+            | Kind::LParen
+            | Kind::RBrack
+            | Kind::RCurly
+            | Kind::RParen
+            | Kind::Semicolon
+    )
+}
+
+fn is_oxc_operator(kind: Kind) -> bool {
+    !matches!(kind, Kind::Ident | Kind::PrivateIdentifier | Kind::JSXText)
+        && !matches!(token_kind_for_operator_check(kind), TokenKind::Default)
+}
+
+fn token_kind_for_operator_check(kind: Kind) -> TokenKind {
+    if matches!(
+        kind,
+        Kind::Amp
+            | Kind::Amp2
+            | Kind::Amp2Eq
+            | Kind::AmpEq
+            | Kind::Bang
+            | Kind::Caret
+            | Kind::CaretEq
+            | Kind::Eq
+            | Kind::Eq2
+            | Kind::Eq3
+            | Kind::GtEq
+            | Kind::LAngle
+            | Kind::LtEq
+            | Kind::Minus
+            | Kind::Minus2
+            | Kind::MinusEq
+            | Kind::Neq
+            | Kind::Neq2
+            | Kind::Percent
+            | Kind::PercentEq
+            | Kind::Pipe
+            | Kind::Pipe2
+            | Kind::Pipe2Eq
+            | Kind::PipeEq
+            | Kind::Plus
+            | Kind::Plus2
+            | Kind::PlusEq
+            | Kind::Question
+            | Kind::Question2
+            | Kind::Question2Eq
+            | Kind::QuestionDot
+            | Kind::RAngle
+            | Kind::ShiftLeft
+            | Kind::ShiftLeftEq
+            | Kind::ShiftRight
+            | Kind::ShiftRight3
+            | Kind::ShiftRight3Eq
+            | Kind::ShiftRightEq
+            | Kind::Slash
+            | Kind::SlashEq
+            | Kind::Star
+            | Kind::Star2
+            | Kind::Star2Eq
+            | Kind::StarEq
+            | Kind::Tilde
+            | Kind::Arrow
+    ) {
+        TokenKind::Operator
     } else {
-        xxh3_128(value.as_bytes())
+        TokenKind::Default
     }
 }
 
@@ -437,6 +776,154 @@ fn scan_block_comment(bytes: &[u8], start: usize, limit: usize) -> usize {
         idx += 1;
     }
     limit
+}
+
+fn has_code_in_gap(content: &str, start: usize, end: usize) -> bool {
+    let bytes = content.as_bytes();
+    let mut idx = start;
+    while idx < end {
+        let ch = content[idx..].chars().next().unwrap_or('\0');
+        if ch.is_whitespace() {
+            idx += ch.len_utf8();
+        } else if idx + 1 < end && bytes[idx] == b'/' && bytes[idx + 1] == b'/' {
+            idx = scan_line_comment(bytes, idx, end);
+        } else if idx + 1 < end && bytes[idx] == b'/' && bytes[idx + 1] == b'*' {
+            idx = scan_block_comment(bytes, idx, end);
+        } else {
+            return true;
+        }
+    }
+    false
+}
+
+fn has_template_substitution(content: &str) -> bool {
+    content.contains('`') && content.contains("${")
+}
+
+fn scan_string(bytes: &[u8], start: usize, quote: u8, limit: usize) -> usize {
+    let mut idx = start + 1;
+    while idx < limit {
+        if bytes[idx] == b'\\' {
+            idx = (idx + 2).min(limit);
+            continue;
+        }
+        if bytes[idx] == quote {
+            return idx + 1;
+        }
+        idx += 1;
+    }
+    limit
+}
+
+fn scan_identifier(content: &str, start: usize, limit: usize) -> usize {
+    let mut idx = start;
+    while idx < limit {
+        let ch = content[idx..].chars().next().unwrap_or('\0');
+        if !is_identifier_continue(ch) {
+            break;
+        }
+        idx += ch.len_utf8();
+    }
+    idx
+}
+
+fn scan_number(bytes: &[u8], start: usize, limit: usize) -> usize {
+    let mut idx = start;
+    while idx < limit
+        && (bytes[idx].is_ascii_alphanumeric() || matches!(bytes[idx], b'.' | b'_' | b'+' | b'-'))
+    {
+        idx += 1;
+    }
+    idx
+}
+
+fn scan_operator_or_punctuation(bytes: &[u8], start: usize, limit: usize) -> (usize, TokenKind) {
+    const OPERATORS: &[&[u8]] = &[
+        b">>>=", b"===", b"!==", b">>>", b"<<=", b">>=", b"**=", b"=>", b"==", b"!=", b"<=", b">=",
+        b"++", b"--", b"&&", b"||", b"??", b"?.", b"...", b"+=", b"-=", b"*=", b"/=", b"%=", b"&=",
+        b"|=", b"^=", b"<<", b">>", b"**",
+    ];
+    for operator in OPERATORS {
+        if bytes[start..limit].starts_with(operator) {
+            return (start + operator.len(), TokenKind::Operator);
+        }
+    }
+    let kind = if matches!(
+        bytes[start],
+        b'{' | b'}' | b'[' | b']' | b'(' | b')' | b';' | b',' | b':' | b'.'
+    ) {
+        TokenKind::Punctuation
+    } else {
+        TokenKind::Operator
+    };
+    (start + 1, kind)
+}
+
+fn is_identifier_start(ch: char) -> bool {
+    ch == '_' || ch == '$' || ch.is_ascii_alphabetic() || (ch as u32) > 0x7f
+}
+
+fn is_identifier_continue(ch: char) -> bool {
+    is_identifier_start(ch) || ch.is_ascii_digit()
+}
+
+fn is_js_keyword(value: &str) -> bool {
+    matches!(
+        value,
+        "as" | "async"
+            | "await"
+            | "break"
+            | "case"
+            | "catch"
+            | "class"
+            | "const"
+            | "continue"
+            | "debugger"
+            | "default"
+            | "delete"
+            | "do"
+            | "else"
+            | "enum"
+            | "export"
+            | "extends"
+            | "false"
+            | "finally"
+            | "for"
+            | "from"
+            | "function"
+            | "get"
+            | "if"
+            | "implements"
+            | "import"
+            | "in"
+            | "instanceof"
+            | "interface"
+            | "let"
+            | "new"
+            | "null"
+            | "of"
+            | "package"
+            | "private"
+            | "protected"
+            | "public"
+            | "return"
+            | "set"
+            | "static"
+            | "super"
+            | "switch"
+            | "this"
+            | "throw"
+            | "true"
+            | "try"
+            | "type"
+            | "typeof"
+            | "undefined"
+            | "var"
+            | "void"
+            | "while"
+            | "with"
+            | "yield"
+    )
 }
 
 #[cfg(test)]

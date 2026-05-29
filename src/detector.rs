@@ -8,7 +8,7 @@ use crate::cli::Options;
 use crate::files::SourceFile;
 use crate::tokenizer::{DetectionToken, Location, tokenize_for_detection};
 
-const WINDOW_HASH_BASE: u128 = 0x9e37_79b9_7f4a_7c15_f39c_c060_5ced_c835;
+const WINDOW_HASH_BASE: u64 = 0x9e37_79b9_7f4a_7c15;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct SourceId(usize);
@@ -98,7 +98,7 @@ struct SourceMeta {
 struct TokenStream {
     source_id: SourceId,
     format_id: FormatId,
-    hashes: Vec<u128>,
+    hashes: Vec<u64>,
     spans: Vec<TokenSpan>,
 }
 
@@ -126,6 +126,7 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
     let mut sources = Vec::new();
     let mut source_contents = HashMap::new();
     let mut source_indices_by_format = vec![Vec::new(); format_names.len()];
+    let include_source_contents = options.reporters.iter().any(|reporter| reporter == "json");
 
     for (idx, prepared) in prepared_files.iter().enumerate() {
         update_source_statistics(
@@ -140,10 +141,12 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
             lines: prepared.meta.lines,
             tokens: prepared.meta.tokens,
         });
-        source_contents.insert(
-            prepared.meta.source_id.clone(),
-            prepared.meta.content.clone(),
-        );
+        if include_source_contents {
+            source_contents.insert(
+                prepared.meta.source_id.clone(),
+                prepared.meta.content.clone(),
+            );
+        }
         source_indices_by_format[prepared.stream.format_id.0].push(idx);
     }
 
@@ -221,7 +224,7 @@ fn prepare_file(
     }
 }
 
-fn split_tokens(tokens: Vec<DetectionToken>) -> (Vec<u128>, Vec<TokenSpan>) {
+fn split_tokens(tokens: Vec<DetectionToken>) -> (Vec<u64>, Vec<TokenSpan>) {
     let mut hashes = Vec::with_capacity(tokens.len());
     let mut spans = Vec::with_capacity(tokens.len());
     for token in tokens {
@@ -242,10 +245,15 @@ fn detect_format(
     format_names: &[String],
     options: &Options,
 ) -> Vec<CloneMatch> {
-    let mut store: FxHashMap<u128, Occurrence> = FxHashMap::default();
+    let mut store: FxHashMap<u64, Occurrence> = FxHashMap::default();
+    store.reserve(total_windows(
+        source_indices,
+        prepared_files,
+        options.min_tokens,
+    ));
     let mut clones = Vec::new();
 
-    for &source_idx in source_indices {
+    for &source_idx in source_indices.iter().rev() {
         let stream = &prepared_files[source_idx].stream;
         debug_assert_eq!(stream.source_id.0, source_idx);
         debug_assert_eq!(stream.format_id, format_id);
@@ -307,14 +315,31 @@ fn detect_format(
     clones
 }
 
-fn initial_window_hash(hashes: &[u128], min_tokens: usize) -> u128 {
-    hashes[..min_tokens].iter().fold(0u128, |hash, token_hash| {
+fn total_windows(
+    source_indices: &[usize],
+    prepared_files: &[PreparedSource],
+    min_tokens: usize,
+) -> usize {
+    source_indices
+        .iter()
+        .map(|&source_idx| {
+            prepared_files[source_idx]
+                .stream
+                .hashes
+                .len()
+                .saturating_sub(min_tokens)
+        })
+        .sum()
+}
+
+fn initial_window_hash(hashes: &[u64], min_tokens: usize) -> u64 {
+    hashes[..min_tokens].iter().fold(0u64, |hash, token_hash| {
         hash.wrapping_mul(WINDOW_HASH_BASE)
             .wrapping_add(*token_hash)
     })
 }
 
-fn next_window_hash(hash: u128, outgoing: u128, incoming: u128, window_power: u128) -> u128 {
+fn next_window_hash(hash: u64, outgoing: u64, incoming: u64, window_power: u64) -> u64 {
     hash.wrapping_sub(outgoing.wrapping_mul(window_power))
         .wrapping_mul(WINDOW_HASH_BASE)
         .wrapping_add(incoming)
