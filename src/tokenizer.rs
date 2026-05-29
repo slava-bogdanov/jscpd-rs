@@ -69,14 +69,36 @@ pub fn tokenize_for_detection(
     } else {
         tokenize_generic(content, options, &ignore_regions)
     };
-    assign_token_positions(&mut tokens);
+    assign_token_positions(content, format, options, &mut tokens);
     tokens
 }
 
-fn assign_token_positions(tokens: &mut [DetectionToken]) {
-    for (position, token) in tokens.iter_mut().enumerate() {
+fn assign_token_positions(
+    content: &str,
+    format: &str,
+    options: &Options,
+    tokens: &mut [DetectionToken],
+) {
+    let needs_report_positions =
+        options.reporters.iter().any(|reporter| reporter == "json") || !options.silent;
+    if !needs_report_positions || !matches!(format, "typescript" | "tsx") {
+        for (position, token) in tokens.iter_mut().enumerate() {
+            token.start.position = position;
+            token.end.position = position;
+        }
+        return;
+    }
+
+    let mut position = 0usize;
+    let mut previous_end = 0usize;
+    for token in tokens {
+        if token.range[0] > previous_end {
+            position += count_prism_whitespace_tokens(content, previous_end, token.range[0]);
+        }
         token.start.position = position;
         token.end.position = position;
+        position += 1;
+        previous_end = previous_end.max(token.range[1]);
     }
 }
 
@@ -695,6 +717,31 @@ fn has_code_in_gap(content: &str, start: usize, end: usize) -> bool {
     false
 }
 
+fn count_prism_whitespace_tokens(content: &str, start: usize, end: usize) -> usize {
+    let bytes = content.as_bytes();
+    let mut idx = start;
+    let mut count = 0usize;
+
+    while idx < end {
+        match bytes[idx] {
+            b'\n' => {
+                count += 1;
+                idx += 1;
+            }
+            b' ' | b'\t' | b'\r' | b'\x0c' | b'\x0b' => {
+                count += 1;
+                idx += 1;
+                while idx < end && matches!(bytes[idx], b' ' | b'\t' | b'\r' | b'\x0c' | b'\x0b') {
+                    idx += 1;
+                }
+            }
+            _ => idx += 1,
+        }
+    }
+
+    count
+}
+
 fn scan_string(bytes: &[u8], start: usize, quote: u8, limit: usize) -> usize {
     let mut idx = start + 1;
     while idx < limit {
@@ -853,6 +900,19 @@ mod tests {
         assert_eq!(tokens.len(), 10);
         assert_eq!(tokens[0].start.line, 1);
         assert_eq!(tokens[5].start.line, 2);
+    }
+
+    #[test]
+    fn typescript_json_positions_count_prism_whitespace_tokens() {
+        let options = Options {
+            reporters: vec!["json".to_string()],
+            ..Options::default()
+        };
+        let tokens =
+            super::tokenize_for_detection("let a = 1;\nlet b = 2;", "typescript", &options);
+        assert_eq!(tokens[0].start.position, 0);
+        assert_eq!(tokens[1].start.position, 2);
+        assert_eq!(tokens[5].start.position, 9);
     }
 
     #[test]
