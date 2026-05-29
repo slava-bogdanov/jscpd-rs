@@ -194,12 +194,26 @@ fn tokenize_oxc(
     let line_index = LineIndex::new(content);
     let mut tokens = Vec::with_capacity(content.len().saturating_div(6));
     let mut previous_end = 0usize;
+    let parser_tokens = parser_return.tokens;
+    let mut idx = 0usize;
 
-    for token in parser_return.tokens {
+    while idx < parser_tokens.len() {
+        let token = &parser_tokens[idx];
         let start_byte = (token.start() as usize).min(content.len());
-        let end_byte = (token.end() as usize).min(content.len());
+        let mut end_byte = (token.end() as usize).min(content.len());
         if start_byte > previous_end {
             push_comments_in_gap(&mut tokens, &context, previous_end, start_byte, &line_index);
+        }
+        if token.kind() == Kind::RAngle {
+            while idx + 1 < parser_tokens.len() {
+                let next = &parser_tokens[idx + 1];
+                let next_start = (next.start() as usize).min(content.len());
+                if next.kind() != Kind::RAngle || next_start != end_byte {
+                    break;
+                }
+                idx += 1;
+                end_byte = (next.end() as usize).min(content.len());
+            }
         }
         push_oxc_token(
             &mut tokens,
@@ -212,6 +226,7 @@ fn tokenize_oxc(
             &line_index,
         );
         previous_end = previous_end.max(end_byte);
+        idx += 1;
     }
 
     if previous_end < content.len() {
@@ -257,6 +272,36 @@ fn push_oxc_token(
     if kind == Kind::Skip || span.start >= span.end {
         return;
     }
+    if matches!(
+        kind,
+        Kind::TemplateHead | Kind::TemplateMiddle | Kind::TemplateTail
+    ) {
+        push_template_token_parts(tokens, context, kind, span, line_index);
+        return;
+    }
+    if kind == Kind::QuestionDot && context.slice(span) == "?." {
+        push_token_part(
+            tokens,
+            context,
+            TokenKind::Operator,
+            ByteSpan {
+                start: span.start,
+                end: span.start + 1,
+            },
+            line_index,
+        );
+        push_token_part(
+            tokens,
+            context,
+            TokenKind::Punctuation,
+            ByteSpan {
+                start: span.start + 1,
+                end: span.end,
+            },
+            line_index,
+        );
+        return;
+    }
     if context.overlaps_ignore_region(span) {
         return;
     }
@@ -270,6 +315,116 @@ fn push_oxc_token(
         end: line_index.location(span.end),
         range: [span.start, span.end],
     });
+}
+
+fn push_template_token_parts(
+    tokens: &mut Vec<DetectionToken>,
+    context: &TokenContext<'_>,
+    kind: Kind,
+    span: ByteSpan,
+    line_index: &LineIndex,
+) {
+    match kind {
+        Kind::TemplateHead => {
+            let interpolation_start = span.end.saturating_sub(2);
+            push_token_part(
+                tokens,
+                context,
+                TokenKind::String,
+                ByteSpan {
+                    start: span.start,
+                    end: interpolation_start,
+                },
+                line_index,
+            );
+            push_token_part(
+                tokens,
+                context,
+                TokenKind::Punctuation,
+                ByteSpan {
+                    start: interpolation_start,
+                    end: span.end,
+                },
+                line_index,
+            );
+        }
+        Kind::TemplateMiddle => {
+            push_token_part(
+                tokens,
+                context,
+                TokenKind::Punctuation,
+                ByteSpan {
+                    start: span.start,
+                    end: span.start.saturating_add(1),
+                },
+                line_index,
+            );
+            let interpolation_start = span.end.saturating_sub(2);
+            push_token_part(
+                tokens,
+                context,
+                TokenKind::String,
+                ByteSpan {
+                    start: span.start.saturating_add(1),
+                    end: interpolation_start,
+                },
+                line_index,
+            );
+            push_token_part(
+                tokens,
+                context,
+                TokenKind::Punctuation,
+                ByteSpan {
+                    start: interpolation_start,
+                    end: span.end,
+                },
+                line_index,
+            );
+        }
+        Kind::TemplateTail => {
+            push_token_part(
+                tokens,
+                context,
+                TokenKind::Punctuation,
+                ByteSpan {
+                    start: span.start,
+                    end: span.start.saturating_add(1),
+                },
+                line_index,
+            );
+            push_token_part(
+                tokens,
+                context,
+                TokenKind::String,
+                ByteSpan {
+                    start: span.start.saturating_add(1),
+                    end: span.end,
+                },
+                line_index,
+            );
+        }
+        _ => {}
+    }
+}
+
+fn push_token_part(
+    tokens: &mut Vec<DetectionToken>,
+    context: &TokenContext<'_>,
+    kind: TokenKind,
+    span: ByteSpan,
+    line_index: &LineIndex,
+) {
+    if span.start >= span.end || context.overlaps_ignore_region(span) {
+        return;
+    }
+    push_token(
+        tokens,
+        context,
+        kind,
+        span,
+        line_index.location(span.start),
+        line_index.location(span.end),
+    );
 }
 
 fn tokenize_js_like_range(
@@ -929,5 +1084,40 @@ mod tests {
         let weak =
             super::tokenize_for_detection("const a = 1; // comment\n", "javascript", &options);
         assert!(strong.len() > weak.len());
+    }
+
+    #[test]
+    fn splits_template_interpolation_like_prism() {
+        let tokens = super::tokenize_for_detection(
+            "const x = `a${b}c${d}e`;",
+            "typescript",
+            &Options::default(),
+        );
+        assert_eq!(tokens.len(), 13);
+        assert_eq!(tokens[3].start.column, 11);
+        assert_eq!(tokens[4].start.column, 13);
+        assert_eq!(tokens[6].start.column, 16);
+        assert_eq!(tokens[8].start.column, 18);
+        assert_eq!(tokens[10].start.column, 21);
+        assert_eq!(tokens[11].start.column, 22);
+    }
+
+    #[test]
+    fn splits_optional_chaining_like_prism() {
+        let tokens = super::tokenize_for_detection("a?.b", "typescript", &Options::default());
+        assert_eq!(tokens.len(), 4);
+        assert_eq!(tokens[1].start.column, 2);
+        assert_eq!(tokens[2].start.column, 3);
+        assert_eq!(tokens[3].start.column, 4);
+    }
+
+    #[test]
+    fn merges_adjacent_generic_closing_angles_like_prism() {
+        let tokens =
+            super::tokenize_for_detection("type A = X<Y<Z>>;", "typescript", &Options::default());
+        assert_eq!(tokens.len(), 10);
+        assert_eq!(tokens[8].start.column, 15);
+        assert_eq!(tokens[8].end.column, 17);
+        assert_eq!(tokens[9].start.column, 17);
     }
 }

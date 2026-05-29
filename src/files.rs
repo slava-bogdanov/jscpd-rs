@@ -361,22 +361,16 @@ fn normal_components(path: &Path) -> Vec<OsString> {
 fn fast_glob_like_path_cmp(left: &Path, right: &Path) -> Ordering {
     let left_components = left.components().collect::<Vec<_>>();
     let right_components = right.components().collect::<Vec<_>>();
-    let common_len = left_components.len().min(right_components.len());
+    match left_components.len().cmp(&right_components.len()) {
+        Ordering::Equal => {}
+        ordering => return ordering,
+    }
 
-    for idx in 0..common_len {
+    for idx in 0..left_components.len() {
         let left_component = left_components[idx].as_os_str();
         let right_component = right_components[idx].as_os_str();
         if left_component == right_component {
             continue;
-        }
-
-        let left_remaining = left_components.len() - idx;
-        let right_remaining = right_components.len() - idx;
-        if left_remaining == 1 && right_remaining > 1 {
-            return Ordering::Less;
-        }
-        if right_remaining == 1 && left_remaining > 1 {
-            return Ordering::Greater;
         }
 
         return left_component
@@ -384,7 +378,7 @@ fn fast_glob_like_path_cmp(left: &Path, right: &Path) -> Ordering {
             .cmp(&right_component.to_string_lossy());
     }
 
-    left_components.len().cmp(&right_components.len())
+    Ordering::Equal
 }
 
 fn build_glob_set(patterns: &[String]) -> Result<GlobSet> {
@@ -418,6 +412,13 @@ mod tests {
             fast_glob_like_path_cmp(
                 Path::new("pkg/tokenizer/src/languages/astro.ts"),
                 Path::new("pkg/tokenizer/src/languages/vue.ts"),
+            ),
+            Ordering::Less
+        );
+        assert_eq!(
+            fast_glob_like_path_cmp(
+                Path::new("../dream/landing/.next/types/validator.ts"),
+                Path::new("../dream/landing/.next/dev/types/validator.ts"),
             ),
             Ordering::Less
         );
