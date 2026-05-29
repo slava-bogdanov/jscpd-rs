@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
 
 const [rustReportPath, upstreamReportPath] = process.argv.slice(2);
 
@@ -58,6 +59,16 @@ if (extraStartKeys.length > 0) {
   console.log('');
   console.log('extra rust starts:');
   for (const duplicate of extraStartKeys) console.log(`  ${startKey(duplicate)}`);
+}
+
+if (process.env.DETAILS === '1') {
+  printDuplicateDetails('missing upstream details', missingStartKeys);
+  printDuplicateDetails('extra rust details', extraStartKeys);
+}
+
+if (process.env.SOURCE_DELTAS) {
+  const limit = Number(process.env.SOURCE_DELTAS) || 20;
+  printSourceDeltas(rust, upstream, limit);
 }
 
 if (process.env.STRICT === '1') {
@@ -144,4 +155,79 @@ function formatFile(file) {
   const start = file.start ?? file.startLoc?.line ?? file.start?.line ?? '?';
   const end = file.end ?? file.endLoc?.line ?? file.end?.line ?? '?';
   return `${name}:${start}-${end}`;
+}
+
+function printDuplicateDetails(title, duplicates) {
+  if (duplicates.length === 0) return;
+  console.log('');
+  console.log(`${title}:`);
+  for (const duplicate of duplicates) console.log(`  ${detailKey(duplicate)}`);
+}
+
+function detailKey(duplicate) {
+  const first = duplicate.firstFile ?? duplicate.duplicationA;
+  const second = duplicate.secondFile ?? duplicate.duplicationB;
+  return [formatDetailedStart(first), formatDetailedStart(second)].sort().join(' <> ');
+}
+
+function formatDetailedStart(file) {
+  if (!file) return '<unknown>';
+  const name = normalizePath(file.name ?? file.sourceId ?? file.source_id ?? '<unknown>');
+  const loc = file.startLoc?.line
+    ? file.startLoc
+    : typeof file.start === 'object'
+      ? file.start
+      : { line: file.start ?? '?', column: file.startLoc?.column ?? '?' };
+  return `${name}:${loc.line}:${loc.column ?? '?'}`;
+}
+
+function printSourceDeltas(rustReport, upstreamReport, limit) {
+  const rustSources = collectSources(rustReport);
+  const upstreamSources = collectSources(upstreamReport);
+  const keys = new Set([...rustSources.keys(), ...upstreamSources.keys()]);
+  const rows = [...keys]
+    .map((key) => {
+      const left = rustSources.get(key) ?? {};
+      const right = upstreamSources.get(key) ?? {};
+      return {
+        key,
+        rustTokens: number(left.tokens),
+        upstreamTokens: number(right.tokens),
+        rustLines: number(left.lines),
+        upstreamLines: number(right.lines),
+      };
+    })
+    .map((row) => ({
+      ...row,
+      tokenDelta: row.rustTokens - row.upstreamTokens,
+      lineDelta: row.rustLines - row.upstreamLines,
+    }))
+    .sort((a, b) => Math.abs(b.tokenDelta) - Math.abs(a.tokenDelta))
+    .slice(0, limit);
+
+  console.log('');
+  console.log(`top source token deltas (${rows.length}):`);
+  for (const row of rows) {
+    console.log(
+      `  ${formatSigned(row.tokenDelta, 0).padStart(9, ' ')} tokens ` +
+        `rust=${String(row.rustTokens).padStart(9, ' ')} ` +
+        `upstream=${String(row.upstreamTokens).padStart(9, ' ')} ` +
+        `lines_delta=${formatSigned(row.lineDelta, 0).padStart(5, ' ')} ` +
+        row.key,
+    );
+  }
+}
+
+function collectSources(report) {
+  const rows = new Map();
+  for (const format of Object.values(report.statistics?.formats ?? {})) {
+    for (const [source, stats] of Object.entries(format.sources ?? {})) {
+      rows.set(normalizePath(source), stats);
+    }
+  }
+  return rows;
+}
+
+function normalizePath(value) {
+  return path.relative(process.cwd(), path.resolve(value));
 }
