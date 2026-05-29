@@ -250,14 +250,14 @@ fn detect_format(
         debug_assert_eq!(stream.source_id.0, source_idx);
         debug_assert_eq!(stream.format_id, format_id);
 
-        if stream.hashes.len() < options.min_tokens {
+        if stream.hashes.len() <= options.min_tokens {
             continue;
         }
 
         let mut open_clone: Option<CloneMatch> = None;
         let mut hash = initial_window_hash(&stream.hashes, options.min_tokens);
         let window_power = WINDOW_HASH_BASE.wrapping_pow((options.min_tokens - 1) as u32);
-        let windows_len = stream.hashes.len() - options.min_tokens + 1;
+        let windows_len = stream.hashes.len() - options.min_tokens;
 
         for token_start in 0..windows_len {
             let current = Occurrence {
@@ -374,7 +374,7 @@ fn fragment_from_occurrence(
 ) -> Fragment {
     let source = &prepared_files[occurrence.source_id.0];
     let start_span = &source.stream.spans[occurrence.token_start];
-    let end_span = &source.stream.spans[occurrence.token_start + min_tokens - 1];
+    let end_span = &source.stream.spans[occurrence.token_start + min_tokens];
     Fragment {
         source_id: source.meta.source_id.clone(),
         start: start_span.start.clone(),
@@ -390,7 +390,7 @@ fn enlarge_fragment_end(
     min_tokens: usize,
 ) {
     let source = &prepared_files[occurrence.source_id.0];
-    let end_span = &source.stream.spans[occurrence.token_start + min_tokens - 1];
+    let end_span = &source.stream.spans[occurrence.token_start + min_tokens];
     fragment.end = end_span.end.clone();
     fragment.range[1] = end_span.range[1];
 }
@@ -407,7 +407,7 @@ fn flush_clone(clone: Option<CloneMatch>, clones: &mut Vec<CloneMatch>, options:
     {
         return;
     }
-    let lines = clone_lines(&clone);
+    let lines = clone_stat_lines(&clone);
     if lines < options.min_lines {
         return;
     }
@@ -430,6 +430,22 @@ pub fn clone_lines(clone: &CloneMatch) -> usize {
         + 1
 }
 
+fn clone_stat_lines(clone: &CloneMatch) -> usize {
+    clone
+        .duplication_a
+        .end
+        .line
+        .saturating_sub(clone.duplication_a.start.line)
+}
+
+fn clone_stat_tokens(clone: &CloneMatch) -> usize {
+    clone
+        .duplication_a
+        .end
+        .position
+        .saturating_sub(clone.duplication_a.start.position)
+}
+
 fn update_source_statistics(
     statistics: &mut Statistics,
     format_name: &str,
@@ -450,15 +466,16 @@ fn update_source_statistics(
 }
 
 fn update_clone_statistics(statistics: &mut Statistics, clone: &CloneMatch) {
-    let lines = clone_lines(clone);
+    let lines = clone_stat_lines(clone);
+    let tokens = clone_stat_tokens(clone);
     statistics.total.clones += 1;
     statistics.total.duplicated_lines += lines;
-    statistics.total.duplicated_tokens += clone.tokens;
+    statistics.total.duplicated_tokens += tokens;
 
     let format = statistics.formats.entry(clone.format.clone()).or_default();
     format.total.clones += 1;
     format.total.duplicated_lines += lines;
-    format.total.duplicated_tokens += clone.tokens;
+    format.total.duplicated_tokens += tokens;
 }
 
 fn finalize_percentages(statistics: &mut Statistics) {
@@ -492,7 +509,7 @@ mod tests {
     fn detects_cross_file_duplicates() {
         let options = Options {
             min_tokens: 3,
-            min_lines: 1,
+            min_lines: 0,
             ..Options::default()
         };
         let content = "alpha beta gamma delta epsilon\n";

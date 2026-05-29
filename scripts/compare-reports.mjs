@@ -23,6 +23,20 @@ printMetric('percentage', rustSummary.percentage, upstreamSummary.percentage, 2)
 
 const rustDuplicates = getDuplicates(rust);
 const upstreamDuplicates = getDuplicates(upstream);
+const rustStartKeys = new Set(rustDuplicates.map(startKey));
+const upstreamStartKeys = new Set(upstreamDuplicates.map(startKey));
+const commonStartKeys = [...rustStartKeys].filter((key) => upstreamStartKeys.has(key));
+const missingStartKeys = upstreamDuplicates
+  .filter((duplicate) => !rustStartKeys.has(startKey(duplicate)))
+  .slice(0, 10);
+const extraStartKeys = rustDuplicates
+  .filter((duplicate) => !upstreamStartKeys.has(startKey(duplicate)))
+  .slice(0, 10);
+
+console.log('');
+console.log(
+  `clone start overlap: ${commonStartKeys.length}/${upstreamStartKeys.size} upstream, ${commonStartKeys.length}/${rustStartKeys.size} rust`,
+);
 
 console.log('');
 console.log('first duplicates:');
@@ -32,6 +46,18 @@ for (let index = 0; index < Math.max(rustDuplicates.length, upstreamDuplicates.l
   const right = formatDuplicate(upstreamDuplicates[index]);
   console.log(`${String(index + 1).padStart(2, ' ')} rust=${left}`);
   console.log(`   upstream=${right}`);
+}
+
+if (missingStartKeys.length > 0) {
+  console.log('');
+  console.log('missing upstream starts:');
+  for (const duplicate of missingStartKeys) console.log(`  ${startKey(duplicate)}`);
+}
+
+if (extraStartKeys.length > 0) {
+  console.log('');
+  console.log('extra rust starts:');
+  for (const duplicate of extraStartKeys) console.log(`  ${startKey(duplicate)}`);
 }
 
 if (process.env.STRICT === '1') {
@@ -96,6 +122,20 @@ function formatDuplicate(duplicate) {
   const tokens = number(duplicate.tokens);
   const lines = number(duplicate.lines);
   return `${format}:${tokens}t/${lines}l ${formatFile(first)} -> ${formatFile(second)}`;
+}
+
+function startKey(duplicate) {
+  if (!duplicate) return '<none>';
+  const first = duplicate.firstFile ?? duplicate.duplicationA;
+  const second = duplicate.secondFile ?? duplicate.duplicationB;
+  return [formatStart(first), formatStart(second)].sort().join(' <> ');
+}
+
+function formatStart(file) {
+  if (!file) return '<unknown>';
+  const name = file.name ?? file.sourceId ?? file.source_id ?? '<unknown>';
+  const start = file.start ?? file.startLoc?.line ?? file.start?.line ?? '?';
+  return `${name}:${start}`;
 }
 
 function formatFile(file) {

@@ -113,7 +113,7 @@ impl JsonDuplicate {
         Self {
             format: clone.format.clone(),
             lines: clone_lines(clone),
-            tokens: clone.tokens,
+            tokens: 0,
             first_file: JsonFile {
                 name: clone.duplication_a.source_id.clone(),
                 start: clone.duplication_a.start.line,

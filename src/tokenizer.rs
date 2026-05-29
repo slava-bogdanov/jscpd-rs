@@ -62,10 +62,19 @@ pub fn tokenize_for_detection(
     options: &Options,
 ) -> Vec<DetectionToken> {
     let ignore_regions = find_ignore_regions(content, options);
-    if is_oxc_format(format) {
+    let mut tokens = if is_oxc_format(format) {
         tokenize_oxc(content, format, options, &ignore_regions)
     } else {
         tokenize_generic(content, options, &ignore_regions)
+    };
+    assign_token_positions(&mut tokens);
+    tokens
+}
+
+fn assign_token_positions(tokens: &mut [DetectionToken]) {
+    for (position, token) in tokens.iter_mut().enumerate() {
+        token.start.position = position;
+        token.end.position = position;
     }
 }
 
