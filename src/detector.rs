@@ -48,10 +48,15 @@ pub struct StatisticRow {
     pub percentage: f64,
     #[serde(rename = "percentageTokens")]
     pub percentage_tokens: f64,
+    #[serde(rename = "newDuplicatedLines")]
+    pub new_duplicated_lines: usize,
+    #[serde(rename = "newClones")]
+    pub new_clones: usize,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct FormatStatistic {
+    pub sources: HashMap<String, StatisticRow>,
     pub total: StatisticRow,
 }
 
@@ -131,6 +136,7 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
     for (idx, prepared) in prepared_files.iter().enumerate() {
         update_source_statistics(
             &mut statistics,
+            &prepared.meta.source_id,
             &prepared.meta.format,
             prepared.meta.lines,
             prepared.meta.tokens,
@@ -206,14 +212,15 @@ fn prepare_file(
 ) -> PreparedSource {
     let tokens = tokenize_for_detection(&file.content, &file.format, options);
     let (hashes, spans) = split_tokens(tokens);
+    let (stat_lines, stat_tokens) = token_stream_statistics(&spans);
 
     PreparedSource {
         meta: SourceMeta {
             source_id: file.source_id,
             format: file.format,
             content: file.content,
-            lines: file.lines,
-            tokens: hashes.len(),
+            lines: stat_lines,
+            tokens: stat_tokens,
         },
         stream: TokenStream {
             source_id: SourceId(idx),
@@ -236,6 +243,16 @@ fn split_tokens(tokens: Vec<DetectionToken>) -> (Vec<u64>, Vec<TokenSpan>) {
         });
     }
     (hashes, spans)
+}
+
+fn token_stream_statistics(spans: &[TokenSpan]) -> (usize, usize) {
+    match (spans.first(), spans.last()) {
+        (Some(first), Some(last)) => (
+            last.end.line.saturating_sub(first.start.line),
+            last.end.position.saturating_sub(first.start.position),
+        ),
+        _ => (0, 0),
+    }
 }
 
 fn detect_format(
@@ -473,6 +490,7 @@ fn clone_stat_tokens(clone: &CloneMatch) -> usize {
 
 fn update_source_statistics(
     statistics: &mut Statistics,
+    source_id: &str,
     format_name: &str,
     lines: usize,
     tokens: usize,
@@ -488,6 +506,11 @@ fn update_source_statistics(
     format.total.sources += 1;
     format.total.lines += lines;
     format.total.tokens += tokens;
+
+    let source = format.sources.entry(source_id.to_string()).or_default();
+    source.sources = 1;
+    source.lines += lines;
+    source.tokens += tokens;
 }
 
 fn update_clone_statistics(statistics: &mut Statistics, clone: &CloneMatch) {
@@ -501,12 +524,25 @@ fn update_clone_statistics(statistics: &mut Statistics, clone: &CloneMatch) {
     format.total.clones += 1;
     format.total.duplicated_lines += lines;
     format.total.duplicated_tokens += tokens;
+
+    for source_id in [
+        &clone.duplication_a.source_id,
+        &clone.duplication_b.source_id,
+    ] {
+        let source = format.sources.entry(source_id.clone()).or_default();
+        source.clones += 1;
+        source.duplicated_lines += lines;
+        source.duplicated_tokens += tokens;
+    }
 }
 
 fn finalize_percentages(statistics: &mut Statistics) {
     update_row_percentages(&mut statistics.total);
     for format in statistics.formats.values_mut() {
         update_row_percentages(&mut format.total);
+        for source in format.sources.values_mut() {
+            update_row_percentages(source);
+        }
     }
 }
 
@@ -553,7 +589,6 @@ mod tests {
             source_id: path.to_string(),
             format: "javascript".to_string(),
             content: content.to_string(),
-            lines: content.split('\n').count(),
         }
     }
 }

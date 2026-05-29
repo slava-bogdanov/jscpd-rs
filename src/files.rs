@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fs;
 use std::path::Path;
 
@@ -14,7 +15,6 @@ pub struct SourceFile {
     pub source_id: String,
     pub format: String,
     pub content: String,
-    pub lines: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -67,7 +67,7 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
         }
     }
 
-    candidates.sort_by(|left, right| left.path.cmp(&right.path));
+    candidates.sort_by(|left, right| fast_glob_like_path_cmp(&left.path, &right.path));
 
     let mut files = candidates
         .into_par_iter()
@@ -166,7 +166,6 @@ fn read_candidate(candidate: CandidateFile, options: &Options) -> Result<Option<
         source_id,
         format: candidate.format,
         content,
-        lines,
     }))
 }
 
@@ -185,6 +184,35 @@ fn is_ignored(path: &Path, ignore_set: &GlobSet) -> bool {
         .unwrap_or(false)
 }
 
+fn fast_glob_like_path_cmp(left: &Path, right: &Path) -> Ordering {
+    let left_components = left.components().collect::<Vec<_>>();
+    let right_components = right.components().collect::<Vec<_>>();
+    let common_len = left_components.len().min(right_components.len());
+
+    for idx in 0..common_len {
+        let left_component = left_components[idx].as_os_str();
+        let right_component = right_components[idx].as_os_str();
+        if left_component == right_component {
+            continue;
+        }
+
+        let left_remaining = left_components.len() - idx;
+        let right_remaining = right_components.len() - idx;
+        if left_remaining == 1 && right_remaining > 1 {
+            return Ordering::Less;
+        }
+        if right_remaining == 1 && left_remaining > 1 {
+            return Ordering::Greater;
+        }
+
+        return left_component
+            .to_string_lossy()
+            .cmp(&right_component.to_string_lossy());
+    }
+
+    left_components.len().cmp(&right_components.len())
+}
+
 fn build_glob_set(patterns: &[String]) -> Result<GlobSet> {
     let mut builder = GlobSetBuilder::new();
     if patterns.is_empty() {
@@ -194,4 +222,30 @@ fn build_glob_set(patterns: &[String]) -> Result<GlobSet> {
         builder.add(Glob::new(pattern)?);
     }
     Ok(builder.build()?)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cmp::Ordering;
+    use std::path::Path;
+
+    use super::fast_glob_like_path_cmp;
+
+    #[test]
+    fn fast_glob_like_order_places_parent_files_before_child_files() {
+        assert_eq!(
+            fast_glob_like_path_cmp(
+                Path::new("pkg/tokenizer/src/tokenize.ts"),
+                Path::new("pkg/tokenizer/src/languages/markdown-tokenizer.ts"),
+            ),
+            Ordering::Less
+        );
+        assert_eq!(
+            fast_glob_like_path_cmp(
+                Path::new("pkg/tokenizer/src/languages/astro.ts"),
+                Path::new("pkg/tokenizer/src/languages/vue.ts"),
+            ),
+            Ordering::Less
+        );
+    }
 }
