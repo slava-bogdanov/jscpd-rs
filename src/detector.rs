@@ -134,6 +134,9 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
     let include_source_contents = options.reporters.iter().any(|reporter| reporter == "json");
 
     for (idx, prepared) in prepared_files.iter().enumerate() {
+        if prepared.stream.spans.is_empty() {
+            continue;
+        }
         update_source_statistics(
             &mut statistics,
             &prepared.meta.source_id,
@@ -582,6 +585,16 @@ mod tests {
         let result = detect(files, &options);
 
         assert!(!result.clones.is_empty());
+    }
+
+    #[test]
+    fn skips_empty_token_sources_in_statistics() {
+        let content = "// jscpd:ignore-start\nignored\n// jscpd:ignore-end\n";
+
+        let result = detect(vec![source("ignored.js", content)], &Options::default());
+
+        assert_eq!(result.sources.len(), 0);
+        assert_eq!(result.statistics.total.sources, 0);
     }
 
     fn source(path: &str, content: &str) -> SourceFile {

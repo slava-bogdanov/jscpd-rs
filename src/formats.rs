@@ -28,6 +28,8 @@ const EXTENSION_FORMATS: &[(&str, &str)] = &[
     ("bash", "bash"),
     ("sql", "sql"),
     ("ts", "typescript"),
+    ("cts", "typescript"),
+    ("mts", "typescript"),
     ("tsx", "tsx"),
     ("vue", "vue"),
     ("yaml", "yaml"),
@@ -78,4 +80,26 @@ pub fn supported_formats() -> Vec<&'static str> {
     formats.sort_unstable();
     formats.dedup();
     formats
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use crate::cli::FormatMappings;
+
+    #[test]
+    fn maps_module_typescript_extensions_like_upstream() {
+        let formats_exts = FormatMappings::default();
+        let formats_names = FormatMappings::default();
+
+        assert_eq!(
+            super::format_for_path(Path::new("index.mts"), &formats_exts, &formats_names),
+            Some("typescript")
+        );
+        assert_eq!(
+            super::format_for_path(Path::new("index.cts"), &formats_exts, &formats_names),
+            Some("typescript")
+        );
+    }
 }
