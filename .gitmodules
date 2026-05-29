@@ -1,0 +1,3 @@
+[submodule "jscpd"]
+	path = jscpd
+	url = https://github.com/kucherenko/jscpd.git

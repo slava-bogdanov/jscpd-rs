@@ -1,0 +1,173 @@
+# jscpd-rs Cloning Plan
+
+## Upstream Review
+
+The reference implementation is a TypeScript monorepo:
+
+- `apps/jscpd` owns the CLI, option/config merging, store setup, reporters, and
+  top-level execution.
+- `packages/finder` discovers files, applies `.gitignore`/ignore/size/line
+  filters, coordinates detection across files, and hosts most reporters.
+- `packages/core` contains the detector, in-memory store, statistics, validators,
+  and Rabin-Karp based clone search.
+- `packages/tokenizer` maps file names/extensions to formats and tokenizes
+  supported languages. Current upstream supports 223 formats and special
+  block-aware tokenization for Vue, Svelte, Astro, and Markdown.
+
+The core flow is:
+
+1. Parse CLI/config into options.
+2. Find supported files with glob, ignore, size, line, symlink, and gitignore
+   filters.
+3. Tokenize each source.
+4. Convert token windows of `minTokens` into hashes.
+5. Use a per-format store to find matching windows and grow adjacent matches
+   into clones.
+6. Validate by `minLines` and optional validators.
+7. Emit statistics and reports.
+
+## MVP Scope
+
+The first Rust MVP intentionally implements the minimum vertical slice needed to
+measure whether a Rust clone has enough performance upside to continue:
+
+- CLI with common jscpd flags.
+- Partial `.jscpd.json` support.
+- File discovery with the Rust `ignore` crate for `.gitignore`.
+- Basic extension-to-format mapping for common formats.
+- Language-agnostic non-whitespace tokenizer.
+- MD5 window hashing and in-memory per-format store.
+- Clone growth and `minLines` validation.
+- Console and JSON reporters.
+- Benchmark script against upstream on the same target path.
+
+Known MVP gaps:
+
+- Tokenization is not language-compatible with upstream yet.
+- Most of the 223 upstream formats are not mapped yet.
+- `strict/mild/weak` are only approximated.
+- No XML/CSV/Markdown/HTML/SARIF/AI reporters yet.
+- No blame, persistent stores, custom format mappings, or embedded block
+  tokenization yet.
+
+## Growth Plan
+
+1. Compatibility harness: run upstream and Rust on shared fixtures, compare clone
+   counts, locations, statistics, reports, and exit behavior.
+2. CLI/config parity: finish all flags, config merging rules, exit codes,
+   threshold behavior, ignore patterns, custom extension/name mappings, and list
+   output.
+3. Tokenizer backend: replace the MVP tokenizer with maintained crates and
+   language-aware token streams. Prefer existing parsers/tokenizers over custom
+   grammars.
+4. Reporters: add XML PMD CPD, CSV, Markdown, SARIF, AI, and full console output.
+5. Advanced sources: shebang detection, Vue/Svelte/Astro/Markdown block splitting,
+   ignore blocks, ignore regex patterns, and weak-mode comment stripping.
+6. Performance work: parallel file reads/tokenization, compact hash storage,
+   faster hashers where compatible, memory profiling, and optional persistent
+   cache/store.
+
+## Current Benchmark
+
+Command:
+
+```bash
+FORMAT=typescript RUNS=5 scripts/bench.sh jscpd/packages
+```
+
+Result on this workspace:
+
+- Rust MVP: `0.108s` average.
+- Upstream `jscpd`: `0.818s` average.
+- Same file count for this run: 297 TypeScript files.
+
+Broader command:
+
+```bash
+RUNS=3 scripts/bench.sh jscpd/packages
+```
+
+Result on this workspace:
+
+- Rust MVP: `0.130s` average.
+- Upstream `jscpd`: `0.937s` average.
+- This broader run is not fully apples-to-apples yet: the MVP supports fewer
+  formats than upstream.
+
+Initial signal: continuing makes sense, but the next milestone must measure
+speed while closing tokenization/report compatibility gaps.
+
+## Larger Local Repo Benchmarks
+
+All commands below used TypeScript-only scanning to keep the comparison focused:
+
+```bash
+FORMAT=typescript RUNS=3 scripts/bench.sh <repo>
+```
+
+| Repo | Rust MVP | Upstream `jscpd` | Files | Rust clones | Upstream clones |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `/home/dev/.hermes/hermes-agent` | `0.447s` | `1.930s` | 316 | 93 | 475 |
+| `/home/dev/dream` | `0.350s` | `1.877s` | 566 Rust / 572 upstream | 371 | 1371 |
+| `/home/dev/infer` | `0.010s` | `0.290s` | 28 | 12 | 41 |
+
+Broader all-format stress on `/home/dev/dream`:
+
+- Rust MVP, `RUNS=2`: `0.600s` average.
+- Upstream `jscpd`: first run took `70.32s`, then the benchmark was stopped.
+- This broader run is not a fair compatibility comparison yet because upstream
+  supports far more formats and emitted a warning for `excel-formula`.
+
+Conclusion remains positive: the Rust path is consistently faster on larger
+repos, but the next milestone must prioritize tokenizer/discovery parity before
+the speedup can be treated as product-quality.
+
+## Acceleration Pass
+
+The first MVP was still too conservative: it used MD5 strings for token/window
+hashes and prepared files sequentially. The current hot path now uses:
+
+- zero-copy detection tokens: no per-token `String` allocation in detection;
+- `xxh3_128` token hashes;
+- numeric rolling window hashes instead of MD5 over concatenated strings;
+- `rustc_hash::FxHashMap` for the in-memory window store;
+- parallel file reads and line counting;
+- parallel per-file tokenization/window preparation;
+- nanosecond-resolution benchmark timing in `scripts/bench.sh`.
+
+Updated TypeScript-only benchmark:
+
+| Repo | Rust MVP before | Rust MVP now | Upstream `jscpd` | Approx speedup vs upstream |
+| --- | ---: | ---: | ---: | ---: |
+| `jscpd/packages` | `0.108s` | `0.019s` | `0.856s` | ~45x |
+| `/home/dev/.hermes/hermes-agent` | `0.447s` | `0.085s` | `2.028s` | ~24x |
+| `/home/dev/dream` | `0.350s` | `0.074s` | `1.955s` | ~26x |
+| `/home/dev/infer` | `0.010s` | `0.009s` | `0.305s` | ~33x |
+
+This is the first speed signal that is strong enough to justify continuing,
+provided compatibility can be raised without destroying the margin.
+
+## Core Stabilization Pass
+
+The detector core was refactored again so later tokenizer/reporting work does
+not have to revisit the detection hot path:
+
+- introduced numeric `SourceId` and `FormatId` in the core;
+- introduced `TokenStream` as the detector input contract;
+- removed per-window `Frame` allocation;
+- stores only first `Occurrence { source_id, token_start }` per window hash;
+- streams rolling windows directly from token hashes;
+- verifies matching windows on hash hits;
+- shards detection by format and runs format shards in parallel.
+
+Updated TypeScript-only benchmark after this pass:
+
+| Repo | Rust after hash pass | Rust after core pass | Upstream `jscpd` | Approx speedup vs upstream |
+| --- | ---: | ---: | ---: | ---: |
+| `jscpd/packages` | `0.019s` | `0.011s` | `0.821s` | ~75x |
+| `/home/dev/.hermes/hermes-agent` | `0.085s` | `0.038s` | `2.041s` | ~54x |
+| `/home/dev/dream` | `0.074s` | `0.034s` | `1.939s` | ~57x |
+
+Do not treat these as fixed release gates yet. Before publication, choose a
+small set of popular public repositories and use them as the repeatable
+benchmark/compatibility suite.
