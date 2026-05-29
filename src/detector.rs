@@ -296,7 +296,7 @@ fn detect_format(
                 }
                 _ => {
                     flush_clone(open_clone.take(), &mut clones, options);
-                    store.entry(hash).or_insert(current);
+                    store.insert(hash, current);
                 }
             }
 

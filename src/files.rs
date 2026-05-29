@@ -67,6 +67,8 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
         }
     }
 
+    candidates.sort_by(|left, right| left.path.cmp(&right.path));
+
     let mut files = candidates
         .into_par_iter()
         .enumerate()

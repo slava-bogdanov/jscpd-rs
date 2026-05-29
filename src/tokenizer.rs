@@ -1,11 +1,7 @@
 use std::path::Path;
 
 use oxc_allocator::Allocator;
-use oxc_parser::{
-    Kind, Parser,
-    config::{TokensLexerConfig, TokensParserConfig},
-    lexer::Lexer,
-};
+use oxc_parser::{Kind, Parser, config::TokensParserConfig};
 use oxc_span::SourceType;
 use serde::Serialize;
 use xxhash_rust::xxh3::xxh3_64;
@@ -163,99 +159,6 @@ fn tokenize_oxc(
     options: &Options,
     ignore_regions: &[[usize; 2]],
 ) -> Vec<DetectionToken> {
-    if needs_contextual_parser(format, content) {
-        return tokenize_oxc_with_parser(content, format, options, ignore_regions);
-    }
-
-    let lexed = tokenize_oxc_with_lexer(content, format, options, ignore_regions);
-    if lexed.needs_parser {
-        tokenize_oxc_with_parser(content, format, options, ignore_regions)
-    } else {
-        lexed.tokens
-    }
-}
-
-struct OxcLexedTokens {
-    tokens: Vec<DetectionToken>,
-    needs_parser: bool,
-}
-
-fn tokenize_oxc_with_lexer(
-    content: &str,
-    format: &str,
-    options: &Options,
-    ignore_regions: &[[usize; 2]],
-) -> OxcLexedTokens {
-    let context = TokenContext {
-        content,
-        options,
-        ignore_regions,
-    };
-    let allocator = Allocator::new();
-    let source_type = source_type_for_format(format);
-    let mut lexer = Lexer::new_for_benchmarks(&allocator, content, source_type, TokensLexerConfig);
-    let line_index = LineIndex::new(content);
-    let mut tokens = Vec::with_capacity(content.len().saturating_div(6));
-    let mut previous_end = 0usize;
-    let mut needs_parser = false;
-    let mut token = lexer.first_token();
-
-    while !token.kind().is_eof() {
-        let start_byte = (token.start() as usize).min(content.len());
-        let end_byte = (token.end() as usize).min(content.len());
-        if start_byte > previous_end {
-            push_comments_in_gap(&mut tokens, &context, previous_end, start_byte, &line_index);
-        }
-        if token.kind() == Kind::NoSubstitutionTemplate
-            && context
-                .slice(ByteSpan {
-                    start: start_byte,
-                    end: end_byte,
-                })
-                .contains("${")
-        {
-            needs_parser = true;
-        }
-        push_oxc_token(
-            &mut tokens,
-            &context,
-            token.kind(),
-            ByteSpan {
-                start: start_byte,
-                end: end_byte,
-            },
-            &line_index,
-        );
-        previous_end = previous_end.max(end_byte);
-        token = lexer.next_token_for_benchmarks();
-    }
-
-    if previous_end < content.len() {
-        if has_code_in_gap(content, previous_end, content.len()) {
-            needs_parser = true;
-        } else {
-            push_comments_in_gap(
-                &mut tokens,
-                &context,
-                previous_end,
-                content.len(),
-                &line_index,
-            );
-        }
-    }
-
-    OxcLexedTokens {
-        tokens,
-        needs_parser,
-    }
-}
-
-fn tokenize_oxc_with_parser(
-    content: &str,
-    format: &str,
-    options: &Options,
-    ignore_regions: &[[usize; 2]],
-) -> Vec<DetectionToken> {
     let context = TokenContext {
         content,
         options,
@@ -310,10 +213,6 @@ fn tokenize_oxc_with_parser(
     }
 
     tokens
-}
-
-fn needs_contextual_parser(format: &str, content: &str) -> bool {
-    matches!(format, "jsx" | "tsx") || has_template_substitution(content)
 }
 
 fn source_type_for_format(format: &str) -> SourceType {
@@ -794,10 +693,6 @@ fn has_code_in_gap(content: &str, start: usize, end: usize) -> bool {
         }
     }
     false
-}
-
-fn has_template_substitution(content: &str) -> bool {
-    content.contains('`') && content.contains("${")
 }
 
 fn scan_string(bytes: &[u8], start: usize, quote: u8, limit: usize) -> usize {
