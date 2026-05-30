@@ -16,8 +16,9 @@ Passed on 2026-05-31 at code commit `7756cba`. Later documentation-only
 commits may reuse this evidence if they do not change code, scripts, package
 metadata, or benchmark configuration.
 
-Latest GitHub Actions default `release-gate` after the workflow refresh:
-`44f8ce6`, success, run `26696681243`.
+GitHub Actions default `release-gate` must pass on the exact pushed commit
+being published. Check the current run in GitHub Actions after the final push;
+the publish blocker below is the authoritative gate.
 
 Public benchmark summary from the latest release-candidate run:
 
