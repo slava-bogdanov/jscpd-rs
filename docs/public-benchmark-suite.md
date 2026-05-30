@@ -32,6 +32,7 @@ LIST=1 scripts/public-bench-suite.sh
 CASES=react,next RUNS=3 scripts/public-bench-suite.sh
 CHECK_COMPAT=1 CASES=react scripts/public-bench-suite.sh
 MIN_SPEEDUP=10 CASES=react,next RUNS=3 scripts/public-bench-suite.sh
+PUBLIC=1 PUBLIC_CASES=react,next PUBLIC_RUNS=3 scripts/release-gate.sh
 ```
 
 Default behavior clones missing repositories with `--depth=1`, runs Rust and

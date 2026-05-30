@@ -85,11 +85,16 @@ Aggregate gate:
 ```bash
 scripts/release-gate.sh
 FULL=1 scripts/release-gate.sh
+PUBLIC=1 scripts/release-gate.sh
 ```
 
 The default run covers formatting, unit tests, shell syntax, and fast
 CLI/config/reporter compatibility checks. `FULL=1` also runs the full
-coverage-first compatibility matrix and is required before publication.
+coverage-first compatibility matrix. `PUBLIC=1` runs the project-owned public
+benchmark suite with coverage compatibility enabled, using `PUBLIC_CASES`,
+`PUBLIC_RUNS`, `PUBLIC_CHECK_COMPAT`, and `PUBLIC_MIN_SPEEDUP` to override its
+defaults. `FULL=1 PUBLIC=1 scripts/release-gate.sh` is required before
+publication.
 
 ## Current Matrix
 

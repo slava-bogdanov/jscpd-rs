@@ -35,3 +35,14 @@ if [[ "${FULL:-0}" == "1" ]]; then
 else
   printf '\nSkipping full compatibility matrix. Run FULL=1 scripts/release-gate.sh before publication.\n'
 fi
+
+if [[ "${PUBLIC:-0}" == "1" ]]; then
+  printf '\n== public benchmark suite ==\n'
+  CASES="${PUBLIC_CASES:-react,next,prometheus}" \
+    RUNS="${PUBLIC_RUNS:-1}" \
+    CHECK_COMPAT="${PUBLIC_CHECK_COMPAT:-1}" \
+    MIN_SPEEDUP="${PUBLIC_MIN_SPEEDUP:-10}" \
+    scripts/public-bench-suite.sh
+else
+  printf '\nSkipping public benchmark suite. Run PUBLIC=1 scripts/release-gate.sh before publication.\n'
+fi
