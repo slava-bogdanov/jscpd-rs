@@ -262,6 +262,10 @@ print_case() {
 COMMON_ARGS=(--min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size "$MAX_SIZE")
 SUMMARY="Duplications detection: Found 1 exact clones with 10(35.71%) duplicated lines in 1 (1 formats) files."
 FORMATS_NAMES_SUMMARY="Duplications detection: Found 1 exact clones with 4(50%) duplicated lines in 2 (1 formats) files."
+FORMATS_EXTS_SUMMARY="Duplications detection: Found 2 exact clones with 38(67.86%) duplicated lines in 2 (1 formats) files."
+IGNORE_PATTERN_SUMMARY="Duplications detection: Found 1 exact clones with 7(14.58%) duplicated lines in 2 (1 formats) files."
+IGNORE_CASE_OFF_SUMMARY="Duplications detection: Found 0 exact clones with 0(0%) duplicated lines in 2 (1 formats) files."
+IGNORE_CASE_ON_SUMMARY="Duplications detection: Found 1 exact clones with 11(15.49%) duplicated lines in 2 (1 formats) files."
 THRESHOLD_ERROR="ERROR: jscpd found too many duplicates (35.71%) over threshold (10%)"
 EXIT_CODE_TYPE_ERROR_STRING="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type string ('nope')"
 EXIT_CODE_RANGE_ERROR="RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is out of range. It must be an integer. Received 7.5"
@@ -367,6 +371,18 @@ require_both_contain stdout "report/file.js"
 run_case "formats names discovery" 0 "$FORMATS_NAMES_DIR" --format javascript --formats-names javascript:CustomScript --reporters silent --noTips --min-tokens 5 --min-lines 2 --max-size 1mb
 require_both_contain stdout "$FORMATS_NAMES_SUMMARY"
 
+run_case "formats exts discovery" 0 jscpd/fixtures/custom --formats-exts c:ccc,cc1 --reporters silent --noTips --min-tokens 50 --min-lines 5 --max-size 1mb
+require_both_contain stdout "$FORMATS_EXTS_SUMMARY"
+
+run_case "ignore pattern" 0 jscpd/fixtures/ignore-pattern --ignore-pattern "import.*from\\s*'.*'" --reporters silent --noTips --min-tokens 20 --min-lines 5 --max-size 1mb
+require_both_contain stdout "$IGNORE_PATTERN_SUMMARY"
+
+run_case "ignore case off" 0 jscpd/fixtures/ignore-case --reporters silent --noTips --min-tokens 50 --min-lines 5 --max-size 1mb
+require_both_contain stdout "$IGNORE_CASE_OFF_SUMMARY"
+
+run_case "ignore case on" 0 jscpd/fixtures/ignore-case --ignoreCase --reporters silent --noTips --min-tokens 50 --min-lines 5 --max-size 1mb
+require_both_contain stdout "$IGNORE_CASE_ON_SUMMARY"
+
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
 
@@ -418,6 +434,10 @@ require_both_contain stderr "$STORE_WARNING"
 run_case "bare store warning" 0 "$TARGET_REL" --store --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
 require_both_contain stderr "$BARE_STORE_WARNING"
+
+run_case "store path debug" 0 "$TARGET_REL" --debug --store leveldb --store-path .jscpd-cache --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "store: 'leveldb'"
+require_both_contain stdout "storePath: '.jscpd-cache'"
 
 run_case "duplicate silent reporter" 0 "$TARGET_REL" --reporters silent --silent --noTips "${COMMON_ARGS[@]}"
 require_both_count stdout "$SUMMARY" 2
