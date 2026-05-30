@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use serde::de::{MapAccess, Visitor};
 
@@ -142,8 +142,21 @@ pub(super) fn read_config(path: Option<&Path>) -> Result<Option<(FileConfig, Pat
         .with_context(|| format!("failed to resolve config path `{}`", path.display()))?;
     let data = fs::read_to_string(&path)
         .with_context(|| format!("failed to read config `{}`", path.display()))?;
-    let config = serde_json::from_str::<FileConfig>(&data)
-        .with_context(|| format!("failed to parse config `{}`", path.display()))?;
+    let config = match serde_json::from_str::<FileConfig>(&data) {
+        Ok(config) => config,
+        Err(error)
+            if matches!(
+                error.classify(),
+                serde_json::error::Category::Syntax | serde_json::error::Category::Eof
+            ) =>
+        {
+            bail!("{}", config_syntax_error(&path, &data, &error));
+        }
+        Err(error) => {
+            return Err(error)
+                .with_context(|| format!("failed to parse config `{}`", path.display()));
+        }
+    };
     let config_dir = path
         .parent()
         .unwrap_or_else(|| Path::new("."))
@@ -320,6 +333,40 @@ fn resolve_config_path<T: Into<PathBuf>>(config_dir: &Path, path: T) -> PathBuf 
     }
 }
 
+fn config_syntax_error(path: &Path, data: &str, error: &serde_json::Error) -> String {
+    format!(
+        "SyntaxError: {}: {}",
+        path.display(),
+        node_like_json_syntax_message(data, error)
+    )
+}
+
+fn node_like_json_syntax_message(data: &str, error: &serde_json::Error) -> String {
+    let line = error.line();
+    let column = error.column();
+    let position = json_error_position(data, line, column);
+    let message = error.to_string();
+
+    if message.starts_with("key must be a string") {
+        format!(
+            "Expected property name or '}}' in JSON at position {position} (line {line} column {column})"
+        )
+    } else if matches!(error.classify(), serde_json::error::Category::Eof) {
+        "Unexpected end of JSON input".to_string()
+    } else {
+        format!("{message} at position {position} (line {line} column {column})")
+    }
+}
+
+fn json_error_position(data: &str, line: usize, column: usize) -> usize {
+    let before_line = data
+        .lines()
+        .take(line.saturating_sub(1))
+        .map(|line| line.len() + 1)
+        .sum::<usize>();
+    before_line + column.saturating_sub(1)
+}
+
 pub(super) fn resolve_config_ignore(config_dir: &Path, pattern: String) -> Result<String> {
     let path = Path::new(&pattern);
     if path.is_absolute() || pattern.starts_with("**/") {
@@ -333,4 +380,21 @@ pub(super) fn resolve_config_ignore(config_dir: &Path, pattern: String) -> Resul
     }
 
     Ok(absolute.display().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn malformed_config_json_uses_upstream_style_syntax_error() {
+        let path = Path::new("/tmp/project/.jscpd.json");
+        let data = "{ invalid json\n";
+        let error = serde_json::from_str::<FileConfig>(data).unwrap_err();
+
+        assert_eq!(
+            config_syntax_error(path, data, &error),
+            "SyntaxError: /tmp/project/.jscpd.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+        );
+    }
 }

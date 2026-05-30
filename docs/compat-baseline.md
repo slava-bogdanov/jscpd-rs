@@ -68,7 +68,9 @@ object mappings. It also verifies explicit `--config` files outside `cwd`,
 option-surface preservation for `config`, `cache`, `listeners`, and
 `tokensToSkip`, and checks that
 malformed `package.json` files emit a warning and do not prevent detection from
-continuing.
+continuing. Malformed `.jscpd.json` files are checked separately: both
+implementations fail before detection with an upstream-style `SyntaxError`
+printed to stdout.
 
 Blame gate:
 

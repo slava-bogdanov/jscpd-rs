@@ -10,6 +10,8 @@ PACKAGE_RUST_PROJECT="$TMP_ROOT/rust-package"
 PACKAGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-package"
 INVALID_PACKAGE_RUST_PROJECT="$TMP_ROOT/rust-invalid-package"
 INVALID_PACKAGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-invalid-package"
+BAD_CONFIG_RUST_PROJECT="$TMP_ROOT/rust-bad-config"
+BAD_CONFIG_UPSTREAM_PROJECT="$TMP_ROOT/upstream-bad-config"
 NAMES_RUST_PROJECT="$TMP_ROOT/rust-formats-names"
 NAMES_UPSTREAM_PROJECT="$TMP_ROOT/upstream-formats-names"
 EXPLICIT_RUST_PROJECT="$TMP_ROOT/rust-explicit-config"
@@ -122,6 +124,15 @@ make_invalid_package_project() {
   mkdir -p "$project"
   cp "$ROOT/jscpd/fixtures/clike/file2.c" "$project/file.c"
   cat >"$project/package.json" <<'JSON'
+{ invalid json
+JSON
+}
+
+make_bad_config_project() {
+  local project="$1"
+  mkdir -p "$project"
+  cp "$ROOT/jscpd/fixtures/clike/file2.c" "$project/file.c"
+  cat >"$project/.jscpd.json" <<'JSON'
 { invalid json
 JSON
 }
@@ -347,6 +358,52 @@ run_invalid_package_case() {
   fi
 }
 
+run_bad_config_case() {
+  local project="$1"
+  local tool="$2"
+  local stdout_file="$project/stdout.txt"
+  local stderr_file="$project/stderr.txt"
+  local code
+  local cmd=()
+
+  if [[ "$tool" == "rust" ]]; then
+    cmd=("$ROOT/target/release/jscpd")
+  else
+    cmd=(node "$ROOT/jscpd/apps/jscpd/bin/jscpd")
+  fi
+
+  set +e
+  (
+    cd "$project"
+    "${cmd[@]}" file.c \
+      --noTips \
+      --min-tokens 20 \
+      --min-lines 3 \
+      --max-size 1mb \
+      --exitCode 0
+  ) >"$stdout_file" 2>"$stderr_file"
+  code=$?
+  set -e
+
+  if [[ "$code" != "1" ]]; then
+    printf '%s malformed .jscpd.json case exited with %s\n' "$tool" "$code" >&2
+    sed -n '1,80p' "$stdout_file" >&2 || true
+    sed -n '1,80p' "$stderr_file" >&2 || true
+    return 1
+  fi
+  if ! grep -Fq "SyntaxError:" "$stdout_file"; then
+    printf '%s malformed .jscpd.json case did not print SyntaxError to stdout\n' "$tool" >&2
+    sed -n '1,80p' "$stdout_file" >&2 || true
+    sed -n '1,80p' "$stderr_file" >&2 || true
+    return 1
+  fi
+  if ! grep -Fq ".jscpd.json" "$stdout_file"; then
+    printf '%s malformed .jscpd.json error did not name config path\n' "$tool" >&2
+    sed -n '1,80p' "$stdout_file" >&2 || true
+    return 1
+  fi
+}
+
 run_option_surface_debug_case() {
   local project="$1"
   local tool="$2"
@@ -399,6 +456,8 @@ make_explicit_config_project "$EXPLICIT_RUST_PROJECT"
 make_explicit_config_project "$EXPLICIT_UPSTREAM_PROJECT"
 make_invalid_package_project "$INVALID_PACKAGE_RUST_PROJECT"
 make_invalid_package_project "$INVALID_PACKAGE_UPSTREAM_PROJECT"
+make_bad_config_project "$BAD_CONFIG_RUST_PROJECT"
+make_bad_config_project "$BAD_CONFIG_UPSTREAM_PROJECT"
 make_formats_names_project "$NAMES_RUST_PROJECT"
 make_formats_names_project "$NAMES_UPSTREAM_PROJECT"
 make_badge_options_project "$BADGE_RUST_PROJECT"
@@ -473,6 +532,11 @@ compare_reports \
   "$INVALID_PACKAGE_RUST_PROJECT/report/jscpd-report.json" \
   "$INVALID_PACKAGE_UPSTREAM_PROJECT/report/jscpd-report.json"
 
+printf '\nmalformed .jscpd.json fixture\n\n'
+
+run_bad_config_case "$BAD_CONFIG_RUST_PROJECT" rust
+run_bad_config_case "$BAD_CONFIG_UPSTREAM_PROJECT" upstream
+
 printf '\nformatsNames config fixture\n\n'
 
 (
@@ -529,6 +593,8 @@ if [[ "${KEEP:-0}" == "1" ]]; then
   printf 'upstream explicit config project: %s\n' "$EXPLICIT_UPSTREAM_PROJECT"
   printf 'rust invalid package project: %s\n' "$INVALID_PACKAGE_RUST_PROJECT"
   printf 'upstream invalid package project: %s\n' "$INVALID_PACKAGE_UPSTREAM_PROJECT"
+  printf 'rust bad config project: %s\n' "$BAD_CONFIG_RUST_PROJECT"
+  printf 'upstream bad config project: %s\n' "$BAD_CONFIG_UPSTREAM_PROJECT"
   printf 'rust formatsNames project: %s\n' "$NAMES_RUST_PROJECT"
   printf 'upstream formatsNames project: %s\n' "$NAMES_UPSTREAM_PROJECT"
   printf 'rust badge options project: %s\n' "$BADGE_RUST_PROJECT"

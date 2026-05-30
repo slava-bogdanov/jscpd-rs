@@ -22,7 +22,9 @@ fn main() {
             std::process::exit(1);
         }
         let message = error.to_string();
-        if message.starts_with("TypeError [ERR_INVALID_ARG_TYPE]") {
+        if message.starts_with("TypeError [ERR_INVALID_ARG_TYPE]")
+            || message.starts_with("SyntaxError:")
+        {
             println!("{message}");
             std::process::exit(1);
         }
