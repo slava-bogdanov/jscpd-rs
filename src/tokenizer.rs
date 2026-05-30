@@ -92,7 +92,7 @@ pub fn tokenize_maps_for_detection(
     } else {
         vec![TokenMap {
             format: format.to_string(),
-            tokens: tokenize_generic(content, options, &ignore_regions),
+            tokens: tokenize_generic(content, format, options, &ignore_regions),
             positions_assigned: false,
         }]
     };
@@ -139,6 +139,7 @@ fn is_oxc_format(format: &str) -> bool {
 
 fn tokenize_generic(
     content: &str,
+    format: &str,
     options: &Options,
     ignore_regions: &[[usize; 2]],
 ) -> Vec<DetectionToken> {
@@ -147,44 +148,23 @@ fn tokenize_generic(
         options,
         ignore_regions,
     };
+    let line_index = LineIndex::new(content);
     let mut tokens = Vec::new();
-    let mut line = 1usize;
-    let mut column = 1usize;
-    let mut chars = content.char_indices().peekable();
+    let mut start_byte = 0usize;
 
-    while let Some((start_byte, ch)) = chars.next() {
+    while start_byte < content.len() {
+        let ch = content[start_byte..].chars().next().unwrap_or('\0');
         if ch.is_whitespace() {
-            advance_position(ch, &mut line, &mut column);
+            start_byte += ch.len_utf8();
             continue;
         }
 
-        let start = Location {
-            line,
-            column,
-            position: start_byte,
-        };
-        let mut end_byte = start_byte + ch.len_utf8();
-        let mut end_line;
-        let mut end_column;
-        advance_position(ch, &mut line, &mut column);
-        end_line = line;
-        end_column = column;
-
-        while let Some((next_byte, next_ch)) = chars.peek().copied() {
-            if next_ch.is_whitespace() {
-                break;
-            }
-            chars.next();
-            advance_position(next_ch, &mut line, &mut column);
-            end_byte = next_byte + next_ch.len_utf8();
-            end_line = line;
-            end_column = column;
-        }
-
-        let kind = if is_commentish(&content[start_byte..end_byte]) {
-            TokenKind::Comment
+        let (end_byte, kind) = if let Some(comment_end) =
+            generic_comment_span_end(content, format, start_byte, content.len())
+        {
+            (comment_end, TokenKind::Comment)
         } else {
-            TokenKind::Default
+            (scan_generic_token(content, start_byte), TokenKind::Default)
         };
         push_token(
             &mut tokens,
@@ -194,13 +174,10 @@ fn tokenize_generic(
                 start: start_byte,
                 end: end_byte,
             },
-            start,
-            Location {
-                line: end_line,
-                column: end_column,
-                position: end_byte,
-            },
+            line_index.location(start_byte),
+            line_index.location(end_byte),
         );
+        start_byte = end_byte.max(start_byte + ch.len_utf8());
     }
 
     tokens
@@ -798,15 +775,6 @@ fn push_token(
     });
 }
 
-fn advance_position(ch: char, line: &mut usize, column: &mut usize) {
-    if ch == '\n' {
-        *line += 1;
-        *column = 1;
-    } else {
-        *column += 1;
-    }
-}
-
 struct LineIndex {
     newlines: Vec<usize>,
 }
@@ -839,12 +807,87 @@ impl LineIndex {
     }
 }
 
-fn is_commentish(value: &str) -> bool {
-    value.starts_with("//")
-        || value.starts_with("/*")
-        || value.starts_with('*')
-        || value.starts_with('#')
-        || value.starts_with("<!--")
+fn scan_generic_token(content: &str, start: usize) -> usize {
+    let mut end = start;
+    while end < content.len() {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        if ch.is_whitespace() {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+    end
+}
+
+fn generic_comment_span_end(
+    content: &str,
+    format: &str,
+    start: usize,
+    limit: usize,
+) -> Option<usize> {
+    let bytes = content.as_bytes();
+    let rest = &bytes[start..limit];
+    if rest.starts_with(b"<!--") {
+        return Some(scan_html_comment(bytes, start, limit));
+    }
+    if rest.starts_with(b"/*") {
+        return Some(scan_block_comment(bytes, start, limit));
+    }
+    if rest.starts_with(b"//") {
+        return Some(scan_to_line_end(bytes, start, limit));
+    }
+    if bytes[start] == b'#' && generic_hash_comment_format(format) {
+        return Some(scan_to_line_end(bytes, start, limit));
+    }
+    None
+}
+
+fn generic_hash_comment_format(format: &str) -> bool {
+    matches!(
+        format,
+        "apacheconf"
+            | "bash"
+            | "cmake"
+            | "docker"
+            | "editorconfig"
+            | "git"
+            | "ignore"
+            | "ini"
+            | "julia"
+            | "makefile"
+            | "nginx"
+            | "nix"
+            | "perl"
+            | "powershell"
+            | "properties"
+            | "python"
+            | "r"
+            | "ruby"
+            | "shell-session"
+            | "tcl"
+            | "toml"
+            | "vim"
+            | "yaml"
+    )
+}
+
+fn scan_to_line_end(bytes: &[u8], start: usize, limit: usize) -> usize {
+    let mut idx = start;
+    while idx < limit && bytes[idx] != b'\n' {
+        idx += 1;
+    }
+    idx
+}
+
+fn scan_html_comment(bytes: &[u8], start: usize, limit: usize) -> usize {
+    let mut idx = start + 4;
+    while idx + 2 < limit {
+        if bytes[idx] == b'-' && bytes[idx + 1] == b'-' && bytes[idx + 2] == b'>' {
+            return idx + 3;
+        }
+        idx += 1;
+    }
+    limit
 }
 
 fn hash_token(kind: TokenKind, value: &str, ignore_case: bool) -> u64 {
@@ -1371,6 +1414,32 @@ mod tests {
     }
 
     #[test]
+    fn weak_mode_skips_generic_comments() {
+        let content = "# first comment\nalpha beta\n// second comment\ngamma\n";
+        let weak_options = Options {
+            mode: crate::cli::Mode::Weak,
+            ..Options::default()
+        };
+
+        let strong = super::tokenize_for_detection(content, "yaml", &Options::default());
+        let weak = super::tokenize_for_detection(content, "yaml", &weak_options);
+
+        assert_eq!(strong.len(), 5);
+        assert_eq!(weak.len(), 3);
+    }
+
+    #[test]
+    fn generic_css_ids_are_not_treated_as_hash_comments() {
+        let options = Options {
+            mode: crate::cli::Mode::Weak,
+            ..Options::default()
+        };
+        let tokens = super::tokenize_for_detection("#app .title\n", "css", &options);
+
+        assert_eq!(tokens.len(), 2);
+    }
+
+    #[test]
     fn weak_mode_skips_js_comments() {
         let options = Options {
             mode: crate::cli::Mode::Weak,
@@ -1419,5 +1488,25 @@ mod tests {
         assert_eq!(tokens[8].start.column, 15);
         assert_eq!(tokens[8].end.column, 17);
         assert_eq!(tokens[9].start.column, 17);
+    }
+
+    #[test]
+    fn weak_mode_skips_generic_markup_comments() {
+        let content = "<!-- comment -->\nalpha beta\n<!-- another -->\ngamma\n";
+        let weak_options = Options {
+            mode: crate::cli::Mode::Weak,
+            ..Options::default()
+        };
+
+        let strong = super::tokenize_for_detection(content, "markup", &Options::default());
+        let weak = super::tokenize_for_detection(content, "markup", &weak_options);
+
+        assert_eq!(strong.len(), 5);
+        assert_eq!(weak.len(), 3);
+        let token_values: Vec<&str> = weak
+            .iter()
+            .map(|t| &content[t.range[0]..t.range[1]])
+            .collect();
+        assert_eq!(token_values, vec!["alpha", "beta", "gamma"]);
     }
 }

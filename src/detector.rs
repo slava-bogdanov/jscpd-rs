@@ -604,6 +604,24 @@ mod tests {
     }
 
     #[test]
+    fn detects_generic_format_duplicates() {
+        let options = Options {
+            min_tokens: 3,
+            min_lines: 0,
+            ..Options::default()
+        };
+        let content = "alpha beta gamma delta epsilon\n";
+        let files = vec![
+            source_with_format("a.css", "css", content),
+            source_with_format("b.css", "css", &format!("prefix\n{content}\nsuffix\n")),
+        ];
+
+        let result = detect(files, &options);
+
+        assert!(!result.clones.is_empty());
+    }
+
+    #[test]
     fn skips_empty_token_sources_in_statistics() {
         let content = "// jscpd:ignore-start\nignored\n// jscpd:ignore-end\n";
 
@@ -614,9 +632,13 @@ mod tests {
     }
 
     fn source(path: &str, content: &str) -> SourceFile {
+        source_with_format(path, "javascript", content)
+    }
+
+    fn source_with_format(path: &str, format: &str, content: &str) -> SourceFile {
         SourceFile {
             source_id: path.to_string(),
-            format: "javascript".to_string(),
+            format: format.to_string(),
             content: content.to_string(),
         }
     }

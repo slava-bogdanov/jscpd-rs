@@ -32,6 +32,8 @@ groups can choose different equivalent pairs.
   from Prism while fragment coverage remains green.
 - Long-tail formats are now discoverable through the upstream-synchronized
   registry, but most use generic tokenization and do not carry parity claims.
+- Non-native generic formats use coarse whitespace tokenization; weak mode
+  strips only best-effort common comment spans.
 - Extensionless names such as `Makefile` and `Dockerfile` require
   `--formats-names`, matching upstream behavior.
 - Known upstream bug candidates are tracked in `docs/upstream-bugs.md`.
