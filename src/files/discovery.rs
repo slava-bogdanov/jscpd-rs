@@ -165,16 +165,12 @@ fn read_candidate(
     let bytes = fs::read(&candidate.path)
         .with_context(|| format!("failed to read `{}`", candidate.path.display()))?;
     let content = String::from_utf8_lossy(&bytes).into_owned();
-    let lines = if content.is_empty() {
-        0
-    } else {
-        content
-            .as_bytes()
-            .iter()
-            .filter(|byte| **byte == b'\n')
-            .count()
-            + 1
-    };
+    let lines = content
+        .as_bytes()
+        .iter()
+        .filter(|byte| **byte == b'\n')
+        .count()
+        + 1;
     if lines < options.min_lines || lines > options.max_lines {
         return Ok(None);
     }

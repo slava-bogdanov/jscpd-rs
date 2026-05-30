@@ -220,3 +220,34 @@ fn reporter_uses_report_paths_when_silent() {
     assert_eq!(files.len(), 1);
     assert_eq!(files[0].source_id, display_relative_to(&path, &cwd));
 }
+
+#[test]
+fn empty_file_counts_as_one_line_like_upstream() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-empty-lines-{}-{nonce}",
+        std::process::id()
+    ));
+    let path = dir.join("empty.js");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(&path, "").unwrap();
+
+    let options = Options {
+        paths: vec![path.clone()],
+        min_lines: 1,
+        max_lines: 1,
+        reporters: Vec::new(),
+        silent: true,
+        gitignore: false,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].source_id, path.display().to_string());
+}
