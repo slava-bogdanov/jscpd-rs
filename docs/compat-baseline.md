@@ -19,6 +19,9 @@ range while compatibility is converging.
 | --- | --- | --- | --- |
 | `jscpd/fixtures` | `javascript` | pass | exact summary parity |
 | `jscpd/fixtures` | `typescript` | pass | exact summary parity |
+| `jscpd/fixtures/javascript` | `javascript` / `strict` | pass | exact summary parity |
+| `jscpd/fixtures` | `typescript` / `strict` | pass | exact summary parity |
+| `jscpd/fixtures/javascript` | `javascript` / `weak` | pass | clone and line summary parity; token totals differ slightly |
 | `jscpd/fixtures` | `jsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures` | `tsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures/markdown` | `markdown` | pass | 18/18 upstream fragments line-covered; Rust reports wider/split ranges |
@@ -101,5 +104,5 @@ DETECTION_MODE=strict FORMAT=javascript MIN_TOKENS=20 MIN_LINES=3 MAX_SIZE=1mb \
   STRICT=coverage scripts/compat.sh jscpd/fixtures/javascript
 ```
 
-This strict-mode JavaScript fixture check currently has exact summary parity
-with upstream.
+The default matrix also includes strict JavaScript/TypeScript and weak
+JavaScript mode checks so mode regressions are gated directly.
