@@ -24,28 +24,42 @@ printMetric('percentage', rustSummary.percentage, upstreamSummary.percentage, 2)
 
 const rustDuplicates = getDuplicates(rust);
 const upstreamDuplicates = getDuplicates(upstream);
+const rustFragments = rustDuplicates.flatMap(fragmentRecords);
+const upstreamFragments = upstreamDuplicates.flatMap(fragmentRecords);
 const rustStartKeys = new Set(rustDuplicates.map(startKey));
 const upstreamStartKeys = new Set(upstreamDuplicates.map(startKey));
-const rustFragmentKeys = new Set(rustDuplicates.flatMap(fragmentKeys));
-const upstreamFragmentKeys = new Set(upstreamDuplicates.flatMap(fragmentKeys));
+const rustFragmentKeys = new Set(rustFragments.map(fragmentKey));
+const upstreamFragmentKeys = new Set(upstreamFragments.map(fragmentKey));
 const commonStartKeys = [...rustStartKeys].filter((key) => upstreamStartKeys.has(key));
 const commonFragmentKeys = [...rustFragmentKeys].filter((key) => upstreamFragmentKeys.has(key));
+const coveredUpstreamFragments = upstreamFragments.filter((fragment) =>
+  fragmentLineCoveredBy(fragment, rustFragments),
+);
+const coveredRustFragments = rustFragments.filter((fragment) =>
+  fragmentLineCoveredBy(fragment, upstreamFragments),
+);
 const allMissingStartKeys = upstreamDuplicates
   .filter((duplicate) => !rustStartKeys.has(startKey(duplicate)));
 const allExtraStartKeys = rustDuplicates
   .filter((duplicate) => !upstreamStartKeys.has(startKey(duplicate)));
 const allMissingFragmentKeys = [...upstreamFragmentKeys]
   .filter((key) => !rustFragmentKeys.has(key));
+const allMissingCoverageFragments = upstreamFragments
+  .filter((fragment) => !fragmentLineCoveredBy(fragment, rustFragments));
 const missingStartKeys = allMissingStartKeys.slice(0, 10);
 const extraStartKeys = allExtraStartKeys.slice(0, 10);
 const missingFragmentKeys = allMissingFragmentKeys.slice(0, 10);
+const missingCoverageFragments = allMissingCoverageFragments.slice(0, 10);
 
 console.log('');
 console.log(
   `clone start overlap: ${commonStartKeys.length}/${upstreamStartKeys.size} upstream, ${commonStartKeys.length}/${rustStartKeys.size} rust`,
 );
 console.log(
-  `clone fragment coverage: ${commonFragmentKeys.length}/${upstreamFragmentKeys.size} upstream, ${commonFragmentKeys.length}/${rustFragmentKeys.size} rust`,
+  `clone exact fragment overlap: ${commonFragmentKeys.length}/${upstreamFragmentKeys.size} upstream, ${commonFragmentKeys.length}/${rustFragmentKeys.size} rust`,
+);
+console.log(
+  `clone line coverage: ${coveredUpstreamFragments.length}/${upstreamFragments.length} upstream fragments, ${coveredRustFragments.length}/${rustFragments.length} rust fragments`,
 );
 
 console.log('');
@@ -72,8 +86,14 @@ if (extraStartKeys.length > 0) {
 
 if (missingFragmentKeys.length > 0) {
   console.log('');
-  console.log('missing upstream fragments:');
+  console.log('missing exact upstream fragments:');
   for (const key of missingFragmentKeys) console.log(`  ${key}`);
+}
+
+if (missingCoverageFragments.length > 0) {
+  console.log('');
+  console.log('missing upstream line coverage:');
+  for (const fragment of missingCoverageFragments) console.log(`  ${fragmentRangeKey(fragment)}`);
 }
 
 if (process.env.DETAILS === '1') {
@@ -106,8 +126,8 @@ if (process.env.STRICT === '1') {
 
 function coverageFailures() {
   const failures = [];
-  if (allMissingFragmentKeys.length > 0) {
-    failures.push(`missing upstream clone fragments: ${allMissingFragmentKeys.length}`);
+  if (allMissingCoverageFragments.length > 0) {
+    failures.push(`missing upstream clone line coverage: ${allMissingCoverageFragments.length}`);
   }
   if (rustSummary.clones < upstreamSummary.clones) {
     failures.push(`rust clones ${rustSummary.clones} < upstream clones ${upstreamSummary.clones}`);
@@ -191,6 +211,51 @@ function fragmentKeys(duplicate) {
   return [formatFragment(format, first), formatFragment(format, second)];
 }
 
+function fragmentRecords(duplicate) {
+  if (!duplicate) return [];
+  const first = duplicate.firstFile ?? duplicate.duplicationA;
+  const second = duplicate.secondFile ?? duplicate.duplicationB;
+  const format = duplicate.format ?? 'unknown';
+  return [fragmentRecord(format, first), fragmentRecord(format, second)].filter(Boolean);
+}
+
+function fragmentRecord(format, file) {
+  if (!file) return null;
+  const start = fileStartLine(file);
+  const end = fileEndLine(file);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return {
+    format,
+    name: file.name ?? file.sourceId ?? file.source_id ?? '<unknown>',
+    start: Math.min(start, end),
+    end: Math.max(start, end),
+  };
+}
+
+function fragmentKey(fragment) {
+  return `${fragment.format}:${fragment.name}:${fragment.start}`;
+}
+
+function fragmentRangeKey(fragment) {
+  return `${fragment.format}:${fragment.name}:${fragment.start}-${fragment.end}`;
+}
+
+function fragmentLineCoveredBy(fragment, candidates) {
+  let nextLine = fragment.start;
+  const ranges = candidates
+    .filter((candidate) => candidate.format === fragment.format && candidate.name === fragment.name)
+    .sort((left, right) => left.start - right.start || left.end - right.end);
+
+  for (const range of ranges) {
+    if (range.end < nextLine) continue;
+    if (range.start > nextLine) return false;
+    nextLine = Math.max(nextLine, range.end + 1);
+    if (nextLine > fragment.end) return true;
+  }
+
+  return nextLine > fragment.end;
+}
+
 function formatFragment(format, file) {
   return `${format}:${formatStart(file)}`;
 }
@@ -198,16 +263,29 @@ function formatFragment(format, file) {
 function formatStart(file) {
   if (!file) return '<unknown>';
   const name = file.name ?? file.sourceId ?? file.source_id ?? '<unknown>';
-  const start = file.start ?? file.startLoc?.line ?? file.start?.line ?? '?';
+  const start = fileStartLine(file);
   return `${name}:${start}`;
 }
 
 function formatFile(file) {
   if (!file) return '<unknown>';
   const name = file.name ?? file.sourceId ?? file.source_id ?? '<unknown>';
-  const start = file.start ?? file.startLoc?.line ?? file.start?.line ?? '?';
-  const end = file.end ?? file.endLoc?.line ?? file.end?.line ?? '?';
+  const start = fileStartLine(file);
+  const end = fileEndLine(file);
   return `${name}:${start}-${end}`;
+}
+
+function fileStartLine(file) {
+  return lineNumber(file.start ?? file.startLoc?.line);
+}
+
+function fileEndLine(file) {
+  return lineNumber(file.end ?? file.endLoc?.line);
+}
+
+function lineNumber(value) {
+  if (typeof value === 'object' && value !== null) return number(value.line);
+  return number(value);
 }
 
 function printDuplicateDetails(title, duplicates) {

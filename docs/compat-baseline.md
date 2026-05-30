@@ -8,9 +8,10 @@ Default gate:
 STRICT=coverage scripts/compat-matrix.sh
 ```
 
-Coverage means every upstream duplicate fragment must be covered by the Rust
-report. Exact clone pair ordering is diagnostic only because multi-way duplicate
-groups can choose different equivalent pairs.
+Coverage means every upstream duplicated line must be covered by the Rust report
+for the same file and format. Exact clone starts, fragment boundaries, and pair
+ordering are diagnostic only because Rust may find a wider or split equivalent
+range while compatibility is converging.
 
 ## Current Matrix
 
@@ -20,11 +21,12 @@ groups can choose different equivalent pairs.
 | `jscpd/fixtures` | `typescript` | pass | exact summary parity |
 | `jscpd/fixtures` | `jsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures` | `tsx` | pass | token totals differ slightly; fragments covered |
+| `jscpd/fixtures/markdown` | `markdown` | pass | 18/18 upstream fragments line-covered; Rust reports wider/split ranges |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
-| `jscpd/packages` | `typescript` | pass | 33/33 upstream starts covered |
-| `/home/dev/dream` | `javascript` | pass | 131/131 upstream fragments covered; one exact pair differs in generated `.next` chunks |
-| `/home/dev/dream` | `typescript` | pass | 204/204 upstream starts covered |
-| `/home/dev/dream` | `tsx` | pass | 13/13 upstream fragments covered; Rust currently reports extra findings |
+| `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
+| `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
+| `/home/dev/dream` | `typescript` | pass | 408/408 upstream fragments line-covered |
+| `/home/dev/dream` | `tsx` | pass | 14/14 upstream fragments line-covered; Rust currently reports extra findings |
 
 ## Known Deltas
 
@@ -33,8 +35,8 @@ groups can choose different equivalent pairs.
 - Long-tail formats are now discoverable through the upstream-synchronized
   registry, but most use generic tokenization and do not carry parity claims.
 - Markdown extracts YAML front matter and fenced code blocks into embedded
-  format maps. A focused fenced-JS coverage smoke passes, but the full upstream
-  Markdown fixture is still smoke-only because some fragment start lines differ.
+  format maps. The upstream Markdown fixture is line-covered, though exact
+  starts still differ where Rust reports wider/split ranges.
 - Non-native generic formats use coarse whitespace tokenization; weak mode
   strips only best-effort common comment spans.
 - Extensionless names such as `Makefile` and `Dockerfile` require

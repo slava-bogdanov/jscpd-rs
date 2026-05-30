@@ -105,15 +105,15 @@ speed while closing tokenization/report compatibility gaps.
 The project now uses a coverage-first compatibility rule for ongoing cloning
 work:
 
-- Rust must not miss duplicate fragments reported by upstream `jscpd` for the
-  same input and options.
+- Rust must not miss duplicated lines reported by upstream `jscpd` for the same
+  file, format, input, and options.
 - Rust may report additional duplicates while compatibility is converging.
-- Missing upstream fragments are blocking compatibility failures.
+- Missing upstream line coverage is a blocking compatibility failure.
 - Extra Rust duplicates are tracked as diagnostics and fixed when they represent
   likely false positives or user-visible report noise.
-- Exact clone pair overlap is diagnostic only: when three or more equivalent
-  fragments exist, upstream and Rust may choose different pairs while still
-  covering the same duplicated fragments.
+- Exact clone pair and fragment-boundary overlap is diagnostic only: when three
+  or more equivalent fragments exist, upstream and Rust may choose different
+  pairs or wider/split ranges while still covering the same duplicated lines.
 - Exact 1:1 parity remains a useful quality metric, but it is not the default
   gate for deciding whether the clone is viable.
 
