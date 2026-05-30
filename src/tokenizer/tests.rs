@@ -226,6 +226,22 @@ fn astro_sfc_emits_frontmatter_script_style_and_markup_maps() {
 }
 
 #[test]
+fn apex_soql_blocks_emit_sql_map() {
+    let content = "public class A {\n  Account acc = [\n    SELECT Id\n    FROM Account\n  ];\n}\n";
+    let maps = tokenize_maps_for_detection(content, "apex", &Options::default());
+
+    assert!(maps.iter().any(|map| map.format == "apex"));
+    let sql = maps
+        .iter()
+        .find(|map| map.format == "sql")
+        .expect("sql map");
+    let first = sql.tokens.first().expect("sql token");
+
+    assert_eq!(first.start.line, 2);
+    assert_eq!(&content[first.range[0]..first.range[1]], "[");
+}
+
+#[test]
 fn weak_mode_skips_generic_comments() {
     let content = "# first comment\nalpha beta\n// second comment\ngamma\n";
     let weak_options = Options {

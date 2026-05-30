@@ -230,7 +230,10 @@ fn css_like_format(format: &str) -> bool {
 fn code_like_format(format: &str) -> bool {
     matches!(
         format,
-        "c" | "c-header"
+        "ada"
+            | "apex"
+            | "c"
+            | "c-header"
             | "clike"
             | "cpp"
             | "cpp-header"
@@ -239,9 +242,11 @@ fn code_like_format(format: &str) -> bool {
             | "go"
             | "java"
             | "kotlin"
+            | "haxe"
             | "objectivec"
             | "perl"
             | "php"
+            | "r"
             | "rust"
             | "scala"
             | "solidity"

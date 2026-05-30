@@ -83,6 +83,10 @@ run_case "fixtures gdscript" "jscpd/fixtures/gdscript" "gdscript" 20 3
 run_case "fixtures graphql" "jscpd/fixtures/graphql" "graphql" 20 3
 run_case "fixtures julia" "jscpd/fixtures/julia" "julia" 20 3
 run_case "fixtures protobuf" "jscpd/fixtures/protobuf" "protobuf" 20 3
+run_case "fixtures ada" "jscpd/fixtures/ada" "ada" 20 3
+run_case "fixtures apex" "jscpd/fixtures/apex" "apex" 20 3
+run_case "fixtures haxe" "jscpd/fixtures/haxe" "haxe" 20 3
+run_case "fixtures r" "jscpd/fixtures/r" "r" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5

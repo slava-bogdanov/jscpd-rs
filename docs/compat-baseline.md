@@ -68,6 +68,10 @@ range while compatibility is converging.
 | `jscpd/fixtures/graphql` | `graphql` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/julia` | `julia` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/protobuf` | `protobuf` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/ada` | `ada` | pass | exact summary parity; 6/6 upstream fragments line-covered |
+| `jscpd/fixtures/apex` | `apex` | pass | exact summary parity; includes embedded SOQL as `sql` |
+| `jscpd/fixtures/haxe` | `haxe` | pass | exact summary parity; 8/8 upstream fragments line-covered |
+| `jscpd/fixtures/r` | `r` | pass | exact summary parity; 4/4 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
@@ -95,6 +99,8 @@ range while compatibility is converging.
 - Code-like generic formats split common punctuation and operator runs so
   practical language fixtures meet upstream token thresholds without carrying
   a full Prism port.
+- Apex extracts bracketed SOQL regions into an embedded `sql` map to match
+  upstream's multi-format Apex reports.
 - `--mode strict` now preserves Prism-style `empty` and `new_line` whitespace
   tokens in the native JS/TS/Oxc path and the generic tokenizer. The
   JavaScript fixture has exact strict-mode summary parity.
