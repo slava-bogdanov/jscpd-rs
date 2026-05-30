@@ -215,6 +215,22 @@ check_server_http() {
     --data-urlencode $'code=function sample() {\n  const a = 1;\n  const b = 2;\n  const c = 3;\n  const d = 4;\n  const e = 5;\n  return a + b + c + d + e;\n}' \
     --data-urlencode 'format=javascript' \
     "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-missing-code.json" 400 \
+    -H 'Content-Type: application/json' \
+    -d '{}' \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-non-string-code.json" 400 \
+    -H 'Content-Type: application/json' \
+    -d '{"code":123,"format":"javascript"}' \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-missing-format.json" 400 \
+    -H 'Content-Type: application/json' \
+    -d '{"code":"console.log(1);"}' \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-invalid-json.json" 400 \
+    -H 'Content-Type: application/json' \
+    -d 'invalid-json' \
+    "http://127.0.0.1:$port/api/check"
   http_json "$dir/not-found.json" 404 "http://127.0.0.1:$port/api/unknown?ignored=true"
 
   local mcp_headers="$dir/mcp-headers.txt"
@@ -277,6 +293,26 @@ for (const file of ['check-json.json', 'check-form.json']) {
   assert(typeof body.statistics?.totalDuplications === 'number', `${label} ${file} totalDuplications`);
   assert(typeof body.statistics?.percentageDuplicated === 'number', `${label} ${file} percentageDuplicated`);
 }
+
+const missingCode = read('check-missing-code.json');
+assert(missingCode.error === 'ValidationError', `${label} missing code error`);
+assert(missingCode.statusCode === 400, `${label} missing code statusCode`);
+assert(missingCode.message === 'Missing required field: code', `${label} missing code message`);
+
+const nonStringCode = read('check-non-string-code.json');
+assert(nonStringCode.error === 'ValidationError', `${label} non-string code error`);
+assert(nonStringCode.statusCode === 400, `${label} non-string code statusCode`);
+assert(nonStringCode.message === 'Field "code" must be a string', `${label} non-string code message`);
+
+const missingFormat = read('check-missing-format.json');
+assert(missingFormat.error === 'ValidationError', `${label} missing format error`);
+assert(missingFormat.statusCode === 400, `${label} missing format statusCode`);
+assert(missingFormat.message === 'Missing required field: format', `${label} missing format message`);
+
+const invalidJson = read('check-invalid-json.json');
+assert(invalidJson.error === 'SyntaxError', `${label} invalid JSON error`);
+assert(invalidJson.statusCode === 400, `${label} invalid JSON statusCode`);
+assert(invalidJson.message === 'Unexpected token \'i\', "invalid-json" is not valid JSON', `${label} invalid JSON message`);
 
 const notFound = read('not-found.json');
 assert(notFound.error === 'NotFound', `${label} not found error`);

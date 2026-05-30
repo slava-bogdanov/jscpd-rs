@@ -260,7 +260,12 @@ async fn check_snippet(
 ) -> Response {
     let request = match parse_check_payload(&headers, &body) {
         Ok(request) => request,
-        Err(message) => return error_response("ValidationError", message, 400),
+        Err(CheckPayloadError::Validation(message)) => {
+            return error_response("ValidationError", message, 400);
+        }
+        Err(CheckPayloadError::Syntax(message)) => {
+            return error_response("SyntaxError", message, 400);
+        }
     };
     match service.check_snippet(request) {
         Ok(response) => Json(response).into_response(),
@@ -318,17 +323,18 @@ fn error_response(error: &str, message: impl Into<String>, status_code: u16) -> 
 fn parse_check_payload(
     headers: &HeaderMap,
     body: &[u8],
-) -> std::result::Result<CheckSnippetRequest, String> {
+) -> std::result::Result<CheckSnippetRequest, CheckPayloadError> {
     let content_type = headers
         .get(CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
         .unwrap_or_default()
         .to_ascii_lowercase();
     if content_type.starts_with("application/x-www-form-urlencoded") {
-        return parse_check_form(body);
+        return parse_check_form(body).map_err(CheckPayloadError::Validation);
     }
-    let payload = serde_json::from_slice(body).map_err(|error| error.to_string())?;
-    parse_check_request(payload)
+    let payload = serde_json::from_slice(body)
+        .map_err(|error| CheckPayloadError::Syntax(json_syntax_error_message(body, &error)))?;
+    parse_check_request(payload).map_err(CheckPayloadError::Validation)
 }
 
 fn parse_check_form(body: &[u8]) -> std::result::Result<CheckSnippetRequest, String> {
@@ -382,6 +388,22 @@ fn required_form_field(
         .iter()
         .find_map(|(name, value)| (name == field).then(|| value.clone()))
         .ok_or_else(|| format!("Missing required field: {field}"))
+}
+
+fn json_syntax_error_message(body: &[u8], error: &serde_json::Error) -> String {
+    let body = String::from_utf8_lossy(body);
+    let trimmed = body.trim_start();
+    if let Some(first) = trimmed.chars().next()
+        && !matches!(first, '{' | '[' | '"' | '-' | '0'..='9' | 't' | 'f' | 'n')
+    {
+        let preview = if trimmed.chars().count() > 20 {
+            format!("{}...", trimmed.chars().take(17).collect::<String>())
+        } else {
+            trimmed.to_string()
+        };
+        return format!("Unexpected token '{first}', \"{preview}\" is not valid JSON");
+    }
+    error.to_string()
 }
 
 fn duplication_statistics(
@@ -445,6 +467,11 @@ const SCAN_IN_PROGRESS: &str = "Please wait for initial scan to complete";
 const NOT_INITIALIZED: &str = "Server not initialized. Please wait for initial scan to complete.";
 const FIELD_CODE_EMPTY: &str = "Field \"code\" cannot be empty";
 const FIELD_FORMAT_EMPTY: &str = "Field \"format\" cannot be empty";
+
+enum CheckPayloadError {
+    Validation(String),
+    Syntax(String),
+}
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct CheckSnippetRequest {
@@ -727,6 +754,39 @@ mod tests {
                 .as_array()
                 .map(|items| items.len() as u64)
         );
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn server_check_snippet_invalid_json_matches_upstream_error() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        service.initialize().expect("initialize");
+        let app = create_router(service);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/check")
+                    .header(CONTENT_TYPE, "application/json")
+                    .body(Body::from("invalid-json"))
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        let body: Value = serde_json::from_slice(&body).expect("json body");
+        assert_eq!(body["error"], "SyntaxError");
+        assert_eq!(
+            body["message"],
+            "Unexpected token 'i', \"invalid-json\" is not valid JSON"
+        );
+        assert_eq!(body["statusCode"], 400);
         fs::remove_dir_all(path).ok();
     }
 
