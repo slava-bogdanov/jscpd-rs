@@ -46,10 +46,10 @@ scripts/compat-cli.sh
 
 This smoke check compares Rust and upstream exit codes plus stable terminal
 contracts for `--help`, `--version`, `--list`, `--debug`, `--exitCode`,
-`--threshold`, bare `--config`, `--store`, `--store-path`, `--formats-exts`,
-`--formats-names`, `--ignore-pattern`, `--ignoreCase`, unknown reporters,
-explicit `time` reporter fallback, terminal footer/tips, `xcode`, `ai`,
-`consoleFull`, and `--verbose`.
+`--threshold`, invalid `--mode`, bare `--config`, `--store`, `--store-path`,
+`--formats-exts`, `--formats-names`, `--ignore-pattern`, `--ignoreCase`,
+unknown reporters, explicit `time` reporter fallback, terminal footer/tips,
+`xcode`, `ai`, `consoleFull`, and `--verbose`.
 The debug checks include cwd `.gitignore` expansion in the printed `ignore`
 option and user-order preservation for explicit `--format` lists.
 
@@ -386,6 +386,8 @@ Latest public benchmark measurements:
   Integer strings such as `0x10` exit with the matching code, while invalid,
   fractional, or bare boolean values emit the same Node-style error after
   reports are written.
+- Invalid `--mode` values fail after CLI parsing with the upstream-style
+  `Error: Mode ... does not supported yet.` message printed to stdout.
 - If discovery, size, or line filters leave no files to detect, reporters are
   not run, matching upstream's `InFilesDetector` early return. Silent mode
   stays quiet; non-silent mode only prints the terminal footer.

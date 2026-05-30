@@ -347,6 +347,7 @@ EXIT_CODE_TYPE_ERROR_STRING="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argu
 EXIT_CODE_RANGE_ERROR="RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is out of range. It must be an integer. Received 7.5"
 EXIT_CODE_TYPE_ERROR_BOOLEAN="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type boolean (true)"
 BARE_CONFIG_TYPE_ERROR="TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string. Received type boolean (true)"
+UNKNOWN_MODE_ERROR="Error: Mode zzz does not supported yet."
 UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
 UNKNOWN_REPORTER_MODULE_ERROR="Cannot find module 'jscpd-badgezz-reporter'"
 TIME_REPORTER_WARNING="warning: time not installed (install packages named @jscpd/time-reporter or jscpd-time-reporter)"
@@ -537,6 +538,8 @@ run_case "invalid max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN
 require_both_not_contain stdout "Duplications detection:"
 
 run_case "unknown mode" 1 "$TARGET_REL" --mode zzz --noTips
+require_both_contain stdout "$UNKNOWN_MODE_ERROR"
+require_both_not_contain stderr "Mode zzz does not supported yet."
 
 run_case "bare config" 1 --config
 require_both_contain stdout "$BARE_CONFIG_TYPE_ERROR"

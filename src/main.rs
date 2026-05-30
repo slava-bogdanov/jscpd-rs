@@ -22,15 +22,25 @@ fn main() {
             std::process::exit(1);
         }
         let message = error.to_string();
-        if message.starts_with("TypeError [ERR_INVALID_ARG_TYPE]")
-            || message.starts_with("SyntaxError:")
-        {
-            println!("{message}");
+        if let Some(stdout_error) = upstream_stdout_error(&message) {
+            println!("{stdout_error}");
             std::process::exit(1);
         }
         eprintln!("error: {error:#}");
         std::process::exit(1);
     }
+}
+
+fn upstream_stdout_error(message: &str) -> Option<String> {
+    if message.starts_with("TypeError [ERR_INVALID_ARG_TYPE]")
+        || message.starts_with("SyntaxError:")
+    {
+        return Some(message.to_string());
+    }
+    if message.starts_with("Mode ") && message.ends_with(" does not supported yet.") {
+        return Some(format!("Error: {message}"));
+    }
+    None
 }
 
 fn run() -> Result<()> {
@@ -389,6 +399,24 @@ mod tests {
             Some("store name leveldb not installed.")
         );
         assert!(store_warning(&Options::default()).is_none());
+    }
+
+    #[test]
+    fn node_like_errors_match_upstream_stdout_shape() {
+        assert_eq!(
+            upstream_stdout_error("Mode zzz does not supported yet.").as_deref(),
+            Some("Error: Mode zzz does not supported yet.")
+        );
+        assert_eq!(
+            upstream_stdout_error(
+                "TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string."
+            )
+            .as_deref(),
+            Some(
+                "TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string."
+            )
+        );
+        assert!(upstream_stdout_error("regular anyhow failure").is_none());
     }
 
     #[test]
