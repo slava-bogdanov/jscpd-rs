@@ -144,6 +144,7 @@ pub(super) fn tokenize_oxc_maps(
 
 fn source_type_for_format(format: &str) -> SourceType {
     let filename = match format {
+        "javascript" => "input.jsx",
         "typescript" => "input.ts",
         "tsx" => "input.tsx",
         "jsx" => "input.jsx",
@@ -159,7 +160,27 @@ fn push_oxc_token(
     span: ByteSpan,
     line_index: &LineIndex,
 ) {
-    if kind == Kind::Skip || span.start >= span.end {
+    if span.start >= span.end {
+        return;
+    }
+    let value = context.slice(span);
+    if value.starts_with("//") {
+        if context.options.mode != Mode::Weak {
+            push_line_comment_tokens(tokens, context, span, line_index);
+        }
+        return;
+    }
+    if value.starts_with("/*") || value.starts_with("#!") || value.starts_with("<!--") {
+        if context.options.mode != Mode::Weak {
+            push_comment_token(tokens, context, span, line_index);
+        }
+        return;
+    }
+    if kind == Kind::Skip {
+        return;
+    }
+    if kind == Kind::JSXText {
+        tokenize_js_like_range(tokens, context, span.start, span.end, line_index);
         return;
     }
     if matches!(
@@ -362,20 +383,50 @@ fn push_comments_in_gap(
 
         if let Some(comment_end) = comment_end {
             if context.options.mode != Mode::Weak {
-                push_comment_token(
-                    tokens,
-                    context,
-                    ByteSpan {
-                        start: idx,
-                        end: comment_end,
-                    },
-                    line_index,
-                );
+                let span = ByteSpan {
+                    start: idx,
+                    end: comment_end,
+                };
+                if bytes[idx] == b'/' && bytes[idx + 1] == b'/' {
+                    push_line_comment_tokens(tokens, context, span, line_index);
+                } else {
+                    push_comment_token(tokens, context, span, line_index);
+                }
             }
             idx = comment_end.max(idx + 1);
         } else {
             idx += ch.len_utf8();
         }
+    }
+}
+
+pub(super) fn push_line_comment_tokens(
+    tokens: &mut Vec<DetectionToken>,
+    context: &TokenContext<'_>,
+    span: ByteSpan,
+    line_index: &LineIndex,
+) {
+    let mut part_start = None;
+    for (offset, ch) in context.slice(span).char_indices() {
+        let idx = span.start + offset;
+        if ch.is_whitespace() {
+            if let Some(start) = part_start.take() {
+                push_comment_token(tokens, context, ByteSpan { start, end: idx }, line_index);
+            }
+        } else if part_start.is_none() {
+            part_start = Some(idx);
+        }
+    }
+    if let Some(start) = part_start {
+        push_comment_token(
+            tokens,
+            context,
+            ByteSpan {
+                start,
+                end: span.end,
+            },
+            line_index,
+        );
     }
 }
 

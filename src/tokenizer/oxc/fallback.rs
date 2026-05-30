@@ -4,6 +4,7 @@ use super::super::{
     push_token,
 };
 use super::lexical::{is_js_constant, is_js_keyword};
+use super::push_line_comment_tokens;
 
 pub(super) fn tokenize_js_like_range(
     tokens: &mut Vec<DetectionToken>,
@@ -32,18 +33,29 @@ pub(super) fn tokenize_js_like_range(
             continue;
         }
 
-        let (end, kind) = if idx + 1 < range_end && bytes[idx] == b'/' && bytes[idx + 1] == b'/' {
-            (scan_line_comment(bytes, idx, range_end), TokenKind::Comment)
-        } else if idx + 1 < range_end && bytes[idx] == b'/' && bytes[idx + 1] == b'*' {
+        if idx + 1 < range_end && bytes[idx] == b'/' && bytes[idx + 1] == b'/' {
+            let end = scan_line_comment(bytes, idx, range_end);
+            if context.options.mode != crate::cli::Mode::Weak {
+                push_line_comment_tokens(tokens, context, ByteSpan { start: idx, end }, line_index);
+            }
+            idx = end.max(idx + 1);
+            continue;
+        }
+
+        let (end, kind) = if idx + 1 < range_end && bytes[idx] == b'/' && bytes[idx + 1] == b'*' {
             (
                 scan_block_comment(bytes, idx, range_end),
                 TokenKind::Comment,
             )
         } else if matches!(bytes[idx], b'\'' | b'"' | b'`') {
-            (
-                scan_string(bytes, idx, bytes[idx], range_end),
-                TokenKind::String,
-            )
+            if let Some(end) = scan_closed_string(bytes, idx, bytes[idx], range_end) {
+                (end, TokenKind::String)
+            } else {
+                (
+                    scan_unclosed_quote_fragment(context.content, idx, range_end),
+                    TokenKind::Default,
+                )
+            }
         } else if is_identifier_start(ch) {
             let end = scan_identifier(context.content, idx, range_end);
             let value = &context.content[idx..end];
@@ -73,19 +85,35 @@ pub(super) fn tokenize_js_like_range(
     }
 }
 
-fn scan_string(bytes: &[u8], start: usize, quote: u8, limit: usize) -> usize {
+fn scan_closed_string(bytes: &[u8], start: usize, quote: u8, limit: usize) -> Option<usize> {
     let mut idx = start + 1;
     while idx < limit {
         if bytes[idx] == b'\\' {
             idx = (idx + 2).min(limit);
             continue;
         }
+        if matches!(bytes[idx], b'\n' | b'\r') {
+            return None;
+        }
         if bytes[idx] == quote {
-            return idx + 1;
+            return Some(idx + 1);
         }
         idx += 1;
     }
-    limit
+    None
+}
+
+fn scan_unclosed_quote_fragment(content: &str, start: usize, limit: usize) -> usize {
+    let bytes = content.as_bytes();
+    let mut idx = start + 1;
+    while idx < limit {
+        let ch = content[idx..].chars().next().unwrap_or('\0');
+        if ch.is_whitespace() || is_js_text_delimiter(bytes[idx]) {
+            break;
+        }
+        idx += ch.len_utf8();
+    }
+    idx
 }
 
 fn scan_whitespace(content: &str, start: usize, limit: usize) -> usize {
@@ -142,6 +170,35 @@ fn scan_operator_or_punctuation(bytes: &[u8], start: usize, limit: usize) -> (us
         TokenKind::Operator
     };
     (start + 1, kind)
+}
+
+fn is_js_text_delimiter(byte: u8) -> bool {
+    matches!(
+        byte,
+        b'{' | b'}'
+            | b'['
+            | b']'
+            | b'('
+            | b')'
+            | b';'
+            | b','
+            | b':'
+            | b'.'
+            | b'<'
+            | b'>'
+            | b'='
+            | b'+'
+            | b'-'
+            | b'*'
+            | b'/'
+            | b'%'
+            | b'&'
+            | b'|'
+            | b'^'
+            | b'!'
+            | b'?'
+            | b'~'
+    )
 }
 
 fn is_identifier_start(ch: char) -> bool {

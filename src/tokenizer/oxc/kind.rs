@@ -104,7 +104,6 @@ fn is_oxc_punctuation(kind: Kind) -> bool {
         Kind::Colon
             | Kind::Comma
             | Kind::Dot
-            | Kind::Dot3
             | Kind::LBrack
             | Kind::LCurly
             | Kind::LParen
@@ -130,6 +129,7 @@ fn token_kind_for_operator_check(kind: Kind) -> TokenKind {
             | Kind::Bang
             | Kind::Caret
             | Kind::CaretEq
+            | Kind::Dot3
             | Kind::Eq
             | Kind::Eq2
             | Kind::Eq3

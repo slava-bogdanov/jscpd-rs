@@ -76,6 +76,49 @@ fn jsx_embedded_javascript_keeps_nested_object_whitespace() {
 }
 
 #[test]
+fn jsx_text_is_split_like_javascript_text() {
+    let content = r#"const x = <div>Hello, "Go" this.</div>;"#;
+    let tokens = tokenize_for_detection(content, "javascript", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(values.contains(&"Hello"));
+    assert!(values.contains(&","));
+    assert!(values.contains(&r#""Go""#));
+    assert!(values.contains(&"this"));
+}
+
+#[test]
+fn jsx_text_unclosed_quote_stops_at_line_end() {
+    let content = "const x = <div>\"Captured an\nerror: null\". Clicking</div>;";
+    let tokens = tokenize_for_detection(content, "javascript", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(values.contains(&"\"Captured"));
+    assert!(values.contains(&"error"));
+    assert!(values.contains(&"null"));
+    assert!(values.contains(&"\""));
+    assert!(values.contains(&"."));
+}
+
+#[test]
+fn js_spread_token_is_operator_like_prism() {
+    let content = "const next = [...items];";
+    let tokens = tokenize_for_detection(content, "javascript", &Options::default());
+    let spread = tokens
+        .iter()
+        .find(|token| &content[token.range[0]..token.range[1]] == "...")
+        .expect("spread token");
+
+    assert_eq!(spread.hash, hash_token(TokenKind::Operator, "...", false));
+}
+
+#[test]
 fn generic_tokenizer_handles_common_non_native_formats() {
     for format in ["css", "markup", "yaml", "toml", "python"] {
         let maps = tokenize_maps_for_detection("alpha beta\n  gamma", format, &Options::default());
@@ -499,6 +542,26 @@ fn weak_mode_skips_js_comments() {
     );
     let weak = tokenize_for_detection("const a = 1; // comment\n", "javascript", &options);
     assert!(strong.len() > weak.len());
+}
+
+#[test]
+fn js_line_comments_split_into_comment_tokens() {
+    let content = "// really an argument\nconst a = 1;\n";
+    let tokens = tokenize_for_detection(content, "javascript", &Options::default());
+    let comment_values = tokens
+        .iter()
+        .filter_map(|token| {
+            let value = &content[token.range[0]..token.range[1]];
+            value.starts_with("//").then_some(value)
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(comment_values, vec!["//"]);
+    assert!(
+        tokens
+            .iter()
+            .any(|token| &content[token.range[0]..token.range[1]] == "really")
+    );
 }
 
 #[test]
