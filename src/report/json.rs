@@ -11,11 +11,16 @@ pub(super) fn write(result: &DetectionResult, options: &Options) -> Result<()> {
     fs::create_dir_all(&options.output)
         .with_context(|| format!("failed to create output dir `{}`", options.output.display()))?;
     let path = options.output.join("jscpd-report.json");
-    let report = JsonReport::from_detection(result);
-    let json = serde_json::to_string_pretty(&report)?;
+    let json = to_pretty_json(result)?;
     fs::write(&path, json).with_context(|| format!("failed to write `{}`", path.display()))?;
     println!("JSON report saved to {}", path.display());
     Ok(())
+}
+
+pub(super) fn to_pretty_json(result: &DetectionResult) -> Result<String> {
+    Ok(serde_json::to_string_pretty(&JsonReport::from_detection(
+        result,
+    ))?)
 }
 
 #[derive(Serialize)]

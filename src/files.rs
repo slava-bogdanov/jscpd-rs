@@ -312,7 +312,7 @@ fn read_candidate(
 }
 
 fn reporter_needs_report_paths(reporter: &str) -> bool {
-    matches!(reporter, "json" | "xml" | "sarif" | "xcode")
+    matches!(reporter, "json" | "xml" | "html" | "sarif" | "xcode")
 }
 
 fn is_ignored(path: &Path, ignore_set: &GlobSet, cwd: &Path) -> bool {
@@ -637,13 +637,13 @@ mod tests {
     }
 
     #[test]
-    fn xcode_reporter_uses_report_paths_when_silent() {
+    fn reporter_uses_report_paths_when_silent() {
         let nonce = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos();
         let dir = std::env::temp_dir().join(format!(
-            "jscpd-rs-xcode-paths-{}-{nonce}",
+            "jscpd-rs-reporter-paths-{}-{nonce}",
             std::process::id()
         ));
         let path = dir.join("file.js");
@@ -653,7 +653,7 @@ mod tests {
         let options = Options {
             paths: vec![path.clone()],
             min_lines: 1,
-            reporters: vec!["xcode".to_string()],
+            reporters: vec!["html".to_string()],
             silent: true,
             gitignore: false,
             ..Options::default()

@@ -8,6 +8,7 @@ mod badge;
 mod console;
 mod console_full;
 mod csv;
+mod html;
 mod json;
 mod markdown;
 mod sarif;
@@ -38,6 +39,9 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
     }
     if should_write_report("badge", options) {
         badge::write(result, options)?;
+    }
+    if should_write_report("html", options) {
+        html::write(result, options)?;
     }
     if should_write_report("markdown", options) {
         markdown::write(result, options)?;
