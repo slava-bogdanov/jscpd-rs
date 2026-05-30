@@ -250,6 +250,44 @@ Expected behavior: clone fragments should stop at the last matching token range,
 or the detector should split separate duplicated subranges instead of extending
 through neighboring non-matching test code.
 
+## Next.js TypeScript public benchmark overextended report ranges
+
+Status: observed on the `next` public benchmark at commit `2bbb67b9` during
+coverage-first compatibility work.
+
+Repro target:
+
+```sh
+FORMAT=typescript MIN_TOKENS=50 MIN_LINES=5 MAX_SIZE=1mb STRICT=coverage KEEP=1 \
+  scripts/compat.sh /home/dev/.cache/jscpd-rs/public-bench/repos/next/.
+```
+
+After matching the upstream `console-exit` template interpolation behavior and
+TypeScript array-regex tokenization, the Rust clone covers `3900/3908` upstream
+clone fragments on this benchmark. The remaining missing coverage is dominated
+by upstream fragments that extend across unrelated neighboring test cases or
+through reversed/oversized ranges:
+
+- `next-style-loader/index.ts:221-229`: upstream tokenizes generated JS inside a
+  template literal as ordinary TypeScript and reports a clone against
+  `154-165`. A broad Rust experiment that tokenized code-like template raw text
+  did cover this fragment, but it increased overall Next missing coverage and
+  token volume, so it was rejected as too invasive.
+- `non-root-project-monorepo.test.ts:221-240` and `284-303`: inline snapshot
+  blocks with similar stack traces; upstream starts/ends inside snapshot text.
+- `normalize-next-data.test.ts:185-681`: upstream pairs a 22-line later test
+  block with a 497-line earlier range. Rust covers the actual smaller repeated
+  route-normalization blocks around that area, but not the whole overextended
+  range.
+- `edge-runtime-module-errors.test.ts:314-459` and `745-892`: upstream contains
+  several useful repeated subranges, but some reported pairs have reversed or
+  overextended endpoints such as `459-314` and `892-745`.
+- `next-rs-api.test.ts:175-203` and `327-356`: a real repeated config object
+  body with an upstream start before the stable matching token run.
+
+Expected behavior: clone fragments should be split at the actual matching token
+runs and should not report reversed or multi-test overextended ranges.
+
 ## Option fields are exposed but unused at runtime
 
 Status: observed on the `jscpd` submodule during compatibility work.

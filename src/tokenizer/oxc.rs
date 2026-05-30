@@ -67,13 +67,21 @@ pub(super) fn tokenize_oxc_maps(
         Vec::new()
     };
     let mut idx = 0usize;
+    let mut template_expression_depth = 0usize;
 
     while idx < parser_tokens.len() {
         let token = &parser_tokens[idx];
         let start_byte = token.span.start;
         let mut end_byte = token.span.end;
         if start_byte > previous_end {
-            push_comments_in_gap(&mut tokens, &context, previous_end, start_byte, &line_index);
+            push_comments_in_gap(
+                &mut tokens,
+                &context,
+                previous_end,
+                start_byte,
+                &line_index,
+                template_expression_depth > 0,
+            );
         }
         if token.kind == Kind::RAngle {
             while idx + 1 < parser_tokens.len() {
@@ -112,6 +120,13 @@ pub(super) fn tokenize_oxc_maps(
             continue;
         }
         push_oxc_token(&mut tokens, &context, token.kind, span, &line_index);
+        match token.kind {
+            Kind::TemplateHead => template_expression_depth += 1,
+            Kind::TemplateTail => {
+                template_expression_depth = template_expression_depth.saturating_sub(1);
+            }
+            _ => {}
+        }
         previous_end = previous_end.max(end_byte);
         idx += 1;
     }
@@ -132,6 +147,7 @@ pub(super) fn tokenize_oxc_maps(
                 previous_end,
                 content.len(),
                 &line_index,
+                false,
             );
         }
     }
@@ -205,6 +221,10 @@ fn push_oxc_token(
         return;
     }
     if kind == Kind::Ident && value.contains('-') {
+        tokenize_js_like_range(tokens, context, span.start, span.end, line_index);
+        return;
+    }
+    if kind == Kind::RegExp && !regex_literal_allowed_at(context.content, span.start) {
         tokenize_js_like_range(tokens, context, span.start, span.end, line_index);
         return;
     }
@@ -329,8 +349,7 @@ fn regex_literal_allowed_at(content: &str, slash_start: usize) -> bool {
 
     if matches!(
         previous,
-        '(' | '['
-            | '{'
+        '(' | '{'
             | '='
             | ':'
             | ','
@@ -484,6 +503,7 @@ fn push_comments_in_gap(
     gap_start: usize,
     gap_end: usize,
     line_index: &LineIndex,
+    preserve_whitespace_as_default: bool,
 ) {
     if gap_start >= gap_end {
         return;
@@ -495,15 +515,15 @@ fn push_comments_in_gap(
         let ch = context.content[idx..].chars().next().unwrap_or('\0');
         if ch.is_whitespace() {
             let whitespace_end = scan_whitespace(context.content, idx, gap_end);
-            push_strict_whitespace_tokens(
-                tokens,
-                context,
-                ByteSpan {
-                    start: idx,
-                    end: whitespace_end,
-                },
-                line_index,
-            );
+            let span = ByteSpan {
+                start: idx,
+                end: whitespace_end,
+            };
+            if preserve_whitespace_as_default {
+                push_token_part(tokens, context, TokenKind::Default, span, line_index);
+            } else {
+                push_strict_whitespace_tokens(tokens, context, span, line_index);
+            }
             idx = whitespace_end.max(idx + ch.len_utf8());
             continue;
         }

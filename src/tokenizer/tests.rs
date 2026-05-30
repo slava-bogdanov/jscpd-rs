@@ -614,6 +614,37 @@ fn splits_template_interpolation_like_prism() {
 }
 
 #[test]
+fn keeps_template_interpolation_space_tokens_like_prism() {
+    let content = "const x = `${store ? '[Store]' : '[No Store]'}`;";
+    let tokens = tokenize_for_detection(content, "typescript", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(
+        values
+            .windows(3)
+            .any(|window| window == ["store", " ", "?"])
+    );
+    assert!(
+        values
+            .windows(3)
+            .any(|window| window == ["?", " ", "'[Store]'"])
+    );
+    assert!(
+        values
+            .windows(3)
+            .any(|window| window == ["'[Store]'", " ", ":"])
+    );
+    assert!(
+        values
+            .windows(3)
+            .any(|window| window == [":", " ", "'[No Store]'"])
+    );
+}
+
+#[test]
 fn splits_optional_chaining_like_prism() {
     let tokens = tokenize_for_detection("a?.b", "typescript", &Options::default());
     assert_eq!(tokens.len(), 4);
@@ -645,6 +676,23 @@ export function normalize(str) {\n\
 
     assert!(values.contains(&"/Check your code at .+?:\\d+/g"));
     assert!(!values.windows(2).any(|window| window == ["/", "Check"]));
+}
+
+#[test]
+fn typescript_array_regex_splits_like_prism() {
+    let content = r#"const restrictions = [/\.css$/i];"#;
+    let tokens = tokenize_for_detection(content, "typescript", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(
+        values
+            .windows(6)
+            .any(|window| window == ["/", "\\", ".", "css$", "/", "i"])
+    );
+    assert!(!values.contains(&r#"/\.css$/i"#));
 }
 
 #[test]

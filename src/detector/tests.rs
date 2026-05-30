@@ -86,6 +86,62 @@ fn skips_empty_token_sources_in_statistics() {
     assert_eq!(result.statistics.total.sources, 0);
 }
 
+#[test]
+fn detects_typescript_template_tail_clone_before_member_name_difference() {
+    let options = Options {
+        min_tokens: 50,
+        min_lines: 5,
+        ..Options::default()
+    };
+    let content = r#"
+function first(workUnitAsyncStorage, reportResult) {
+  console.log = function (...args: Array<any>) {
+    const store = workUnitAsyncStorage.getStore()
+    reportResult({
+      type: 'console-call',
+      method: 'log',
+      input: `${store ? '[Store]' : '[No Store]'}: ${args.join(' ')}`,
+    })
+  }
+
+  require('next/dist/server/node-environment-extensions/console-exit')
+
+  workUnitAsyncStorage.run({ type: 'request' } as WorkUnitStore, () => {
+    console.log('inside')
+  })
+}
+
+function second(workUnitAsyncStorage, reportResult) {
+  console.error = function (...args: Array<any>) {
+    const store = workUnitAsyncStorage.getStore()
+    reportResult({
+      type: 'console-call',
+      method: 'error',
+      input: `${store ? '[Store]' : '[No Store]'}: ${args.join(' ')}`,
+    })
+  }
+
+  require('next/dist/server/node-environment-extensions/console-exit')
+
+  workUnitAsyncStorage.run({ type: 'request' } as WorkUnitStore, () => {
+    console.error('inside')
+  })
+}
+"#;
+
+    let result = detect(
+        vec![source_with_format("console.ts", "typescript", content)],
+        &options,
+    );
+
+    assert!(result.clones.iter().any(|clone| {
+        clone.duplication_a.start.line <= 24
+            && clone.duplication_a.end.line >= 32
+            && clone.duplication_b.start.line <= 7
+            && clone.duplication_b.end.line >= 15
+    }));
+}
+
 fn source(path: &str, content: &str) -> SourceFile {
     source_with_format(path, "javascript", content)
 }
