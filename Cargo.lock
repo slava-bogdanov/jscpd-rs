@@ -477,6 +477,7 @@ dependencies = [
  "anyhow",
  "axum",
  "clap",
+ "form_urlencoded",
  "globset",
  "ignore",
  "oxc_allocator",
@@ -489,6 +490,7 @@ dependencies = [
  "serde_json",
  "time",
  "tokio",
+ "tower",
  "xxhash-rust",
 ]
 

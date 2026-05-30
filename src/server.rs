@@ -4,10 +4,11 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use anyhow::{Context, Result, bail};
+use axum::body::Bytes;
 use axum::extract::DefaultBodyLimit;
 use axum::extract::State;
-use axum::extract::rejection::JsonRejection;
-use axum::http::StatusCode;
+use axum::http::header::CONTENT_TYPE;
+use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -204,6 +205,7 @@ pub fn create_router(service: ServerService) -> Router {
         .route("/api/stats", get(stats))
         .route("/api/health", get(health))
         .route("/mcp", post(mcp::post_mcp).get(mcp::method_not_allowed))
+        .fallback(not_found)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .with_state(service)
 }
@@ -253,13 +255,10 @@ async fn api_info() -> Json<ApiInfoResponse> {
 
 async fn check_snippet(
     State(service): State<ServerService>,
-    payload: std::result::Result<Json<Value>, JsonRejection>,
+    headers: HeaderMap,
+    body: Bytes,
 ) -> Response {
-    let payload = match payload {
-        Ok(Json(payload)) => payload,
-        Err(error) => return error_response("ValidationError", error.body_text(), 400),
-    };
-    let request = match parse_check_request(payload) {
+    let request = match parse_check_payload(&headers, &body) {
         Ok(request) => request,
         Err(message) => return error_response("ValidationError", message, 400),
     };
@@ -295,6 +294,14 @@ async fn health(State(service): State<ServerService>) -> Json<HealthResponse> {
     Json(service.health())
 }
 
+async fn not_found(method: Method, uri: Uri) -> Response {
+    error_response(
+        "NotFound",
+        format!("Route {method} {} not found", uri.path()),
+        404,
+    )
+}
+
 fn error_response(error: &str, message: impl Into<String>, status_code: u16) -> Response {
     let status = StatusCode::from_u16(status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     (
@@ -306,6 +313,37 @@ fn error_response(error: &str, message: impl Into<String>, status_code: u16) -> 
         }),
     )
         .into_response()
+}
+
+fn parse_check_payload(
+    headers: &HeaderMap,
+    body: &[u8],
+) -> std::result::Result<CheckSnippetRequest, String> {
+    let content_type = headers
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    if content_type.starts_with("application/x-www-form-urlencoded") {
+        return parse_check_form(body);
+    }
+    let payload = serde_json::from_slice(body).map_err(|error| error.to_string())?;
+    parse_check_request(payload)
+}
+
+fn parse_check_form(body: &[u8]) -> std::result::Result<CheckSnippetRequest, String> {
+    let fields = form_urlencoded::parse(body)
+        .into_owned()
+        .collect::<Vec<_>>();
+    let code = required_form_field(&fields, "code")?;
+    if code.trim().is_empty() {
+        return Err(FIELD_CODE_EMPTY.to_string());
+    }
+    let format = required_form_field(&fields, "format")?;
+    if format.trim().is_empty() {
+        return Err(FIELD_FORMAT_EMPTY.to_string());
+    }
+    Ok(CheckSnippetRequest { code, format })
 }
 
 fn parse_check_request(payload: Value) -> std::result::Result<CheckSnippetRequest, String> {
@@ -334,6 +372,16 @@ fn required_string_field(
         return Err(format!("Field \"{field}\" must be a string"));
     };
     Ok(value.to_string())
+}
+
+fn required_form_field(
+    fields: &[(String, String)],
+    field: &str,
+) -> std::result::Result<String, String> {
+    fields
+        .iter()
+        .find_map(|(name, value)| (name == field).then(|| value.clone()))
+        .ok_or_else(|| format!("Missing required field: {field}"))
 }
 
 fn duplication_statistics(
@@ -518,6 +566,12 @@ mod tests {
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    use axum::body::{Body, to_bytes};
+    use axum::http::header::CONTENT_TYPE;
+    use axum::http::{Request, StatusCode};
+    use serde_json::Value;
+    use tower::ServiceExt;
+
     use crate::cli::Options;
 
     use super::*;
@@ -632,6 +686,75 @@ mod tests {
             .total
             .sources;
         assert!(after > before);
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn server_check_snippet_accepts_form_urlencoded_body() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        service.initialize().expect("initialize");
+        let app = create_router(service);
+        let body = form_urlencoded::Serializer::new(String::new())
+            .append_pair(
+                "code",
+                "const alpha = 1;\nconst beta = 2;\nconst gamma = alpha + beta;\n",
+            )
+            .append_pair("format", "javascript")
+            .finish();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/check")
+                    .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+                    .body(Body::from(body))
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        let body: Value = serde_json::from_slice(&body).expect("json body");
+        assert!(body["duplications"].is_array());
+        assert_eq!(
+            body["statistics"]["totalDuplications"].as_u64(),
+            body["duplications"]
+                .as_array()
+                .map(|items| items.len() as u64)
+        );
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn server_unknown_routes_return_upstream_style_json_error() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        let app = create_router(service);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/api/unknown?ignored=true")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        let body: Value = serde_json::from_slice(&body).expect("json body");
+        assert_eq!(body["error"], "NotFound");
+        assert_eq!(body["message"], "Route GET /api/unknown not found");
+        assert_eq!(body["statusCode"], 404);
         fs::remove_dir_all(path).ok();
     }
 }
