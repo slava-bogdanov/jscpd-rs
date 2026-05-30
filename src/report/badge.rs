@@ -1,6 +1,8 @@
 use std::fs;
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
+use serde_json::{Map, Value};
 
 use crate::cli::Options;
 use crate::detector::DetectionResult;
@@ -8,7 +10,7 @@ use crate::detector::DetectionResult;
 pub(super) fn write(result: &DetectionResult, options: &Options) -> Result<()> {
     fs::create_dir_all(&options.output)
         .with_context(|| format!("failed to create output dir `{}`", options.output.display()))?;
-    let path = options.output.join("jscpd-badge.svg");
+    let path = badge_output_path(options);
     let badge = BadgeReport::from_detection(result, options).to_string();
     fs::write(&path, badge).with_context(|| format!("failed to write `{}`", path.display()))?;
     println!("Badge saved to {}", path.display());
@@ -18,15 +20,22 @@ pub(super) fn write(result: &DetectionResult, options: &Options) -> Result<()> {
 struct BadgeReport {
     subject: String,
     status: String,
-    color: &'static str,
+    color: String,
 }
 
 impl BadgeReport {
     fn from_detection(result: &DetectionResult, options: &Options) -> Self {
+        let badge_options = badge_reporter_options(options);
         Self {
-            subject: "Copy/Paste".to_string(),
-            status: format!("{}%", result.statistics.total.percentage),
-            color: badge_color(result, options),
+            subject: badge_option_str(badge_options, "subject")
+                .unwrap_or("Copy/Paste")
+                .to_string(),
+            status: badge_option_str(badge_options, "status")
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("{}%", result.statistics.total.percentage)),
+            color: badge_option_str(badge_options, "color")
+                .map(str::to_string)
+                .unwrap_or_else(|| badge_color(result, options).to_string()),
         }
     }
 }
@@ -45,13 +54,34 @@ impl std::fmt::Display for BadgeReport {
         let status_shadow_x = status_text_x + 10;
         let subject = escape_xml(&self.subject);
         let status = escape_xml(&self.status);
+        let color = escape_xml(&self.color);
 
         write!(
             f,
             "<svg width=\"{display_width:.1}\" height=\"20\" viewBox=\"0 0 {total_width} 200\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-label=\"{subject}: {status}\">\n  <title>{subject}: {status}</title>\n  <linearGradient id=\"g\" x2=\"0\" y2=\"100%\">\n    <stop offset=\"0\" stop-opacity=\".1\" stop-color=\"#EEE\"/>\n    <stop offset=\"1\" stop-opacity=\".1\"/>\n  </linearGradient>\n  <mask id=\"m\"><rect width=\"{total_width}\" height=\"200\" rx=\"30\" fill=\"#FFF\"/></mask>\n  <g mask=\"url(#m)\">\n    <rect width=\"{subject_rect_width}\" height=\"200\" fill=\"#555\"/>\n    <rect width=\"{status_rect_width}\" height=\"200\" fill=\"{}\" x=\"{subject_rect_width}\"/>\n    <rect width=\"{total_width}\" height=\"200\" fill=\"url(#g)\"/>\n  </g>\n  <g aria-hidden=\"true\" fill=\"#fff\" text-anchor=\"start\" font-family=\"Verdana,DejaVu Sans,sans-serif\" font-size=\"110\">\n    <text x=\"{subject_shadow_x}\" y=\"148\" textLength=\"{subject_width}\" fill=\"#000\" opacity=\"0.25\">{subject}</text>\n    <text x=\"{subject_text_x}\" y=\"138\" textLength=\"{subject_width}\">{subject}</text>\n    <text x=\"{status_shadow_x}\" y=\"148\" textLength=\"{status_width}\" fill=\"#000\" opacity=\"0.25\">{status}</text>\n    <text x=\"{status_text_x}\" y=\"138\" textLength=\"{status_width}\">{status}</text>\n  </g>\n  \n</svg>",
-            self.color
+            color
         )
     }
+}
+
+fn badge_output_path(options: &Options) -> PathBuf {
+    badge_option_str(badge_reporter_options(options), "path")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| options.output.join("jscpd-badge.svg"))
+}
+
+fn badge_reporter_options(options: &Options) -> Option<&Map<String, Value>> {
+    options
+        .reporters_options
+        .get("badge")
+        .and_then(Value::as_object)
+}
+
+fn badge_option_str<'a>(
+    badge_options: Option<&'a Map<String, Value>>,
+    key: &str,
+) -> Option<&'a str> {
+    badge_options?.get(key)?.as_str()
 }
 
 fn badge_color(result: &DetectionResult, options: &Options) -> &'static str {
@@ -137,6 +167,32 @@ mod tests {
     }
 
     #[test]
+    fn badge_report_uses_reporter_options_like_upstream() {
+        let mut result = make_test_result_with_clone("src/a.js", "src/b.js");
+        result.statistics.total.percentage = 25.0;
+        let options = Options {
+            reporters_options: serde_json::json!({
+                "badge": {
+                    "subject": "Duplicates",
+                    "status": "blocked",
+                    "color": "purple"
+                }
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+            ..Options::default()
+        };
+
+        let badge = BadgeReport::from_detection(&result, &options).to_string();
+
+        assert!(badge.contains(r#"aria-label="Duplicates: blocked""#));
+        assert!(badge.contains(r#"fill="purple""#));
+        assert!(badge.contains(">Duplicates</text>"));
+        assert!(badge.contains(">blocked</text>"));
+    }
+
+    #[test]
     fn write_reports_writes_badge_report() {
         let output = crate::report::test_support::temp_output("badge-report");
         let options = Options {
@@ -149,6 +205,34 @@ mod tests {
 
         write_reports(&result, &options).unwrap();
         let svg = std::fs::read_to_string(output.join("jscpd-badge.svg")).unwrap();
+        let _ = std::fs::remove_dir_all(output);
+
+        assert!(svg.contains("Copy/Paste"));
+        assert!(svg.contains("25%"));
+    }
+
+    #[test]
+    fn write_reports_uses_badge_reporter_path_option() {
+        let output = crate::report::test_support::temp_output("badge-path");
+        let badge_path = output.join("custom-badge.svg");
+        let options = Options {
+            output: output.clone(),
+            reporters: vec!["badge".to_string()],
+            reporters_options: serde_json::json!({
+                "badge": {
+                    "path": badge_path
+                }
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+            silent: true,
+            ..Options::default()
+        };
+        let result = make_test_result_with_clone("src/a.js", "src/b.js");
+
+        write_reports(&result, &options).unwrap();
+        let svg = std::fs::read_to_string(&badge_path).unwrap();
         let _ = std::fs::remove_dir_all(output);
 
         assert!(svg.contains("Copy/Paste"));

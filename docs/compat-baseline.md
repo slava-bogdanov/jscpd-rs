@@ -52,9 +52,10 @@ range while compatibility is converging.
 - `skipLocal` follows the upstream configured-root validator: clones are skipped
   only when both fragments are inside the same input path.
 - The upstream workflow option surface for `blame`, `store`, `storePath`,
-  `cache`, `executionId`, and `noTips` is parsed from CLI/config where
-  applicable. Blame attribution, persistent stores, and cache workflows are
-  still implementation gaps.
+  `cache`, `executionId`, `noTips`, `listeners`, and `tokensToSkip` is parsed
+  from CLI/config where applicable. Blame attribution, persistent stores,
+  listener plugins, custom token skipping, and cache workflows are still
+  implementation gaps.
 - `--store <name>` currently follows the upstream missing-store fallback shape:
   it warns that the store package is not installed and continues with in-memory
   detection. Persistent stores remain an implementation gap.
@@ -66,6 +67,8 @@ range while compatibility is converging.
   default and suppressed by `--noTips`, matching the upstream workflow shape.
 - Unknown reporter names emit the upstream-style install warning. Dynamic
   loading of external reporter packages is not implemented yet.
+- `reportersOptions.badge` supports the upstream-style `subject`, `status`,
+  `color`, and `path` overrides for the built-in badge reporter.
 - Known upstream bug candidates are tracked in `docs/upstream-bugs.md`.
 
 ## Benchmark Sanity

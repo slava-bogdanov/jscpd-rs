@@ -15,6 +15,8 @@ pub(super) struct FileConfig {
     pattern: Option<String>,
     ignore: Option<OneOrMany>,
     reporters: Option<OneOrMany>,
+    listeners: Option<OneOrMany>,
+    reporters_options: Option<serde_json::Map<String, serde_json::Value>>,
     output: Option<PathBuf>,
     format: Option<OneOrMany>,
     formats_exts: Option<FormatMappingsConfig>,
@@ -40,6 +42,7 @@ pub(super) struct FileConfig {
     skip_local: Option<bool>,
     exit_code: Option<i32>,
     no_tips: Option<bool>,
+    tokens_to_skip: Option<OneOrMany>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -161,6 +164,12 @@ pub(super) fn apply_config(
     if let Some(reporters) = config.reporters {
         options.reporters = reporters.into_vec();
     }
+    if let Some(listeners) = config.listeners {
+        options.listeners = listeners.into_vec();
+    }
+    if let Some(reporters_options) = config.reporters_options {
+        options.reporters_options = reporters_options;
+    }
     if let Some(output) = config.output {
         options.output = resolve_config_path(config_dir, output);
     }
@@ -237,6 +246,9 @@ pub(super) fn apply_config(
     }
     if let Some(no_tips) = config.no_tips {
         options.no_tips = no_tips;
+    }
+    if let Some(tokens_to_skip) = config.tokens_to_skip {
+        options.tokens_to_skip = tokens_to_skip.into_vec();
     }
     Ok(())
 }

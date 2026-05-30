@@ -131,6 +131,8 @@ pub struct Options {
     pub pattern: String,
     pub ignore: Vec<String>,
     pub reporters: Vec<String>,
+    pub listeners: Vec<String>,
+    pub reporters_options: serde_json::Map<String, serde_json::Value>,
     pub output: PathBuf,
     pub formats: Option<HashSet<String>>,
     pub formats_exts: FormatMappings,
@@ -156,6 +158,7 @@ pub struct Options {
     pub skip_local: bool,
     pub exit_code: i32,
     pub no_tips: bool,
+    pub tokens_to_skip: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -189,6 +192,8 @@ impl Default for Options {
             pattern: "**/*".to_string(),
             ignore: Vec::new(),
             reporters: vec!["console".to_string()],
+            listeners: Vec::new(),
+            reporters_options: serde_json::Map::new(),
             output: PathBuf::from("./report"),
             formats: None,
             formats_exts: FormatMappings::default(),
@@ -214,6 +219,7 @@ impl Default for Options {
             skip_local: false,
             exit_code: 0,
             no_tips: std::env::var_os("CI").is_some(),
+            tokens_to_skip: Vec::new(),
         }
     }
 }

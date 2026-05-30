@@ -75,7 +75,14 @@ fn parses_upstream_workflow_options() {
             "storePath": "cache",
             "blame": true,
             "cache": false,
-            "noTips": true
+            "noTips": true,
+            "listeners": ["console"],
+            "tokensToSkip": ["comment", "block-comment"],
+            "reportersOptions": {
+                "badge": {
+                    "subject": "Duplication"
+                }
+            }
         }"#,
     )
     .unwrap();
@@ -91,6 +98,12 @@ fn parses_upstream_workflow_options() {
     assert!(options.blame);
     assert!(!options.cache);
     assert!(options.no_tips);
+    assert_eq!(options.listeners, vec!["console"]);
+    assert_eq!(options.tokens_to_skip, vec!["comment", "block-comment"]);
+    assert_eq!(
+        options.reporters_options["badge"]["subject"].as_str(),
+        Some("Duplication")
+    );
 }
 
 #[test]
