@@ -103,7 +103,10 @@ compatibility is converging.
 | `jscpd/fixtures/apl` | `apl` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/bicep` | `bicep` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/brainfuck` | `brainfuck` | pass | 8/8 upstream fragments line-covered |
+| `jscpd/fixtures/cfml` | `cfml` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/cfscript` | `cfscript` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/dot` | `dot` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/eiffel` | `eiffel` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/gettext` | `gettext` | pass | 2/2 upstream fragments line-covered; Rust reports extra covered ranges |
 | `jscpd/fixtures/gherkin` | `gherkin` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/handlebars` | `handlebars` | pass | 2/2 upstream fragments line-covered |
@@ -116,13 +119,17 @@ compatibility is converging.
 | `jscpd/fixtures/openqasm` | `openqasm` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/oz` | `oz` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/pascal` | `pascal` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/plsql` | `plsql` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/plant-uml` | `plant-uml` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/powerquery` | `powerquery` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/purescript` | `purescript` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/q` | `q` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/rescript` | `rescript` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/smalltalk` | `smalltalk` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/smarty` | `smarty` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/soy` | `soy` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/sparql` | `sparql` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/tt2` | `tt2` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/unrealscript` | `unrealscript` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/velocity` | `velocity` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |

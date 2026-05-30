@@ -141,6 +141,44 @@ Expected behavior: the reported clone range should stop before the non-matching
 multiline token, or the tokenizer should split the `style.` content so only
 matching CSS ranges are reported.
 
+## HAML report overextends a clone into a non-matching comment block
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+Repro target:
+
+```sh
+FORMAT=haml MIN_TOKENS=20 MIN_LINES=3 MAX_SIZE=1mb KEEP=1 scripts/compat.sh jscpd/fixtures/haml
+```
+
+Observed upstream clone:
+
+- `jscpd/fixtures/haml/file1.haml:1-26`
+- `jscpd/fixtures/haml/file2.haml:1-26`
+
+The ranges include a HAML silent-comment block whose visible source differs:
+
+```haml
+-# File-specific: user settings section
+  .settings-section
+    %h2 Account Settings
+    %p Change your password and security preferences.
+```
+
+versus:
+
+```haml
+-# File-specific: notification preferences
+  .notifications-section
+    %h2 Notification Preferences
+    %p Manage how you receive alerts and updates.
+```
+
+Expected behavior: the reported clone should stop before the differing
+commented block, or the tokenizer/report range logic should document that HAML
+silent comments are ignored and may extend clone ranges through non-matching
+source text.
+
 ## Option fields are exposed but unused at runtime
 
 Status: observed on the `jscpd` submodule during compatibility work.

@@ -381,6 +381,32 @@ fn code_like_tokenizer_splits_punctuation_and_operators() {
 }
 
 #[test]
+fn long_tail_code_like_formats_split_punctuation_and_operators() {
+    let content = "value = call(item, 1);";
+    for format in [
+        "cfml",
+        "cfscript",
+        "eiffel",
+        "plsql",
+        "purescript",
+        "rescript",
+        "tt2",
+    ] {
+        let tokens = tokenize_for_detection(content, format, &Options::default());
+        let token_values = tokens
+            .iter()
+            .map(|token| &content[token.range[0]..token.range[1]])
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            token_values,
+            vec!["value", "=", "call", "(", "item", ",", "1", ")", ";"],
+            "{format}"
+        );
+    }
+}
+
+#[test]
 fn weak_mode_skips_js_comments() {
     let options = Options {
         mode: crate::cli::Mode::Weak,

@@ -117,7 +117,10 @@ run_case "fixtures antlr4" "jscpd/fixtures/antlr4" "antlr4" 20 3
 run_case "fixtures apl" "jscpd/fixtures/apl" "apl" 20 3
 run_case "fixtures bicep" "jscpd/fixtures/bicep" "bicep" 20 3
 run_case "fixtures brainfuck" "jscpd/fixtures/brainfuck" "brainfuck" 20 3
+run_case "fixtures cfml" "jscpd/fixtures/cfml" "cfml" 20 3
+run_case "fixtures cfscript" "jscpd/fixtures/cfscript" "cfscript" 20 3
 run_case "fixtures dot" "jscpd/fixtures/dot" "dot" 20 3
+run_case "fixtures eiffel" "jscpd/fixtures/eiffel" "eiffel" 20 3
 run_case "fixtures gettext" "jscpd/fixtures/gettext" "gettext" 20 3
 run_case "fixtures gherkin" "jscpd/fixtures/gherkin" "gherkin" 20 3
 run_case "fixtures handlebars" "jscpd/fixtures/handlebars" "handlebars" 20 3
@@ -130,13 +133,17 @@ run_case "fixtures nsis" "jscpd/fixtures/nsis" "nsis" 20 3
 run_case "fixtures openqasm" "jscpd/fixtures/openqasm" "openqasm" 20 3
 run_case "fixtures oz" "jscpd/fixtures/oz" "oz" 20 3
 run_case "fixtures pascal" "jscpd/fixtures/pascal" "pascal" 20 3
+run_case "fixtures plsql" "jscpd/fixtures/plsql" "plsql" 20 3
 run_case "fixtures plant-uml" "jscpd/fixtures/plant-uml" "plant-uml" 20 3
 run_case "fixtures powerquery" "jscpd/fixtures/powerquery" "powerquery" 20 3
+run_case "fixtures purescript" "jscpd/fixtures/purescript" "purescript" 20 3
 run_case "fixtures q" "jscpd/fixtures/q" "q" 20 3
+run_case "fixtures rescript" "jscpd/fixtures/rescript" "rescript" 20 3
 run_case "fixtures smalltalk" "jscpd/fixtures/smalltalk" "smalltalk" 20 3
 run_case "fixtures smarty" "jscpd/fixtures/smarty" "smarty" 20 3
 run_case "fixtures soy" "jscpd/fixtures/soy" "soy" 20 3
 run_case "fixtures sparql" "jscpd/fixtures/sparql" "sparql" 20 3
+run_case "fixtures tt2" "jscpd/fixtures/tt2" "tt2" 20 3
 run_case "fixtures unrealscript" "jscpd/fixtures/unrealscript" "unrealscript" 20 3
 run_case "fixtures velocity" "jscpd/fixtures/velocity" "velocity" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
