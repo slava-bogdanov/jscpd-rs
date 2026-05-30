@@ -247,6 +247,7 @@ fn code_like_format(format: &str) -> bool {
             | "kotlin"
             | "haxe"
             | "objectivec"
+            | "ocaml"
             | "perl"
             | "php"
             | "plsql"

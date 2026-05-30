@@ -387,6 +387,7 @@ fn long_tail_code_like_formats_split_punctuation_and_operators() {
         "cfml",
         "cfscript",
         "eiffel",
+        "ocaml",
         "plsql",
         "purescript",
         "rescript",

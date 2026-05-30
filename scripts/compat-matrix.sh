@@ -56,6 +56,7 @@ run_case "fixtures swift" "jscpd/fixtures/swift" "swift" 20 3
 run_case "fixtures powershell" "jscpd/fixtures/powershell" "powershell" 20 3
 run_case "fixtures lua" "jscpd/fixtures/lua" "lua" 20 3
 run_case "fixtures haskell" "jscpd/fixtures/haskell" "haskell" 20 3
+run_case "fixtures haskell literate" "jscpd/fixtures/haskell-literate" "haskell" 20 3
 run_case "fixtures clojure" "jscpd/fixtures/clojure" "clojure" 20 3
 run_case "fixtures sass" "jscpd/fixtures/sass" "sass" 20 3
 run_case "fixtures stylus" "jscpd/fixtures/stylus" "stylus" 20 3
@@ -63,6 +64,10 @@ run_case "fixtures rust" "jscpd/fixtures/rust" "rust" 20 3
 run_case "fixtures dart" "jscpd/fixtures/dart" "dart" 20 3
 run_case "fixtures solidity" "jscpd/fixtures/solidity" "solidity" 20 3
 run_case "fixtures perl" "jscpd/fixtures/perl" "perl" 20 3
+run_case "fixtures lisp" "jscpd/fixtures/commonlisp" "lisp" 20 3
+run_case "fixtures ocaml" "jscpd/fixtures/mllike" "ocaml" 20 3
+run_case "fixtures fsharp" "jscpd/fixtures/mllike" "fsharp" 20 3
+run_case "fixtures objectivec" "jscpd/fixtures/objective-c" "objectivec" 20 3
 run_case "fixtures c" "jscpd/fixtures/clike" "c" 20 3
 run_case "fixtures cpp" "jscpd/fixtures/clike" "cpp" 20 3
 run_case "fixtures java" "jscpd/fixtures/clike" "java" 20 3
@@ -108,6 +113,7 @@ run_case "fixtures turtle" "jscpd/fixtures/turtle" "turtle" 20 3
 run_case "fixtures twig" "jscpd/fixtures/twig" "twig" 20 3
 run_case "fixtures properties" "jscpd/fixtures/properties" "properties" 20 3
 run_case "fixtures markup" "jscpd/fixtures/xml" "markup" 20 3
+run_case "fixtures htmlmixed markup" "jscpd/fixtures/htmlmixed" "markup" 20 3
 run_case "fixtures vbnet" "jscpd/fixtures/vb" "vbnet" 20 3
 run_case "fixtures txt" "jscpd/fixtures/text" "txt" 20 3
 run_case "fixtures robotframework" "jscpd/fixtures/robotframework" "robotframework" 20 3
@@ -127,6 +133,7 @@ run_case "fixtures handlebars" "jscpd/fixtures/handlebars" "handlebars" 20 3
 run_case "fixtures idris" "jscpd/fixtures/idris" "idris" 20 3
 run_case "fixtures lilypond" "jscpd/fixtures/lilypond" "lilypond" 20 3
 run_case "fixtures livescript" "jscpd/fixtures/livescript" "livescript" 20 3
+run_case "fixtures linker-script" "jscpd/fixtures/linker-script" "linker-script" 20 3
 run_case "fixtures llvm" "jscpd/fixtures/llvm" "llvm" 20 3
 run_case "fixtures log" "jscpd/fixtures/log" "log" 20 3
 run_case "fixtures nsis" "jscpd/fixtures/nsis" "nsis" 20 3

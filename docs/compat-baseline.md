@@ -42,6 +42,7 @@ compatibility is converging.
 | `jscpd/fixtures/powershell` | `powershell` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/lua` | `lua` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/haskell` | `haskell` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/haskell-literate` | `haskell` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/clojure` | `clojure` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/sass` | `sass` | pass | 6/6 upstream fragments line-covered |
 | `jscpd/fixtures/stylus` | `stylus` | pass | 2/2 upstream fragments line-covered |
@@ -49,6 +50,10 @@ compatibility is converging.
 | `jscpd/fixtures/dart` | `dart` | pass | exact summary parity; 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/solidity` | `solidity` | pass | 4/4 upstream fragments line-covered; Rust reports one extra clone |
 | `jscpd/fixtures/perl` | `perl` | pass | exact summary parity; 8/8 upstream fragments line-covered |
+| `jscpd/fixtures/commonlisp` | `lisp` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/mllike` | `ocaml` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/mllike` | `fsharp` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/objective-c` | `objectivec` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/clike` | `c` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/clike` | `cpp` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/clike` | `java` | pass | 4/4 upstream fragments line-covered |
@@ -94,6 +99,7 @@ compatibility is converging.
 | `jscpd/fixtures/twig` | `twig` | pass | 6/6 upstream fragments line-covered |
 | `jscpd/fixtures/properties` | `properties` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/xml` | `markup` | pass | 6/6 upstream fragments line-covered; Rust skips empty XML/XSD inputs |
+| `jscpd/fixtures/htmlmixed` | `markup` | pass | exact clone and line summary parity; upstream also reports embedded script/style sources |
 | `jscpd/fixtures/vb` | `vbnet` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/text` | `txt` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/robotframework` | `robotframework` | pass | 4/4 upstream fragments line-covered; upstream reports final newline as one-past-content |
@@ -113,6 +119,7 @@ compatibility is converging.
 | `jscpd/fixtures/idris` | `idris` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/lilypond` | `lilypond` | pass | 6/6 upstream fragments line-covered |
 | `jscpd/fixtures/livescript` | `livescript` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/linker-script` | `linker-script` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/llvm` | `llvm` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/log` | `log` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/nsis` | `nsis` | pass | 2/2 upstream fragments line-covered |
