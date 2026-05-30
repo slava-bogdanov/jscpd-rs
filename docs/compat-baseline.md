@@ -273,6 +273,9 @@ coverage-first compatibility matrix and is required before publication.
 - CLI `--min-lines`, `--min-tokens`, and `--max-lines` accept upstream-style
   `parseInt` numeric prefixes, so values such as `20.9` are treated as `20`;
   missing optional values are accepted like Commander `[number]` options.
+- Bare optional values for `--threshold`, `--max-size`, `--pattern`, `--store`,
+  and `--store-path` follow the local upstream runtime behavior where upstream
+  continues instead of failing during CLI parsing.
 - If discovery, size, or line filters leave no files to detect, reporters are
   not run, matching upstream's `InFilesDetector` early return. Silent mode
   stays quiet; non-silent mode only prints the terminal footer.

@@ -172,6 +172,7 @@ SUMMARY="Duplications detection: Found 1 exact clones with 10(35.71%) duplicated
 THRESHOLD_ERROR="ERROR: jscpd found too many duplicates (35.71%) over threshold (10%)"
 UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
 STORE_WARNING="store name leveldb not installed."
+BARE_STORE_WARNING="store name true not installed."
 XCODE_ABSOLUTE_WARNING="$TARGET_FILE_ABS:18:3: warning: Found 10 lines (18-28) duplicated on file $TARGET_FILE_ABS (8-18)"
 XCODE_RELATIVE_WARNING="$TARGET_FILE_ABS:18:3: warning: Found 10 lines (18-28) duplicated on file $TARGET_REL (8-18)"
 IGNORE_ABS_DIR="$TMP_ROOT/relative-ignore-absolute"
@@ -225,6 +226,9 @@ run_case "relative ignore absolute path" 0 "$IGNORE_ABS_DIR" --debug --noTips --
 require_both_contain stdout "Found 1 files to detect."
 require_both_not_contain stdout "patches/patch.js"
 
+run_case "bare pattern directory" 0 jscpd/fixtures/clike --debug --noTips --format c --pattern --min-tokens 1 --min-lines 1 --max-size 1mb
+require_both_contain stdout "Found 0 files to detect."
+
 run_case "no symlinks root" 0 "$SYMLINK_ROOT_DIR/linkdir" --debug --noTips --format javascript --noSymlinks --min-tokens 1 --min-lines 1 --max-size 1mb
 require_both_contain stdout "Found 0 files to detect."
 require_both_not_contain stdout "file.js"
@@ -251,6 +255,9 @@ require_both_contain stdout "$SUMMARY"
 run_case "missing numeric limit values" 0 "$TARGET_REL" --silent --noTips --min-lines --min-tokens --max-lines --max-size 1mb
 require_both_contain stdout "$SUMMARY"
 
+run_case "bare max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size
+require_both_not_contain stdout "Duplications detection:"
+
 run_case "terabyte max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1tb
 require_both_contain stdout "$SUMMARY"
 
@@ -269,9 +276,16 @@ run_case "store fallback warning" 0 "$TARGET_REL" --store leveldb --silent --noT
 require_both_contain stdout "$SUMMARY"
 require_both_contain stderr "$STORE_WARNING"
 
+run_case "bare store warning" 0 "$TARGET_REL" --store --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$SUMMARY"
+require_both_contain stderr "$BARE_STORE_WARNING"
+
 run_case "unknown reporter warning" 0 "$TARGET_REL" --reporters badgezz --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$UNKNOWN_REPORTER_WARNING"
 require_both_contain stdout "$SUMMARY"
+
+run_case "bare threshold" 1 "$TARGET_REL" --threshold --noTips "${COMMON_ARGS[@]}"
+require_both_contain stderr "ERROR: jscpd found too many duplicates (35.71%) over threshold (1%)"
 
 run_case "threshold failure" 1 "$TARGET_REL" --threshold 10 --noTips "${COMMON_ARGS[@]}"
 require_both_contain stderr "$THRESHOLD_ERROR"

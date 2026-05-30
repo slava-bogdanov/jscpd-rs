@@ -57,6 +57,29 @@ fn accepts_missing_cli_integer_values_like_upstream() {
 }
 
 #[test]
+fn accepts_bare_optional_cli_values_that_upstream_continues_with() {
+    let cli = Cli::parse_from(&[
+        "jscpd-rs",
+        ".",
+        "--threshold",
+        "--max-size",
+        "--pattern",
+        "--store",
+        "--store-path",
+    ]);
+    let options = Options::from_cli(cli).unwrap();
+
+    assert_eq!(options.threshold, Some(1.0));
+    assert_eq!(options.max_size_bytes, 0);
+    assert_eq!(options.pattern, "true");
+    assert_eq!(options.store.as_deref(), Some("true"));
+    assert_eq!(
+        options.store_path.as_deref(),
+        Some(std::path::Path::new("true"))
+    );
+}
+
+#[test]
 fn help_output_keeps_upstream_cli_contract_text() {
     let mut command = Cli::command();
     let mut output = Vec::new();

@@ -65,6 +65,8 @@ pub struct Cli {
         short = 'z',
         long = "max-size",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = "true",
         help = "max size of source in bytes, examples: 1kb, 1mb, 120kb (Default is 100kb)"
     )]
     pub max_size: Option<String>,
@@ -73,6 +75,8 @@ pub struct Cli {
         short = 't',
         long = "threshold",
         value_name = "number",
+        num_args = 0..=1,
+        default_missing_value = "1",
         help = "threshold for duplication, in case duplications >= threshold jscpd will exit with error"
     )]
     pub threshold: Option<f64>,
@@ -129,6 +133,8 @@ pub struct Cli {
         short = 'p',
         long = "pattern",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = "true",
         help = "glob pattern to file search (Example **/*.txt)"
     )]
     pub pattern: Option<String>,
@@ -150,6 +156,8 @@ pub struct Cli {
     #[arg(
         long = "store",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = "true",
         help = "use for define custom store (e.g. --store leveldb used for big codebase)"
     )]
     pub store: Option<String>,
@@ -157,6 +165,8 @@ pub struct Cli {
     #[arg(
         long = "store-path",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = "true",
         help = "directory to use for store cache (e.g. --store-path /tmp/jscpd-cache, useful when running multiple instances in parallel)"
     )]
     pub store_path: Option<PathBuf>,
