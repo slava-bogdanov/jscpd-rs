@@ -8,6 +8,8 @@ RUST_PROJECT="$TMP_ROOT/rust"
 UPSTREAM_PROJECT="$TMP_ROOT/upstream"
 PACKAGE_RUST_PROJECT="$TMP_ROOT/rust-package"
 PACKAGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-package"
+INVALID_PACKAGE_RUST_PROJECT="$TMP_ROOT/rust-invalid-package"
+INVALID_PACKAGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-invalid-package"
 
 cleanup() {
   if [[ "${KEEP:-0}" != "1" ]]; then
@@ -85,6 +87,15 @@ make_package_project() {
 JSON
 }
 
+make_invalid_package_project() {
+  local project="$1"
+  mkdir -p "$project"
+  cp "$ROOT/jscpd/fixtures/clike/file2.c" "$project/file.c"
+  cat >"$project/package.json" <<'JSON'
+{ invalid json
+JSON
+}
+
 check_typescript_mapping() {
   local rust_report="$1"
   local upstream_report="$2"
@@ -117,10 +128,59 @@ compare_reports() {
     "$upstream_report"
 }
 
+run_invalid_package_case() {
+  local project="$1"
+  local tool="$2"
+  local stdout_file="$project/stdout.txt"
+  local stderr_file="$project/stderr.txt"
+  local code
+  local cmd=()
+
+  if [[ "$tool" == "rust" ]]; then
+    cmd=("$ROOT/target/release/jscpd-rs")
+  else
+    cmd=(node "$ROOT/jscpd/apps/jscpd/bin/jscpd")
+  fi
+
+  set +e
+  (
+    cd "$project"
+    "${cmd[@]}" file.c \
+      --reporters json \
+      --silent \
+      --noTips \
+      --min-tokens 20 \
+      --min-lines 3 \
+      --max-size 1mb \
+      --exitCode 0
+  ) >"$stdout_file" 2>"$stderr_file"
+  code=$?
+  set -e
+
+  if [[ "$code" != "0" ]]; then
+    printf '%s invalid package.json case exited with %s\n' "$tool" "$code" >&2
+    sed -n '1,80p' "$stdout_file" >&2 || true
+    sed -n '1,80p' "$stderr_file" >&2 || true
+    return 1
+  fi
+  if ! grep -Fq "Warning: Could not parse" "$stderr_file"; then
+    printf '%s invalid package.json case did not warn\n' "$tool" >&2
+    sed -n '1,80p' "$stderr_file" >&2 || true
+    return 1
+  fi
+  if ! grep -Fq "package.json" "$stderr_file"; then
+    printf '%s invalid package.json warning did not name package.json\n' "$tool" >&2
+    sed -n '1,80p' "$stderr_file" >&2 || true
+    return 1
+  fi
+}
+
 make_project "$RUST_PROJECT"
 make_project "$UPSTREAM_PROJECT"
 make_package_project "$PACKAGE_RUST_PROJECT"
 make_package_project "$PACKAGE_UPSTREAM_PROJECT"
+make_invalid_package_project "$INVALID_PACKAGE_RUST_PROJECT"
+make_invalid_package_project "$INVALID_PACKAGE_UPSTREAM_PROJECT"
 
 printf 'fixture: %s\n' "$TARGET_FIXTURE"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -161,9 +221,20 @@ compare_reports \
   "$PACKAGE_RUST_PROJECT/report/jscpd-report.json" \
   "$PACKAGE_UPSTREAM_PROJECT/report/jscpd-report.json"
 
+printf '\ninvalid package.json fixture\n\n'
+
+run_invalid_package_case "$INVALID_PACKAGE_RUST_PROJECT" rust
+run_invalid_package_case "$INVALID_PACKAGE_UPSTREAM_PROJECT" upstream
+
+compare_reports \
+  "$INVALID_PACKAGE_RUST_PROJECT/report/jscpd-report.json" \
+  "$INVALID_PACKAGE_UPSTREAM_PROJECT/report/jscpd-report.json"
+
 if [[ "${KEEP:-0}" == "1" ]]; then
   printf '\nrust project: %s\n' "$RUST_PROJECT"
   printf 'upstream project: %s\n' "$UPSTREAM_PROJECT"
   printf 'rust package project: %s\n' "$PACKAGE_RUST_PROJECT"
   printf 'upstream package project: %s\n' "$PACKAGE_UPSTREAM_PROJECT"
+  printf 'rust invalid package project: %s\n' "$INVALID_PACKAGE_RUST_PROJECT"
+  printf 'upstream invalid package project: %s\n' "$INVALID_PACKAGE_UPSTREAM_PROJECT"
 fi
