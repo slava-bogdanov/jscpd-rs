@@ -123,9 +123,9 @@ Latest recorded public benchmark baseline:
 
 | Repo | Format | Rust avg | Upstream avg | Speedup |
 | --- | --- | ---: | ---: | ---: |
-| React | JavaScript | 0.191113s | 9.846157s | 51.52x |
-| Next.js | TypeScript | 0.242847s | 14.149407s | 58.26x |
-| Prometheus | Go | 0.080328s | 4.608977s | 57.38x |
+| React | JavaScript | 0.186378s | 10.012629s | 53.72x |
+| Next.js | TypeScript | 0.240852s | 14.316217s | 59.44x |
+| Prometheus | Go | 0.078731s | 4.542469s | 57.70x |
 
 See [docs/compat-baseline.md](docs/compat-baseline.md) for the current gate
 baseline, [docs/release-readiness.md](docs/release-readiness.md) for component
