@@ -21,9 +21,7 @@ fn main() {
 fn run() -> Result<()> {
     let cli = Cli::parse();
     if cli.list {
-        for format in formats::supported_formats() {
-            println!("{format}");
-        }
+        print!("{}", list_output());
         return Ok(());
     }
 
@@ -61,6 +59,13 @@ fn debug_output(options: &Options, files: &[SourceFile]) -> String {
     output
 }
 
+fn list_output() -> String {
+    format!(
+        "Supported formats: \n{}\n",
+        formats::supported_formats().join(", ")
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -91,5 +96,15 @@ mod tests {
         assert!(output.contains("src/a.ts\nsrc/b.ts"));
         assert!(output.ends_with("Found 2 files to detect.\n"));
         assert!(!output.contains("const a = 1"));
+    }
+
+    #[test]
+    fn list_output_matches_upstream_shape() {
+        let output = list_output();
+
+        assert!(output.starts_with("Supported formats: \n"));
+        assert!(output.contains("abap, actionscript, ada"));
+        assert!(output.contains(", typescript, "));
+        assert!(!output.lines().skip(1).any(|line| line == "typescript"));
     }
 }

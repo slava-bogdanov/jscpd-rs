@@ -57,6 +57,8 @@ range while compatibility is converging.
   still implementation gaps.
 - `--debug` is a dry run like upstream: it prints options and discovered files,
   then exits before clone detection and reporter execution.
+- `--list` follows the upstream output shape: a `Supported formats:` header
+  followed by comma-separated formats.
 - Known upstream bug candidates are tracked in `docs/upstream-bugs.md`.
 
 ## Benchmark Sanity

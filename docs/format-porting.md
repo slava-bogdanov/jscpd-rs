@@ -35,7 +35,7 @@ duplicate fragments on their fixtures.
 1. Confirm the format is present:
 
    ```bash
-   cargo run --quiet -- --list | rg '^<format>$'
+   cargo run --quiet -- --list | rg '(^|, )<format>(,|$)'
    ```
 
 2. Add or reuse a tiny target directory for the format.
