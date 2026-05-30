@@ -1,10 +1,20 @@
 use std::collections::HashSet;
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use super::paths::relative_path;
 
 pub(super) fn collect_gitignore_patterns(roots: &[PathBuf]) -> Vec<String> {
+    let global_excludes_file = global_gitignore_path();
+    collect_gitignore_patterns_with_global(roots, global_excludes_file.as_deref())
+}
+
+pub(super) fn collect_gitignore_patterns_with_global(
+    roots: &[PathBuf],
+    global_excludes_file: Option<&Path>,
+) -> Vec<String> {
     let mut patterns = Vec::new();
     let mut visited_dirs = HashSet::new();
     let mut visited_repos = HashSet::new();
@@ -63,7 +73,44 @@ pub(super) fn collect_gitignore_patterns(roots: &[PathBuf]) -> Vec<String> {
         }
     }
 
+    if let Some(global_excludes_file) = global_excludes_file
+        && let Ok(content) = fs::read_to_string(global_excludes_file)
+    {
+        for line in content.lines() {
+            patterns.extend(gitignore_line_to_globs(line, None));
+        }
+    }
+
     patterns
+}
+
+fn global_gitignore_path() -> Option<PathBuf> {
+    let output = Command::new("git")
+        .args(["config", "--global", "core.excludesFile"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if value.is_empty() {
+        return None;
+    }
+    if value == "~" {
+        return home_dir();
+    }
+    if let Some(rest) = value.strip_prefix("~/") {
+        return home_dir().map(|home| home.join(rest));
+    }
+
+    Some(PathBuf::from(value))
+}
+
+fn home_dir() -> Option<PathBuf> {
+    env::var_os("HOME")
+        .or_else(|| env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
 }
 
 pub(super) fn gitignore_line_to_globs(line: &str, base_dir: Option<&Path>) -> Vec<String> {

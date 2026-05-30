@@ -6,7 +6,7 @@ use crate::cli::Options;
 
 use super::discover;
 use super::discovery::format_filter_skip_message;
-use super::gitignore::gitignore_line_to_globs;
+use super::gitignore::{collect_gitignore_patterns_with_global, gitignore_line_to_globs};
 use super::paths::{display_relative_to, fast_glob_like_path_cmp, relative_path};
 
 #[test]
@@ -104,6 +104,30 @@ fn gitignore_line_to_globs_keeps_upstream_variants_for_cwd_base_dir() {
     let negated = gitignore_line_to_globs("!test.js", Some(&cwd));
     assert!(negated.iter().any(|glob| glob == "!**/test.js"));
     assert!(negated.iter().any(|glob| glob == "!**/test.js/**"));
+}
+
+#[test]
+fn collect_gitignore_patterns_includes_global_excludes_like_upstream() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-global-excludes-{}-{nonce}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    let global_excludes = dir.join("globalignore");
+    std::fs::write(&global_excludes, "*.swp\n.DS_Store\n# comment\n\n").unwrap();
+
+    let patterns =
+        collect_gitignore_patterns_with_global(std::slice::from_ref(&dir), Some(&global_excludes));
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(patterns.iter().any(|pattern| pattern == "**/*.swp"));
+    assert!(patterns.iter().any(|pattern| pattern == "**/*.swp/**"));
+    assert!(patterns.iter().any(|pattern| pattern == "**/.DS_Store"));
+    assert!(patterns.iter().all(|pattern| !pattern.contains("comment")));
 }
 
 #[test]

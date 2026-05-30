@@ -259,6 +259,8 @@ coverage-first compatibility matrix and is required before publication.
   `--formats-names`, matching upstream behavior.
 - Custom extension and filename mappings are supported through
   `--formats-exts`/`formatsExts` and `--formats-names`/`formatsNames`.
+- File discovery respects `.gitignore`, `.git/info/exclude`, and the global
+  Git excludes file from `git config --global core.excludesFile`.
 - `skipLocal` follows the upstream configured-root validator: clones are skipped
   only when both fragments are inside the same input path.
 - The upstream workflow option surface for `blame`, `store`, `storePath`,
