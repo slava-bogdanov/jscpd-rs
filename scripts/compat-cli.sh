@@ -246,6 +246,35 @@ if (missing.length || extra.length) {
 NODE
 }
 
+require_list_formats_equal() {
+  node --input-type=module - "$LAST_CASE_DIR/rust.stdout.clean" "$LAST_CASE_DIR/upstream.stdout.clean" <<'NODE'
+import fs from 'node:fs';
+
+const [rustPath, upstreamPath] = process.argv.slice(2);
+const extract = (path) => fs.readFileSync(path, 'utf8')
+  .split(/\r?\n/)
+  .flatMap((line) => line.includes(',') ? line.split(',') : [])
+  .map((format) => format.trim())
+  .filter(Boolean);
+
+const rust = extract(rustPath);
+const upstream = extract(upstreamPath);
+const missing = upstream.filter((format) => !rust.includes(format));
+const extra = rust.filter((format) => !upstream.includes(format));
+const firstOrderMismatch = upstream.findIndex((format, index) => rust[index] !== format);
+
+if (missing.length || extra.length || firstOrderMismatch !== -1) {
+  console.error('supported format list mismatch');
+  if (missing.length) console.error(`missing in rust: ${missing.join(', ')}`);
+  if (extra.length) console.error(`extra in rust: ${extra.join(', ')}`);
+  if (firstOrderMismatch !== -1) {
+    console.error(`order mismatch at ${firstOrderMismatch}: rust=${rust[firstOrderMismatch]} upstream=${upstream[firstOrderMismatch]}`);
+  }
+  process.exit(1);
+}
+NODE
+}
+
 print_case() {
   local case_dir="$1"
   for tool in rust upstream; do
@@ -353,6 +382,7 @@ require_both_not_contain stdout "jscpd "
 run_case "list formats" 0 --list --silent --format abcdefghijklmnopqrstuvwxyz
 require_both_contain stdout "Supported formats:"
 require_both_contain stdout "typescript"
+require_list_formats_equal
 
 run_case "debug listing" 0 "$TARGET_REL" --debug --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "Options:"
