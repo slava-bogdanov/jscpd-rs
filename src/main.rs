@@ -5,6 +5,8 @@ mod formats;
 mod report;
 mod tokenizer;
 
+use std::time::{Duration, Instant};
+
 use anyhow::Result;
 use clap::Parser;
 
@@ -34,9 +36,11 @@ fn run() -> Result<()> {
 
     print_store_warning(&options);
 
+    let started = Instant::now();
     let result = detector::detect(files, &options);
 
     report::write_reports(&result, &options)?;
+    print_terminal_footer(&options, started.elapsed());
 
     if !result.clones.is_empty() && options.exit_code != 0 {
         std::process::exit(options.exit_code);
@@ -61,6 +65,34 @@ fn store_warning(options: &Options) -> Option<String> {
         .as_ref()
         .map(|store| format!("store name {store} not installed."))
 }
+
+fn print_terminal_footer(options: &Options, elapsed: Duration) {
+    if let Some(output) = terminal_footer_output(options, elapsed) {
+        print!("{output}");
+    }
+}
+
+fn terminal_footer_output(options: &Options, elapsed: Duration) -> Option<String> {
+    if options.silent {
+        return None;
+    }
+
+    let mut output = format!("time: {:.3}ms\n", elapsed.as_secs_f64() * 1000.0);
+    if !options.no_tips {
+        output.push('\n');
+        for tip in TIPS {
+            output.push_str(tip);
+            output.push('\n');
+        }
+    }
+    Some(output)
+}
+
+const TIPS: &[&str] = &[
+    "💡 Auto-refactor with AI: npx skills add kucherenko/jscpd",
+    "🎩 New: Gangsta Agents — discipline your AI coding → gangsta.page",
+    "💖 Support jscpd project → https://opencollective.com/jscpd",
+];
 
 fn debug_output(options: &Options, files: &[SourceFile]) -> String {
     let mut output = String::new();
@@ -135,5 +167,30 @@ mod tests {
             Some("store name leveldb not installed.")
         );
         assert!(store_warning(&Options::default()).is_none());
+    }
+
+    #[test]
+    fn terminal_footer_matches_upstream_silent_and_tips_rules() {
+        let elapsed = Duration::from_millis(42);
+        let verbose = Options::default();
+        let output = terminal_footer_output(&verbose, elapsed).unwrap();
+
+        assert!(output.starts_with("time: "));
+        assert!(output.contains("Auto-refactor with AI"));
+        assert!(output.contains("Support jscpd project"));
+
+        let no_tips = Options {
+            no_tips: true,
+            ..Options::default()
+        };
+        let output = terminal_footer_output(&no_tips, elapsed).unwrap();
+        assert!(output.starts_with("time: "));
+        assert!(!output.contains("Auto-refactor with AI"));
+
+        let silent = Options {
+            silent: true,
+            ..Options::default()
+        };
+        assert!(terminal_footer_output(&silent, elapsed).is_none());
     }
 }

@@ -62,6 +62,8 @@ range while compatibility is converging.
   then exits before clone detection and reporter execution.
 - `--list` follows the upstream output shape: a `Supported formats:` header
   followed by comma-separated formats.
+- Non-silent runs print a `time:` footer after reporters. Tips are printed by
+  default and suppressed by `--noTips`, matching the upstream workflow shape.
 - Unknown reporter names emit the upstream-style install warning. Dynamic
   loading of external reporter packages is not implemented yet.
 - Known upstream bug candidates are tracked in `docs/upstream-bugs.md`.
