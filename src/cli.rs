@@ -435,7 +435,11 @@ fn apply_config(options: &mut Options, config: FileConfig, config_dir: &Path) ->
         options.pattern = pattern;
     }
     if let Some(ignore) = config.ignore {
-        options.ignore = ignore.into_vec();
+        options.ignore = ignore
+            .into_vec()
+            .into_iter()
+            .map(|pattern| resolve_config_ignore(config_dir, pattern))
+            .collect::<Result<Vec<_>>>()?;
     }
     if let Some(reporters) = config.reporters {
         options.reporters = reporters.into_vec();
@@ -514,6 +518,21 @@ fn resolve_config_path<T: Into<PathBuf>>(config_dir: &Path, path: T) -> PathBuf 
     }
 }
 
+fn resolve_config_ignore(config_dir: &Path, pattern: String) -> Result<String> {
+    let path = Path::new(&pattern);
+    if path.is_absolute() || pattern.starts_with("**/") {
+        return Ok(pattern);
+    }
+
+    let absolute = config_dir.join(&pattern);
+    let cwd = std::env::current_dir().context("failed to resolve current directory")?;
+    if let Ok(relative) = absolute.strip_prefix(cwd) {
+        return Ok(relative.display().to_string());
+    }
+
+    Ok(absolute.display().to_string())
+}
+
 fn split_csv(value: &str) -> Vec<String> {
     value
         .split(',')
@@ -564,7 +583,10 @@ fn parse_size(value: &str) -> Result<u64> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cli, Mode, Options, normalize_reporters, parse_format_mappings, parse_size};
+    use super::{
+        Cli, Mode, Options, normalize_reporters, parse_format_mappings, parse_size,
+        resolve_config_ignore,
+    };
     use clap::Parser;
 
     #[test]
@@ -607,6 +629,21 @@ mod tests {
         normalize_reporters(&mut options);
 
         assert_eq!(options.reporters, vec!["json", "threshold"]);
+    }
+
+    #[test]
+    fn resolves_config_ignore_relative_to_config_dir() {
+        let cwd = std::env::current_dir().unwrap();
+        let config_dir = cwd.join("configs").join("nested");
+
+        assert_eq!(
+            resolve_config_ignore(&config_dir, "dist/**".to_string()).unwrap(),
+            "configs/nested/dist/**"
+        );
+        assert_eq!(
+            resolve_config_ignore(&config_dir, "**/generated/**".to_string()).unwrap(),
+            "**/generated/**"
+        );
     }
 
     #[test]
