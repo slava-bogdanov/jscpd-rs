@@ -1,7 +1,8 @@
 use crate::cli::Options;
 use crate::files::SourceFile;
+use crate::tokenizer::Location;
 
-use super::detect;
+use super::{CloneMatch, Fragment, dedup_exact_clones, detect};
 
 #[test]
 fn detects_cross_file_duplicates() {
@@ -142,6 +143,21 @@ function second(workUnitAsyncStorage, reportResult) {
     }));
 }
 
+#[test]
+fn deduplicates_exact_clone_records() {
+    let mut clones = vec![
+        clone_with_lines("javascript", "a.js", 1, 5, "b.js", 1, 5),
+        clone_with_lines("javascript", "a.js", 1, 5, "b.js", 1, 5),
+        clone_with_lines("javascript", "a.js", 6, 10, "b.js", 6, 10),
+    ];
+
+    dedup_exact_clones(&mut clones);
+
+    assert_eq!(clones.len(), 2);
+    assert_eq!(clones[0].duplication_a.start.line, 1);
+    assert_eq!(clones[1].duplication_a.start.line, 6);
+}
+
 fn source(path: &str, content: &str) -> SourceFile {
     source_with_format(path, "javascript", content)
 }
@@ -151,5 +167,40 @@ fn source_with_format(path: &str, format: &str, content: &str) -> SourceFile {
         source_id: path.to_string(),
         format: format.to_string(),
         content: content.to_string(),
+    }
+}
+
+fn clone_with_lines(
+    format: &str,
+    source_a: &str,
+    start_a: usize,
+    end_a: usize,
+    source_b: &str,
+    start_b: usize,
+    end_b: usize,
+) -> CloneMatch {
+    CloneMatch {
+        format: format.to_string(),
+        duplication_a: fragment(source_a, start_a, end_a),
+        duplication_b: fragment(source_b, start_b, end_b),
+        tokens: 20,
+    }
+}
+
+fn fragment(source_id: &str, start: usize, end: usize) -> Fragment {
+    Fragment {
+        source_id: source_id.to_string(),
+        start: location(start, 1, start),
+        end: location(end, 1, end),
+        range: [start, end],
+        blame: None,
+    }
+}
+
+fn location(line: usize, column: usize, position: usize) -> Location {
+    Location {
+        line,
+        column,
+        position,
     }
 }

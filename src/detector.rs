@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use rayon::prelude::*;
+use rustc_hash::FxHashSet;
 
 use crate::cli::Options;
 use crate::files::SourceFile;
@@ -104,6 +105,7 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
         clones.extend(format_result.clones);
         skipped_clones.extend(format_result.skipped_clones);
     }
+    dedup_exact_clones(&mut clones);
     for clone in &clones {
         update_clone_statistics(&mut statistics, clone);
     }
@@ -116,5 +118,52 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
         statistics,
         sources,
         source_contents,
+    }
+}
+
+fn dedup_exact_clones(clones: &mut Vec<CloneMatch>) {
+    let mut seen = FxHashSet::default();
+    clones.retain(|clone| seen.insert(CloneDedupKey::from(clone)));
+}
+
+#[derive(Hash, Eq, PartialEq)]
+struct CloneDedupKey {
+    format: String,
+    duplication_a: FragmentDedupKey,
+    duplication_b: FragmentDedupKey,
+    tokens: usize,
+}
+
+impl From<&CloneMatch> for CloneDedupKey {
+    fn from(clone: &CloneMatch) -> Self {
+        Self {
+            format: clone.format.clone(),
+            duplication_a: FragmentDedupKey::from(&clone.duplication_a),
+            duplication_b: FragmentDedupKey::from(&clone.duplication_b),
+            tokens: clone.tokens,
+        }
+    }
+}
+
+#[derive(Hash, Eq, PartialEq)]
+struct FragmentDedupKey {
+    source_id: String,
+    start_line: usize,
+    start_column: usize,
+    end_line: usize,
+    end_column: usize,
+    range: [usize; 2],
+}
+
+impl From<&Fragment> for FragmentDedupKey {
+    fn from(fragment: &Fragment) -> Self {
+        Self {
+            source_id: fragment.source_id.clone(),
+            start_line: fragment.start.line,
+            start_column: fragment.start.column,
+            end_line: fragment.end.line,
+            end_column: fragment.end.column,
+            range: fragment.range,
+        }
     }
 }
