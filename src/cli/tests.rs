@@ -1,5 +1,5 @@
 use super::{
-    Cli, ExitCode, FileConfig, Mode, Options, apply_config, normalize_reporters,
+    BARE_CONFIG_VALUE, Cli, ExitCode, FileConfig, Mode, Options, apply_config, normalize_reporters,
     parse_format_mappings, parse_js_number, parse_js_usize, parse_size, resolve_config_ignore,
     resolve_node_exit_code,
 };
@@ -131,6 +131,21 @@ fn accepts_bare_optional_cli_values_that_upstream_continues_with() {
         Some(std::path::Path::new("true"))
     );
     assert_eq!(options.exit_code, ExitCode::Boolean(true));
+}
+
+#[test]
+fn accepts_bare_config_during_cli_parse_then_matches_upstream_runtime_error() {
+    let cli = Cli::parse_from(["jscpd-rs", "--config"]);
+    assert_eq!(
+        cli.config.as_deref(),
+        Some(std::path::Path::new(BARE_CONFIG_VALUE))
+    );
+
+    let error = Options::from_cli(cli).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string. Received type boolean (true)"
+    );
 }
 
 #[test]

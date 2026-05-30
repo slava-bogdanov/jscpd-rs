@@ -20,6 +20,7 @@ use parsing::{
 };
 
 const BARE_EXIT_CODE_VALUE: &str = "__jscpd_rs_bare_exit_code_true__";
+const BARE_CONFIG_VALUE: &str = "__jscpd_rs_bare_config_true__";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -94,6 +95,8 @@ pub struct Cli {
         short = 'c',
         long = "config",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_CONFIG_VALUE,
         help = "path to config file (Default is .jscpd.json in <path>)"
     )]
     pub config: Option<PathBuf>,
@@ -409,6 +412,13 @@ fn default_execution_id() -> String {
 impl Options {
     pub fn from_cli(cli: Cli) -> Result<Self> {
         let mut options = Self::default();
+
+        if matches!(cli.config.as_deref(), Some(path) if path == std::path::Path::new(BARE_CONFIG_VALUE))
+        {
+            bail!(
+                "TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string. Received type boolean (true)"
+            );
+        }
 
         if let Some((config, config_dir)) = read_package_json_config()? {
             apply_config(&mut options, config, &config_dir)?;

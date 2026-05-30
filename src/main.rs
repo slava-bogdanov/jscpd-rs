@@ -21,6 +21,11 @@ fn main() {
             eprintln!("{}", threshold.message());
             std::process::exit(1);
         }
+        let message = error.to_string();
+        if message.starts_with("TypeError [ERR_INVALID_ARG_TYPE]") {
+            println!("{message}");
+            std::process::exit(1);
+        }
         eprintln!("error: {error:#}");
         std::process::exit(1);
     }
@@ -32,12 +37,14 @@ fn run() -> Result<()> {
         println!("{}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
-    if cli.list {
+    let list = cli.list;
+
+    let options = Options::from_cli(cli)?;
+    if list {
         print!("{}", list_output());
         return Ok(());
     }
 
-    let options = Options::from_cli(cli)?;
     let files = files::discover(&options)?;
     if options.debug {
         print_debug(&options, &files);

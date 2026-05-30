@@ -346,6 +346,7 @@ THRESHOLD_ERROR="ERROR: jscpd found too many duplicates (35.71%) over threshold 
 EXIT_CODE_TYPE_ERROR_STRING="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type string ('nope')"
 EXIT_CODE_RANGE_ERROR="RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is out of range. It must be an integer. Received 7.5"
 EXIT_CODE_TYPE_ERROR_BOOLEAN="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type boolean (true)"
+BARE_CONFIG_TYPE_ERROR="TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string. Received type boolean (true)"
 UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
 UNKNOWN_REPORTER_MODULE_ERROR="Cannot find module 'jscpd-badgezz-reporter'"
 TIME_REPORTER_WARNING="warning: time not installed (install packages named @jscpd/time-reporter or jscpd-time-reporter)"
@@ -420,6 +421,10 @@ require_both_contain stdout "output the version number"
 require_help_option_sets_equal
 require_help_option_aliases_equal
 
+run_case "bare config help" 0 --config --help
+require_both_contain stdout "Usage: jscpd [options] <path ...>"
+require_both_contain stdout "path to config file"
+
 run_case "version output" 0 --version
 require_both_match stdout '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9_.-]+)?$'
 require_both_not_contain stdout "jscpd "
@@ -432,6 +437,9 @@ run_case "list formats" 0 --list --silent --format abcdefghijklmnopqrstuvwxyz
 require_both_contain stdout "Supported formats:"
 require_both_contain stdout "typescript"
 require_list_formats_equal
+
+run_case "bare config list" 1 --config --list
+require_both_contain stdout "$BARE_CONFIG_TYPE_ERROR"
 
 run_case "debug listing" 0 "$TARGET_REL" --debug --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "Options:"
@@ -523,6 +531,9 @@ run_case "invalid max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN
 require_both_not_contain stdout "Duplications detection:"
 
 run_case "unknown mode" 1 "$TARGET_REL" --mode zzz --noTips
+
+run_case "bare config" 1 --config
+require_both_contain stdout "$BARE_CONFIG_TYPE_ERROR"
 
 run_case "line filter no files" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines 999999 --max-size "$MAX_SIZE"
 require_both_not_contain stdout "Duplications detection:"
