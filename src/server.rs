@@ -801,6 +801,36 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn server_check_snippet_rejects_non_string_format_like_upstream() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        service.initialize().expect("initialize");
+        let app = create_router(service);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/check")
+                    .header(CONTENT_TYPE, "application/json")
+                    .body(Body::from(r#"{"code":"console.log(1);","format":123}"#))
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        let body: Value = serde_json::from_slice(&body).expect("json body");
+        assert_eq!(body["error"], "ValidationError");
+        assert_eq!(body["message"], "Field \"format\" must be a string");
+        assert_eq!(body["statusCode"], 400);
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
     async fn server_unknown_routes_return_upstream_style_json_error() {
         let path = fixture_project();
         let service = service_for(&path);

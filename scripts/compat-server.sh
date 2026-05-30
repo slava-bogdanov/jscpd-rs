@@ -228,6 +228,10 @@ check_server_http() {
     -H 'Content-Type: application/json' \
     -d '{"code":123,"format":"javascript"}' \
     "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-non-string-format.json" 400 \
+    -H 'Content-Type: application/json' \
+    -d '{"code":"console.log(1);","format":123}' \
+    "http://127.0.0.1:$port/api/check"
   http_json "$dir/check-missing-format.json" 400 \
     -H 'Content-Type: application/json' \
     -d '{"code":"console.log(1);"}' \
@@ -406,6 +410,11 @@ const nonStringCode = read('check-non-string-code.json');
 assert(nonStringCode.error === 'ValidationError', `${label} non-string code error`);
 assert(nonStringCode.statusCode === 400, `${label} non-string code statusCode`);
 assert(nonStringCode.message === 'Field "code" must be a string', `${label} non-string code message`);
+
+const nonStringFormat = read('check-non-string-format.json');
+assert(nonStringFormat.error === 'ValidationError', `${label} non-string format error`);
+assert(nonStringFormat.statusCode === 400, `${label} non-string format statusCode`);
+assert(nonStringFormat.message === 'Field "format" must be a string', `${label} non-string format message`);
 
 const missingFormat = read('check-missing-format.json');
 assert(missingFormat.error === 'ValidationError', `${label} missing format error`);

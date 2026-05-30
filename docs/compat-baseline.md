@@ -101,9 +101,10 @@ This smoke check compares the native `jscpd-server` binary with upstream
 `apps/jscpd-server`. It verifies exact server `--help` output, invalid or bare
 `--port`, rejects main-CLI-only options that upstream server does not accept,
 starts both servers on local ports, and checks the root API info,
-`/api/health`, `/api/stats`, JSON and urlencoded `/api/check`, validation and
-JSON syntax errors, upstream-style JSON 404 responses for missing routes and
-wrong API methods, MCP initialize/session handling, `tools/list`,
+`/api/health`, `/api/stats`, JSON and urlencoded `/api/check`,
+missing/non-string field validation, JSON syntax errors, upstream-style JSON
+404 responses for missing routes and wrong API methods, MCP
+initialize/session handling, `tools/list`,
 `resources/list`, `get_statistics`, `jscpd://statistics`, and `GET /mcp`
 method rejection. It also checks upstream-style `DELETE /mcp` and
 `OPTIONS /mcp` JSON 404 responses plus JSON-RPC single-request and multi-request
