@@ -94,26 +94,25 @@ print_cases() {
 
 compat_allow_missing_coverage() {
   local name="$1"
+  local repo_path="$2"
+  local repo_rel
+  repo_rel="$(realpath --relative-to="$ROOT" "$repo_path")"
 
   case "$name" in
     react)
-      cat <<'EOF'
-javascript:../.cache/jscpd-rs/public-bench/repos/react/packages/react-dom/src/events/__tests__/SyntheticMouseEvent-test.js:21-38
-javascript:../.cache/jscpd-rs/public-bench/repos/react/packages/react-dom/src/server/ReactDOMFizzServerNode.js:179-229
-javascript:../.cache/jscpd-rs/public-bench/repos/react/packages/react-dom/src/__tests__/ReactDOMViewTransition-test.js:39-135
-EOF
+      printf 'javascript:%s/packages/react-dom/src/events/__tests__/SyntheticMouseEvent-test.js:21-38\n' "$repo_rel"
+      printf 'javascript:%s/packages/react-dom/src/server/ReactDOMFizzServerNode.js:179-229\n' "$repo_rel"
+      printf 'javascript:%s/packages/react-dom/src/__tests__/ReactDOMViewTransition-test.js:39-135\n' "$repo_rel"
       ;;
     next)
-      cat <<'EOF'
-typescript:../.cache/jscpd-rs/public-bench/repos/next/packages/next/src/build/webpack/loaders/next-style-loader/index.ts:221-229
-typescript:../.cache/jscpd-rs/public-bench/repos/next/test/e2e/app-dir/non-root-project-monorepo/non-root-project-monorepo.test.ts:284-303
-typescript:../.cache/jscpd-rs/public-bench/repos/next/test/e2e/app-dir/non-root-project-monorepo/non-root-project-monorepo.test.ts:221-240
-typescript:../.cache/jscpd-rs/public-bench/repos/next/packages/next-routing/src/__tests__/normalize-next-data.test.ts:185-681
-typescript:../.cache/jscpd-rs/public-bench/repos/next/test/e2e/edge-runtime-module-errors/edge-runtime-module-errors.test.ts:314-459
-typescript:../.cache/jscpd-rs/public-bench/repos/next/test/e2e/edge-runtime-module-errors/edge-runtime-module-errors.test.ts:745-892
-typescript:../.cache/jscpd-rs/public-bench/repos/next/test/development/basic/next-rs-api.test.ts:327-356
-typescript:../.cache/jscpd-rs/public-bench/repos/next/test/development/basic/next-rs-api.test.ts:175-203
-EOF
+      printf 'typescript:%s/packages/next/src/build/webpack/loaders/next-style-loader/index.ts:221-229\n' "$repo_rel"
+      printf 'typescript:%s/test/e2e/app-dir/non-root-project-monorepo/non-root-project-monorepo.test.ts:284-303\n' "$repo_rel"
+      printf 'typescript:%s/test/e2e/app-dir/non-root-project-monorepo/non-root-project-monorepo.test.ts:221-240\n' "$repo_rel"
+      printf 'typescript:%s/packages/next-routing/src/__tests__/normalize-next-data.test.ts:185-681\n' "$repo_rel"
+      printf 'typescript:%s/test/e2e/edge-runtime-module-errors/edge-runtime-module-errors.test.ts:314-459\n' "$repo_rel"
+      printf 'typescript:%s/test/e2e/edge-runtime-module-errors/edge-runtime-module-errors.test.ts:745-892\n' "$repo_rel"
+      printf 'typescript:%s/test/development/basic/next-rs-api.test.ts:327-356\n' "$repo_rel"
+      printf 'typescript:%s/test/development/basic/next-rs-api.test.ts:175-203\n' "$repo_rel"
       ;;
   esac
 }
@@ -212,7 +211,7 @@ for spec in "${SUITE_CASES[@]}"; do
 
   if [[ "$CHECK_COMPAT" == "1" ]]; then
     printf '\n== %s coverage compatibility ==\n' "$name"
-    allowed_missing_coverage="$(compat_allow_missing_coverage "$name")"
+    allowed_missing_coverage="$(compat_allow_missing_coverage "$name" "$repo_path")"
     FORMAT="$format" \
       STRICT=coverage \
       ALLOW_MISSING_COVERAGE="$allowed_missing_coverage" \
