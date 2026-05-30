@@ -55,6 +55,18 @@ git branch -D junior/<branch-name>
 - Port one small function from upstream when the target shape is already clear.
 - Run `scripts/check-format.sh <format> <target>` and report exact output.
 
+## Prompt Notes
+
+- Prefer implementation or test tasks over broad read-only scouting. A scout
+  prompt that is too procedural may produce a task plan instead of executing the
+  checks.
+- For read-only fact gathering, explicitly say: "Execute the checks now; do not
+  write instructions or a plan."
+- Keep fact-gathering prompts to exact files and exact commands. If there are
+  many commands, give a shell loop instead of asking the junior to design one.
+- Do not use junior output as evidence until the main agent verifies the exact
+  commands or diff.
+
 ## Bad Junior Tasks
 
 - Review a whole commit or subsystem.
