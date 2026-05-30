@@ -58,8 +58,8 @@ run_case "fixtures skipLocal on" "jscpd/fixtures/folder1" "" 50 5 \
   "$DEFAULT_MAX_SIZE" "" "coverage" "" "jscpd/fixtures/folder2" --skipLocal
 run_case "fixtures mixed-formats" "jscpd/fixtures/mixed-formats" "" 20 3
 run_case "fixtures shebang" "jscpd/fixtures/shebang" "" 20 3
-run_case "fixtures javascript strict" "jscpd/fixtures/javascript" "javascript" 20 3 "$DEFAULT_MAX_SIZE" "strict" "1"
-run_case "fixtures typescript strict" "jscpd/fixtures" "typescript" 20 3 "$DEFAULT_MAX_SIZE" "strict" "1"
+run_case "fixtures javascript strict" "jscpd/fixtures/javascript" "javascript" 20 3 "$DEFAULT_MAX_SIZE" "strict" "coverage"
+run_case "fixtures typescript strict" "jscpd/fixtures" "typescript" 20 3 "$DEFAULT_MAX_SIZE" "strict" "coverage"
 run_case "fixtures javascript weak" "jscpd/fixtures/javascript" "javascript" 20 3 "$DEFAULT_MAX_SIZE" "weak" "coverage"
 run_case "fixtures jsx" "jscpd/fixtures" "jsx" 20 3
 run_case "fixtures tsx" "jscpd/fixtures" "tsx" 20 3

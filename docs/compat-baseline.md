@@ -114,8 +114,8 @@ publication.
 | `jscpd/fixtures/folder1` + `jscpd/fixtures/folder2` | auto + `--skipLocal` | pass | exact clone and line summary parity with local clones skipped |
 | `jscpd/fixtures/mixed-formats` | auto | pass | upstream JS-in-HTML clone line-covered; Rust reports a wider cross-file JS range |
 | `jscpd/fixtures/shebang` | auto | pass | exact clone and line summary parity for extensionless bash/python shebang files |
-| `jscpd/fixtures/javascript` | `javascript` / `strict` | pass | exact summary parity |
-| `jscpd/fixtures` | `typescript` / `strict` | pass | exact summary parity |
+| `jscpd/fixtures/javascript` | `javascript` / `strict` | pass | exact clone and line summary parity; token totals differ |
+| `jscpd/fixtures` | `typescript` / `strict` | pass | exact clone and line summary parity; token totals differ |
 | `jscpd/fixtures/javascript` | `javascript` / `weak` | pass | clone and line summary parity; token totals differ slightly |
 | `jscpd/fixtures` | `jsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures` | `tsx` | pass | token totals differ slightly; fragments covered |
@@ -385,4 +385,7 @@ DETECTION_MODE=strict FORMAT=javascript MIN_TOKENS=20 MIN_LINES=3 MAX_SIZE=1mb \
 ```
 
 The default matrix also includes strict JavaScript/TypeScript and weak
-JavaScript mode checks so mode regressions are gated directly.
+JavaScript mode checks so mode regressions are gated directly. Strict mode uses
+the same coverage-first release rule; token totals remain diagnostic because
+the native token stream may split whitespace differently from Prism while still
+covering every upstream duplicated line.
