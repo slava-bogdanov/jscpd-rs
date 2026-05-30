@@ -190,7 +190,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             execution_id: Some(default_execution_id()),
-            paths: vec![PathBuf::from(".")],
+            paths: vec![std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))],
             pattern: "**/*".to_string(),
             ignore: Vec::new(),
             reporters: vec!["console".to_string()],

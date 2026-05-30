@@ -33,6 +33,13 @@ fn default_execution_id_matches_upstream_shape() {
 }
 
 #[test]
+fn default_path_matches_upstream_cwd() {
+    let options = Options::default();
+
+    assert_eq!(options.paths, vec![std::env::current_dir().unwrap()]);
+}
+
+#[test]
 fn normalizes_silent_reporter_like_upstream() {
     let mut options = Options {
         silent: true,
