@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use oxc_allocator::Allocator;
-use oxc_parser::{Kind, Parser, config::TokensParserConfig};
+use oxc_parser::{Kind, Parser, Token as OxcToken, config::TokensParserConfig};
 use oxc_span::SourceType;
 
 use crate::cli::{Mode, Options};
@@ -50,19 +50,19 @@ pub(super) fn tokenize_oxc_maps(
     let line_index = LineIndex::new(content);
     let mut tokens = Vec::with_capacity(content.len().saturating_div(6));
     let mut previous_end = 0usize;
-    let parser_tokens = parser_return
-        .tokens
-        .iter()
-        .map(|token| RawOxcToken {
-            kind: token.kind(),
-            span: ByteSpan {
-                start: (token.start() as usize).min(content.len()),
-                end: (token.end() as usize).min(content.len()),
-            },
-        })
-        .collect::<Vec<_>>();
-    let jsx_script_groups = if matches!(format, "jsx" | "tsx") {
-        jsx_attribute_script_groups(&parser_tokens)
+    let parser_tokens = parser_return.tokens;
+    let raw_jsx_tokens = if matches!(format, "jsx" | "tsx") {
+        Some(
+            parser_tokens
+                .iter()
+                .map(|token| raw_oxc_token(token, content.len()))
+                .collect::<Vec<_>>(),
+        )
+    } else {
+        None
+    };
+    let jsx_script_groups = if let Some(parser_tokens) = raw_jsx_tokens.as_deref() {
+        jsx_attribute_script_groups(parser_tokens)
     } else {
         Vec::new()
     };
@@ -70,7 +70,7 @@ pub(super) fn tokenize_oxc_maps(
     let mut template_expression_depth = 0usize;
 
     while idx < parser_tokens.len() {
-        let token = &parser_tokens[idx];
+        let token = raw_oxc_token(&parser_tokens[idx], content.len());
         let start_byte = token.span.start;
         let mut end_byte = token.span.end;
         if start_byte > previous_end {
@@ -85,7 +85,7 @@ pub(super) fn tokenize_oxc_maps(
         }
         if token.kind == Kind::RAngle {
             while idx + 1 < parser_tokens.len() {
-                let next = &parser_tokens[idx + 1];
+                let next = raw_oxc_token(&parser_tokens[idx + 1], content.len());
                 if next.kind != Kind::RAngle || next.span.start != end_byte {
                     break;
                 }
@@ -113,8 +113,12 @@ pub(super) fn tokenize_oxc_maps(
             );
             previous_end = previous_end.max(regex_end);
             idx += 1;
-            while idx < parser_tokens.len() && parser_tokens[idx].span.start < regex_end {
-                previous_end = previous_end.max(parser_tokens[idx].span.end);
+            while idx < parser_tokens.len() {
+                let skipped = raw_oxc_token(&parser_tokens[idx], content.len());
+                if skipped.span.start >= regex_end {
+                    break;
+                }
+                previous_end = previous_end.max(skipped.span.end);
                 idx += 1;
             }
             continue;
@@ -158,6 +162,7 @@ pub(super) fn tokenize_oxc_maps(
         positions_assigned: false,
     }];
     if matches!(format, "jsx" | "tsx") {
+        let parser_tokens = raw_jsx_tokens.as_deref().unwrap_or_default();
         let embedded = tokenize_jsx_attribute_scripts(
             &parser_tokens,
             &jsx_script_groups,
@@ -173,6 +178,16 @@ pub(super) fn tokenize_oxc_maps(
         }
     }
     maps
+}
+
+fn raw_oxc_token(token: &OxcToken, content_len: usize) -> RawOxcToken {
+    RawOxcToken {
+        kind: token.kind(),
+        span: ByteSpan {
+            start: (token.start() as usize).min(content_len),
+            end: (token.end() as usize).min(content_len),
+        },
+    }
 }
 
 fn source_type_for_format(format: &str) -> SourceType {
