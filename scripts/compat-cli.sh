@@ -224,6 +224,28 @@ if (missing.length || extra.length) {
 NODE
 }
 
+require_help_option_aliases_equal() {
+  node --input-type=module - "$LAST_CASE_DIR/rust.stdout.clean" "$LAST_CASE_DIR/upstream.stdout.clean" <<'NODE'
+import fs from 'node:fs';
+
+const [rustPath, upstreamPath] = process.argv.slice(2);
+const aliasPattern = /(?<![A-Za-z0-9])-([A-Za-z])\b/g;
+
+const extract = (path) => new Set(fs.readFileSync(path, 'utf8').match(aliasPattern) ?? []);
+const rust = extract(rustPath);
+const upstream = extract(upstreamPath);
+const missing = [...upstream].filter((alias) => !rust.has(alias)).sort();
+const extra = [...rust].filter((alias) => !upstream.has(alias)).sort();
+
+if (missing.length || extra.length) {
+  console.error(`help short-alias mismatch`);
+  if (missing.length) console.error(`missing in rust: ${missing.join(', ')}`);
+  if (extra.length) console.error(`extra in rust: ${extra.join(', ')}`);
+  process.exit(1);
+}
+NODE
+}
+
 print_case() {
   local case_dir="$1"
   for tool in rust upstream; do
@@ -286,6 +308,7 @@ require_both_contain stdout "ignore comments during detection"
 require_both_contain stdout "alias for --mode"
 require_both_contain stdout "output the version number"
 require_help_option_sets_equal
+require_help_option_aliases_equal
 
 run_case "version output" 0 --version
 require_both_match stdout '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9_.-]+)?$'
