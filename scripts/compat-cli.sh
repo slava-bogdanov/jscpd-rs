@@ -311,6 +311,8 @@ EXIT_CODE_RANGE_ERROR="RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is o
 EXIT_CODE_TYPE_ERROR_BOOLEAN="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type boolean (true)"
 UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
 UNKNOWN_REPORTER_MODULE_ERROR="Cannot find module 'jscpd-badgezz-reporter'"
+TIME_REPORTER_WARNING="warning: time not installed (install packages named @jscpd/time-reporter or jscpd-time-reporter)"
+TIME_REPORTER_MODULE_ERROR="Cannot find module 'jscpd-time-reporter'"
 STORE_WARNING="store name leveldb not installed."
 BARE_STORE_WARNING="store name true not installed."
 TIP_AI="Auto-refactor with AI"
@@ -507,6 +509,12 @@ run_case "unknown reporter warning" 0 "$TARGET_REL" --reporters badgezz --silent
 require_both_contain stdout "$UNKNOWN_REPORTER_WARNING"
 require_both_contain stdout "$UNKNOWN_REPORTER_MODULE_ERROR"
 require_both_contain stdout "$SUMMARY"
+
+run_case "time reporter warning" 0 "$TARGET_REL" --reporters time --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$TIME_REPORTER_WARNING"
+require_both_contain stdout "$TIME_REPORTER_MODULE_ERROR"
+require_both_contain stdout "Clone found (c):"
+require_both_contain stdout "time:"
 
 run_case_without_ci "terminal footer tips" 0 "$TARGET_REL" --reporters silent "${COMMON_ARGS[@]}"
 require_both_contain stdout "time:"
