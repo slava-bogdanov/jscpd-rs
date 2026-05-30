@@ -26,10 +26,10 @@ pub use threshold::ThresholdExceeded;
 
 pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> {
     for reporter in &options.reporters {
-        if options.output_is_bare && reporter_uses_output(reporter) {
-            bail!(
-                "TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)"
-            );
+        if options.output_is_bare
+            && let Some(message) = bare_output_error(reporter)
+        {
+            bail!("{message}");
         }
         match reporter.as_str() {
             "console" if !options.silent => console::write(result, options),
@@ -95,11 +95,16 @@ fn is_builtin_reporter(reporter: &str) -> bool {
     )
 }
 
-fn reporter_uses_output(reporter: &str) -> bool {
-    matches!(
-        reporter,
-        "json" | "csv" | "markdown" | "xml" | "sarif" | "badge" | "html"
-    )
+fn bare_output_error(reporter: &str) -> Option<&'static str> {
+    match reporter {
+        "json" | "csv" | "markdown" | "xml" => Some(
+            "TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)",
+        ),
+        "sarif" | "badge" | "html" => Some(
+            "TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string. Received type boolean (true)",
+        ),
+        _ => None,
+    }
 }
 
 fn unknown_reporter_messages(options: &Options) -> Vec<String> {
@@ -168,18 +173,26 @@ mod tests {
     #[test]
     fn bare_output_fails_for_file_reporters_like_upstream() {
         let result = test_support::make_test_result_with_clone("src/a.js", "src/b.js");
-        let options = Options {
-            reporters: vec!["json".to_string()],
-            output_is_bare: true,
-            ..Options::default()
-        };
+        for (reporter, expected) in [
+            (
+                "json",
+                "TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)",
+            ),
+            (
+                "sarif",
+                "TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string. Received type boolean (true)",
+            ),
+        ] {
+            let options = Options {
+                reporters: vec![reporter.to_string()],
+                output_is_bare: true,
+                ..Options::default()
+            };
 
-        let error = write_reports(&result, &options).unwrap_err();
+            let error = write_reports(&result, &options).unwrap_err();
 
-        assert_eq!(
-            error.to_string(),
-            "TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)"
-        );
+            assert_eq!(error.to_string(), expected, "{reporter}");
+        }
     }
 
     #[test]

@@ -441,5 +441,7 @@ Rust clone handling: low-risk bare-value cases that upstream continues with are
 mirrored, and the CLI gate now also mirrors the visible runtime TypeError shape
 for bare `--ignore`, `--ignore-pattern`, `--reporters`, `--mode`, `--format`,
 `--formats-exts`, `--formats-names`, and `--output` when a file-writing
-reporter consumes the boolean output path. These remain upstream bug candidates,
-but preserving the visible command behavior removes a CLI parity gap.
+reporter consumes the boolean output path. The `--output` case preserves the
+different first-line TypeError strings from `fs.mkdirSync`-based reporters and
+`path.join`-based reporters. These remain upstream bug candidates, but
+preserving the visible command behavior removes a CLI parity gap.

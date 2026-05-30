@@ -390,7 +390,9 @@ Latest public benchmark measurements:
 - Bare optional values for `--ignore`, `--ignore-pattern`, `--reporters`,
   `--mode`, `--format`, `--formats-exts`, `--formats-names`, and file-writing
   `--output` paths now mirror upstream's Commander runtime TypeError shape
-  instead of failing during CLI parsing.
+  instead of failing during CLI parsing, including the different
+  `fs.mkdirSync` and `path.join` error strings used by different file
+  reporters.
 - CLI `--threshold` follows JavaScript `Number(...)` parsing for values such as
   `0x10` and `nope`, matching upstream threshold reporter behavior.
 - CLI/config `exitCode` keeps the raw Node-like value until clones are found.

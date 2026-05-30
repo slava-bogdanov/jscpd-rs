@@ -358,7 +358,8 @@ BARE_REPORTERS_TYPE_ERROR="TypeError: cli.reporters.split is not a function"
 BARE_MODE_TYPE_ERROR="TypeError: mode is not a function"
 BARE_FORMAT_TYPE_ERROR="TypeError: cli.format.split is not a function"
 BARE_FORMATS_TYPE_ERROR="TypeError: extensions.split is not a function"
-BARE_OUTPUT_TYPE_ERROR="TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)"
+BARE_OUTPUT_FS_TYPE_ERROR="TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)"
+BARE_OUTPUT_JOIN_TYPE_ERROR="TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string. Received type boolean (true)"
 STORE_WARNING="store name leveldb not installed."
 BARE_STORE_WARNING="store name true not installed."
 TIP_AI="Auto-refactor with AI"
@@ -570,7 +571,10 @@ run_case "bare formats names" 1 "$TARGET_REL" --formats-names
 require_both_contain stdout "$BARE_FORMATS_TYPE_ERROR"
 
 run_case "bare output json" 1 "$TARGET_REL" --output --reporters json --silent --noTips "${COMMON_ARGS[@]}"
-require_both_contain stdout "$BARE_OUTPUT_TYPE_ERROR"
+require_both_contain stdout "$BARE_OUTPUT_FS_TYPE_ERROR"
+
+run_case "bare output sarif" 1 "$TARGET_REL" --output --reporters sarif --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$BARE_OUTPUT_JOIN_TYPE_ERROR"
 
 run_case "bare config" 1 --config
 require_both_contain stdout "$BARE_CONFIG_TYPE_ERROR"
