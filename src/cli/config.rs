@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use serde::de::{MapAccess, Visitor};
 
 use super::parsing::{compile_patterns, parse_format_mappings, parse_size, split_csv};
 use super::{FormatMappings, Options};
@@ -65,18 +66,47 @@ impl OneOrMany {
 #[serde(untagged)]
 enum FormatMappingsConfig {
     String(String),
-    Map(std::collections::HashMap<String, Vec<String>>),
+    Map(OrderedFormatMappings),
+}
+
+#[derive(Debug)]
+struct OrderedFormatMappings(Vec<(String, Vec<String>)>);
+
+impl<'de> Deserialize<'de> for OrderedFormatMappings {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_map(OrderedFormatMappingsVisitor)
+    }
+}
+
+struct OrderedFormatMappingsVisitor;
+
+impl<'de> Visitor<'de> for OrderedFormatMappingsVisitor {
+    type Value = OrderedFormatMappings;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a format-to-values mapping object")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> std::result::Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut items = Vec::with_capacity(map.size_hint().unwrap_or(0));
+        while let Some((format, values)) = map.next_entry::<String, Vec<String>>()? {
+            items.push((format, values));
+        }
+        Ok(OrderedFormatMappings(items))
+    }
 }
 
 impl FormatMappingsConfig {
     fn into_mappings(self) -> FormatMappings {
         match self {
             Self::String(value) => parse_format_mappings(&value),
-            Self::Map(map) => {
-                let mut items = map.into_iter().collect::<Vec<_>>();
-                items.sort_by(|a, b| a.0.cmp(&b.0));
-                FormatMappings(items)
-            }
+            Self::Map(map) => FormatMappings(map.0),
         }
     }
 }

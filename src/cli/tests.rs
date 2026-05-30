@@ -20,6 +20,35 @@ fn parses_format_mappings() {
 }
 
 #[test]
+fn config_format_mappings_preserve_upstream_object_order() {
+    let config: FileConfig = serde_json::from_str(
+        r#"{
+            "formatsExts": {
+                "first": ["dup"],
+                "second": ["dup"]
+            },
+            "formatsNames": {
+                "name-first": ["Samefile"],
+                "name-second": ["Samefile"]
+            }
+        }"#,
+    )
+    .unwrap();
+    let mut options = Options::default();
+
+    apply_config(&mut options, config, std::path::Path::new(".")).unwrap();
+
+    assert_eq!(
+        options.formats_exts.find_format_for_value("dup"),
+        Some("first")
+    );
+    assert_eq!(
+        options.formats_names.find_format_for_value("Samefile"),
+        Some("name-first")
+    );
+}
+
+#[test]
 fn default_execution_id_matches_upstream_shape() {
     let options = Options::default();
     let execution_id = options.execution_id.as_deref().unwrap();
