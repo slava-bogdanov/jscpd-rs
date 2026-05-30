@@ -59,9 +59,9 @@ FULL=1 PUBLIC=1 PUBLIC_CASES=react,next,prometheus PUBLIC_RUNS=1 \
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `react` | `f0dfee3` | `javascript` | 0.226148s | 9.551259s | 42.23x |
-| `next` | `2bbb67b9` | `typescript` | 0.631036s | 13.716091s | 21.74x |
-| `prometheus` | `a0524ee` | `go` | 0.075283s | 4.418374s | 58.69x |
+| `react` | `f0dfee3` | `javascript` | 0.312571s | 9.704938s | 31.05x |
+| `next` | `2bbb67b9` | `typescript` | 0.637318s | 14.121367s | 22.16x |
+| `prometheus` | `a0524ee` | `go` | 0.117405s | 4.510580s | 38.42x |
 
 `kubernetes` was also checked as a Go stress case, but upstream `jscpd` ran out
 of memory with the default Node heap, so it is intentionally not part of the
