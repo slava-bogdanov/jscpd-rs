@@ -40,7 +40,7 @@ scripts/compat-cli.sh
 This smoke check compares Rust and upstream exit codes plus stable terminal
 contracts for `--help`, `--version`, `--list`, `--debug`, `--exitCode`, `--threshold`,
 `--store`, `--formats-names`, unknown reporters, terminal footer/tips, `xcode`,
-and `consoleFull`.
+`ai`, `consoleFull`, and `--verbose`.
 
 Config gate:
 

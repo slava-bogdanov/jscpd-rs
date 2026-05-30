@@ -439,6 +439,20 @@ require_both_not_contain stdout "$TIP_AI"
 require_both_not_contain stdout "$TIP_GANGSTA"
 require_both_not_contain stdout "$TIP_SUPPORT"
 
+run_case "ai reporter" 0 "$TARGET_REL" --reporters ai --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "Clones:"
+require_both_contain stdout "$TARGET_REL 18-28 ~ 8-18"
+require_both_contain stdout "35.7% duplication"
+require_both_not_contain stdout "Clone found (c):"
+
+run_case "verbose events" 0 "$TARGET_REL" --verbose --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "START_DETECTION"
+require_both_contain stdout "Start detection for source id=$TARGET_REL format=c"
+require_both_contain stdout "CLONE_FOUND"
+require_both_contain stdout '"format": "c"'
+require_both_contain stdout "Clone found (c):"
+require_both_contain stdout "Found 1 clones."
+
 run_case "bare threshold" 1 "$TARGET_REL" --threshold --noTips "${COMMON_ARGS[@]}"
 require_both_contain stderr "ERROR: jscpd found too many duplicates (35.71%) over threshold (1%)"
 
