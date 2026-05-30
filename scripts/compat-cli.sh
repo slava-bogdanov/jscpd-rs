@@ -352,6 +352,13 @@ UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named
 UNKNOWN_REPORTER_MODULE_ERROR="Cannot find module 'jscpd-badgezz-reporter'"
 TIME_REPORTER_WARNING="warning: time not installed (install packages named @jscpd/time-reporter or jscpd-time-reporter)"
 TIME_REPORTER_MODULE_ERROR="Cannot find module 'jscpd-time-reporter'"
+BARE_IGNORE_TYPE_ERROR="TypeError: cli.ignore.split is not a function"
+BARE_IGNORE_PATTERN_TYPE_ERROR="TypeError: cli.ignorePattern.split is not a function"
+BARE_REPORTERS_TYPE_ERROR="TypeError: cli.reporters.split is not a function"
+BARE_MODE_TYPE_ERROR="TypeError: mode is not a function"
+BARE_FORMAT_TYPE_ERROR="TypeError: cli.format.split is not a function"
+BARE_FORMATS_TYPE_ERROR="TypeError: extensions.split is not a function"
+BARE_OUTPUT_TYPE_ERROR="TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)"
 STORE_WARNING="store name leveldb not installed."
 BARE_STORE_WARNING="store name true not installed."
 TIP_AI="Auto-refactor with AI"
@@ -540,6 +547,30 @@ require_both_not_contain stdout "Duplications detection:"
 run_case "unknown mode" 1 "$TARGET_REL" --mode zzz --noTips
 require_both_contain stdout "$UNKNOWN_MODE_ERROR"
 require_both_not_contain stderr "Mode zzz does not supported yet."
+
+run_case "bare ignore" 1 "$TARGET_REL" --ignore
+require_both_contain stdout "$BARE_IGNORE_TYPE_ERROR"
+
+run_case "bare ignore pattern" 1 "$TARGET_REL" --ignore-pattern
+require_both_contain stdout "$BARE_IGNORE_PATTERN_TYPE_ERROR"
+
+run_case "bare reporters" 1 "$TARGET_REL" --reporters
+require_both_contain stdout "$BARE_REPORTERS_TYPE_ERROR"
+
+run_case "bare mode" 1 "$TARGET_REL" --mode
+require_both_contain stdout "$BARE_MODE_TYPE_ERROR"
+
+run_case "bare format" 1 "$TARGET_REL" --format
+require_both_contain stdout "$BARE_FORMAT_TYPE_ERROR"
+
+run_case "bare formats exts" 1 "$TARGET_REL" --formats-exts
+require_both_contain stdout "$BARE_FORMATS_TYPE_ERROR"
+
+run_case "bare formats names" 1 "$TARGET_REL" --formats-names
+require_both_contain stdout "$BARE_FORMATS_TYPE_ERROR"
+
+run_case "bare output json" 1 "$TARGET_REL" --output --reporters json --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$BARE_OUTPUT_TYPE_ERROR"
 
 run_case "bare config" 1 --config
 require_both_contain stdout "$BARE_CONFIG_TYPE_ERROR"

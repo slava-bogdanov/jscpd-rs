@@ -33,6 +33,7 @@ fn main() {
 
 fn upstream_stdout_error(message: &str) -> Option<String> {
     if message.starts_with("TypeError [ERR_INVALID_ARG_TYPE]")
+        || message.starts_with("TypeError:")
         || message.starts_with("SyntaxError:")
     {
         return Some(message.to_string());
@@ -172,7 +173,7 @@ fn debug_options_output(options: &Options) -> String {
         format!("  maxLines: {}", options.max_lines),
         debug_string_field("maxSize", &debug_size(options.max_size_bytes)),
         format!("  minTokens: {}", options.min_tokens),
-        debug_string_field("output", &options.output.display().to_string()),
+        debug_output_field(options),
         debug_array_field("reporters", &options.reporters),
         debug_array_field("ignore", &options.ignore),
         debug_optional_number_field("threshold", options.threshold),
@@ -220,6 +221,14 @@ fn debug_options_output(options: &Options) -> String {
 
 fn debug_string_field(name: &str, value: &str) -> String {
     format!("  {name}: '{}'", js_quote(value))
+}
+
+fn debug_output_field(options: &Options) -> String {
+    if options.output_is_bare {
+        "  output: true".to_string()
+    } else {
+        debug_string_field("output", &options.output.display().to_string())
+    }
 }
 
 fn debug_array_field(name: &str, values: &[String]) -> String {
@@ -415,6 +424,10 @@ mod tests {
             Some(
                 "TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string."
             )
+        );
+        assert_eq!(
+            upstream_stdout_error("TypeError: cli.ignore.split is not a function").as_deref(),
+            Some("TypeError: cli.ignore.split is not a function")
         );
         assert!(upstream_stdout_error("regular anyhow failure").is_none());
     }

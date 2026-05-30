@@ -47,9 +47,10 @@ scripts/compat-cli.sh
 This smoke check compares Rust and upstream exit codes plus stable terminal
 contracts for `--help`, `--version`, `--list`, `--debug`, `--exitCode`,
 `--threshold`, invalid `--mode`, bare `--config`, `--store`, `--store-path`,
-`--formats-exts`, `--formats-names`, `--ignore-pattern`, `--ignoreCase`,
-unknown reporters, explicit `time` reporter fallback, terminal footer/tips,
-`xcode`, `ai`, `consoleFull`, and `--verbose`.
+bare optional string flag crashes, `--formats-exts`, `--formats-names`,
+`--ignore-pattern`, `--ignoreCase`, unknown reporters, explicit `time`
+reporter fallback, terminal footer/tips, `xcode`, `ai`, `consoleFull`, and
+`--verbose`.
 The debug checks include cwd `.gitignore` expansion in the printed `ignore`
 option and user-order preservation for explicit `--format` lists.
 
@@ -386,6 +387,10 @@ Latest public benchmark measurements:
 - Bare optional values for `--threshold`, `--exitCode`, `--max-size`,
   `--pattern`, `--store`, and `--store-path` follow the local upstream runtime
   behavior where upstream continues instead of failing during CLI parsing.
+- Bare optional values for `--ignore`, `--ignore-pattern`, `--reporters`,
+  `--mode`, `--format`, `--formats-exts`, `--formats-names`, and file-writing
+  `--output` paths now mirror upstream's Commander runtime TypeError shape
+  instead of failing during CLI parsing.
 - CLI `--threshold` follows JavaScript `Number(...)` parsing for values such as
   `0x10` and `nope`, matching upstream threshold reporter behavior.
 - CLI/config `exitCode` keeps the raw Node-like value until clones are found.

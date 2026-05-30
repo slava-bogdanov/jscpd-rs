@@ -23,6 +23,7 @@ use parsing::{
 
 const BARE_EXIT_CODE_VALUE: &str = "__jscpd_rs_bare_exit_code_true__";
 const BARE_CONFIG_VALUE: &str = "__jscpd_rs_bare_config_true__";
+const BARE_STRING_VALUE: &str = "__jscpd_rs_bare_string_true__";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -107,6 +108,8 @@ pub struct Cli {
         short = 'i',
         long = "ignore",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_STRING_VALUE,
         help = "glob pattern for files what should be excluded from duplication detection"
     )]
     pub ignore: Option<String>,
@@ -115,6 +118,8 @@ pub struct Cli {
         short = 'r',
         long = "reporters",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_STRING_VALUE,
         help = "reporters or list of reporters separated with comma to use (Default is time,console)"
     )]
     pub reporters: Option<String>,
@@ -123,14 +128,18 @@ pub struct Cli {
         short = 'o',
         long = "output",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_STRING_VALUE,
         help = "reporters to use (Default is ./report/)"
     )]
-    pub output: Option<PathBuf>,
+    pub output: Option<String>,
 
     #[arg(
         short = 'm',
         long = "mode",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_STRING_VALUE,
         help = "mode of quality of search, can be \"strict\", \"mild\" and \"weak\""
     )]
     pub mode: Option<String>,
@@ -139,6 +148,8 @@ pub struct Cli {
         short = 'f',
         long = "format",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_STRING_VALUE,
         help = "format or formats separated by comma (Example php,javascript,python)"
     )]
     pub format: Option<String>,
@@ -258,6 +269,8 @@ pub struct Cli {
     #[arg(
         long = "ignore-pattern",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_STRING_VALUE,
         help = "Ignore code blocks matching the regexp patterns"
     )]
     pub ignore_pattern: Option<String>,
@@ -265,6 +278,8 @@ pub struct Cli {
     #[arg(
         long = "formats-exts",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_STRING_VALUE,
         help = "list of formats with file extensions (javascript:es,es6;dart:dt)"
     )]
     pub formats_exts: Option<String>,
@@ -272,6 +287,8 @@ pub struct Cli {
     #[arg(
         long = "formats-names",
         value_name = "string",
+        num_args = 0..=1,
+        default_missing_value = BARE_STRING_VALUE,
         help = "list of formats with specific filenames (makefile:Makefile,GNUmakefile;docker:Dockerfile)"
     )]
     pub formats_names: Option<String>,
@@ -312,6 +329,7 @@ pub struct Options {
     pub listeners: Vec<String>,
     pub reporters_options: serde_json::Map<String, serde_json::Value>,
     pub output: PathBuf,
+    pub output_is_bare: bool,
     pub formats: Option<HashSet<String>>,
     pub format_order: Option<Vec<String>>,
     pub formats_exts: FormatMappings,
@@ -379,6 +397,7 @@ impl Default for Options {
             listeners: Vec::new(),
             reporters_options: serde_json::Map::new(),
             output: PathBuf::from("./report"),
+            output_is_bare: false,
             formats: None,
             format_order: None,
             formats_exts: FormatMappings::default(),
@@ -442,26 +461,50 @@ impl Options {
             options.pattern = pattern;
         }
         if let Some(ignore) = cli.ignore {
+            if is_bare_string(&ignore) {
+                bail!("TypeError: cli.ignore.split is not a function");
+            }
             options.ignore = split_csv(&ignore);
         }
         if let Some(reporters) = cli.reporters {
+            if is_bare_string(&reporters) {
+                bail!("TypeError: cli.reporters.split is not a function");
+            }
             options.reporters = split_csv(&reporters);
         }
         if let Some(output) = cli.output {
-            options.output = output;
+            if is_bare_string(&output) {
+                options.output = PathBuf::from("true");
+                options.output_is_bare = true;
+            } else {
+                options.output = PathBuf::from(output);
+                options.output_is_bare = false;
+            }
         }
         if let Some(format) = cli.format {
+            if is_bare_string(&format) {
+                bail!("TypeError: cli.format.split is not a function");
+            }
             let formats = split_csv(&format);
             options.formats = Some(formats.iter().cloned().collect());
             options.format_order = Some(formats);
         }
         if let Some(formats_exts) = cli.formats_exts {
+            if is_bare_string(&formats_exts) {
+                bail!("TypeError: extensions.split is not a function");
+            }
             options.formats_exts = parse_format_mappings(&formats_exts);
         }
         if let Some(formats_names) = cli.formats_names {
+            if is_bare_string(&formats_names) {
+                bail!("TypeError: extensions.split is not a function");
+            }
             options.formats_names = parse_format_mappings(&formats_names);
         }
         if let Some(ignore_pattern) = cli.ignore_pattern {
+            if is_bare_string(&ignore_pattern) {
+                bail!("TypeError: cli.ignorePattern.split is not a function");
+            }
             options.ignore_pattern = compile_patterns(split_csv(&ignore_pattern))
                 .context("invalid --ignore-pattern value")?;
         }
@@ -482,6 +525,9 @@ impl Options {
             options.threshold = Some(threshold);
         }
         if let Some(mode) = cli.mode.as_deref() {
+            if is_bare_string(mode) {
+                bail!("TypeError: mode is not a function");
+            }
             options.mode = parse_mode(mode)?;
         }
         if cli.skip_comments && cli.mode.is_none() {
@@ -534,6 +580,10 @@ impl Options {
 
         Ok(options)
     }
+}
+
+fn is_bare_string(value: &str) -> bool {
+    value == BARE_STRING_VALUE
 }
 
 pub fn resolve_node_exit_code(exit_code: &ExitCode) -> std::result::Result<i32, String> {

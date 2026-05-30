@@ -115,6 +115,7 @@ fn accepts_bare_optional_cli_values_that_upstream_continues_with() {
         ".",
         "--threshold",
         "--max-size",
+        "--output",
         "--pattern",
         "--store",
         "--store-path",
@@ -124,6 +125,8 @@ fn accepts_bare_optional_cli_values_that_upstream_continues_with() {
 
     assert_eq!(options.threshold, Some(1.0));
     assert_eq!(options.max_size_bytes, 0);
+    assert_eq!(options.output, std::path::PathBuf::from("true"));
+    assert!(options.output_is_bare);
     assert_eq!(options.pattern, "true");
     assert_eq!(options.store.as_deref(), Some("true"));
     assert_eq!(
@@ -146,6 +149,35 @@ fn accepts_bare_config_during_cli_parse_then_matches_upstream_runtime_error() {
         error.to_string(),
         "TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string. Received type boolean (true)"
     );
+}
+
+#[test]
+fn bare_optional_string_flags_match_upstream_runtime_errors() {
+    for (flag, expected) in [
+        ("--ignore", "TypeError: cli.ignore.split is not a function"),
+        (
+            "--ignore-pattern",
+            "TypeError: cli.ignorePattern.split is not a function",
+        ),
+        (
+            "--reporters",
+            "TypeError: cli.reporters.split is not a function",
+        ),
+        ("--mode", "TypeError: mode is not a function"),
+        ("--format", "TypeError: cli.format.split is not a function"),
+        (
+            "--formats-exts",
+            "TypeError: extensions.split is not a function",
+        ),
+        (
+            "--formats-names",
+            "TypeError: extensions.split is not a function",
+        ),
+    ] {
+        let cli = Cli::parse_from(["jscpd-rs", ".", flag]);
+        let error = Options::from_cli(cli).unwrap_err();
+        assert_eq!(error.to_string(), expected, "{flag}");
+    }
 }
 
 #[test]

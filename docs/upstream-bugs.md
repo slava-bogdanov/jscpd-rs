@@ -437,6 +437,9 @@ Observed first stdout lines:
 Expected behavior: require string values for these flags, or normalize bare
 flags before option conversion.
 
-Rust clone handling: only low-risk bare-value cases that upstream continues with
-are mirrored by default. These crash-only edge cases remain documented until a
-release gate makes them worth preserving exactly.
+Rust clone handling: low-risk bare-value cases that upstream continues with are
+mirrored, and the CLI gate now also mirrors the visible runtime TypeError shape
+for bare `--ignore`, `--ignore-pattern`, `--reporters`, `--mode`, `--format`,
+`--formats-exts`, `--formats-names`, and `--output` when a file-writing
+reporter consumes the boolean output path. These remain upstream bug candidates,
+but preserving the visible command behavior removes a CLI parity gap.

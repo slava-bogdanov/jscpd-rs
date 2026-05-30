@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 
 use crate::cli::Options;
 use crate::detector::DetectionResult;
@@ -26,6 +26,11 @@ pub use threshold::ThresholdExceeded;
 
 pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> {
     for reporter in &options.reporters {
+        if options.output_is_bare && reporter_uses_output(reporter) {
+            bail!(
+                "TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)"
+            );
+        }
         match reporter.as_str() {
             "console" if !options.silent => console::write(result, options),
             "consoleFull" => console_full::write(result, options),
@@ -90,6 +95,13 @@ fn is_builtin_reporter(reporter: &str) -> bool {
     )
 }
 
+fn reporter_uses_output(reporter: &str) -> bool {
+    matches!(
+        reporter,
+        "json" | "csv" | "markdown" | "xml" | "sarif" | "badge" | "html"
+    )
+}
+
 fn unknown_reporter_messages(options: &Options) -> Vec<String> {
     options
         .reporters
@@ -150,6 +162,23 @@ mod tests {
                 "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)",
                 "Cannot find module 'jscpd-badgezz-reporter'",
             ]
+        );
+    }
+
+    #[test]
+    fn bare_output_fails_for_file_reporters_like_upstream() {
+        let result = test_support::make_test_result_with_clone("src/a.js", "src/b.js");
+        let options = Options {
+            reporters: vec!["json".to_string()],
+            output_is_bare: true,
+            ..Options::default()
+        };
+
+        let error = write_reports(&result, &options).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)"
         );
     }
 
