@@ -1,5 +1,5 @@
 use axum::Json;
-use axum::body::Bytes;
+use axum::body::{Bytes, to_bytes};
 use axum::extract::State;
 use axum::http::header::ALLOW;
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
@@ -39,8 +39,11 @@ pub(super) async fn post_mcp(
     let has_valid_session = session_id
         .as_deref()
         .is_some_and(|session_id| service.has_mcp_session(session_id));
-    let mut response = handle_mcp_request(service, session_id.as_deref(), payload).await;
-    if has_valid_session {
+    let mut response = match payload {
+        Value::Array(messages) => handle_mcp_batch(service, session_id.as_deref(), messages).await,
+        payload => handle_mcp_request(service, session_id.as_deref(), payload).await,
+    };
+    if has_valid_session && response.status() != StatusCode::ACCEPTED {
         let value = HeaderValue::from_str(session_id.as_deref().expect("session id exists"))
             .expect("valid MCP session id");
         response
@@ -94,6 +97,52 @@ async fn handle_mcp_request(
         "resources/read" => read_resource(service, request_id, payload),
         _ => jsonrpc_error(StatusCode::OK, request_id, -32601, "Method not found"),
     }
+}
+
+async fn handle_mcp_batch(
+    service: ServerService,
+    session_id: Option<&str>,
+    messages: Vec<Value>,
+) -> Response {
+    let mut results = Vec::new();
+    let mut response_session_id = None;
+
+    for message in messages {
+        let response = handle_mcp_request(service.clone(), session_id, message).await;
+        if response_session_id.is_none() {
+            response_session_id = response
+                .headers()
+                .get(MCP_SESSION_ID)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_string);
+        }
+        if response.status() == StatusCode::ACCEPTED {
+            continue;
+        }
+
+        let bytes = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap_or_default();
+        if bytes.is_empty() {
+            continue;
+        }
+        if let Ok(value) = serde_json::from_slice::<Value>(&bytes) {
+            results.push(value);
+        }
+    }
+
+    let mut response = match results.len() {
+        0 => StatusCode::ACCEPTED.into_response(),
+        1 => Json(results.pop().expect("one response")).into_response(),
+        _ => Json(Value::Array(results)).into_response(),
+    };
+    if let Some(session_id) = response_session_id {
+        let value = HeaderValue::from_str(&session_id).expect("valid MCP session id");
+        response
+            .headers_mut()
+            .insert(HeaderName::from_static(MCP_SESSION_ID), value);
+    }
+    response
 }
 
 fn initialize(service: ServerService, request_id: Value) -> Response {
@@ -494,6 +543,22 @@ mod tests {
         (parts.status, parts.headers, value)
     }
 
+    fn mcp_headers(session_id: Option<&str>) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "accept",
+            HeaderValue::from_static("application/json, text/event-stream"),
+        );
+        headers.insert("content-type", HeaderValue::from_static("application/json"));
+        if let Some(session_id) = session_id {
+            headers.insert(
+                HeaderName::from_static(MCP_SESSION_ID),
+                HeaderValue::from_str(session_id).expect("session header"),
+            );
+        }
+        headers
+    }
+
     #[tokio::test]
     async fn mcp_initialize_creates_session() {
         let path = fixture_project();
@@ -559,6 +624,112 @@ mod tests {
             );
             assert_eq!(tool["execution"]["taskSupport"], "forbidden");
         }
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn mcp_batch_requests_match_upstream_sdk_shape() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        let session_id = service.create_mcp_session();
+
+        let response = post_mcp(
+            State(service.clone()),
+            mcp_headers(Some(&session_id)),
+            Bytes::from(
+                json!([{
+                    "jsonrpc": "2.0",
+                    "method": "tools/list",
+                    "id": 5,
+                }])
+                .to_string(),
+            ),
+        )
+        .await;
+        let (status, headers, body) = response_json(response).await;
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["id"], 5);
+        assert!(body["result"]["tools"].is_array());
+        assert_eq!(
+            headers
+                .get(MCP_SESSION_ID)
+                .and_then(|value| value.to_str().ok()),
+            Some(session_id.as_str())
+        );
+
+        let response = post_mcp(
+            State(service.clone()),
+            mcp_headers(Some(&session_id)),
+            Bytes::from(
+                json!([
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "tools/list",
+                        "id": 6,
+                    },
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "resources/list",
+                        "id": 7,
+                    }
+                ])
+                .to_string(),
+            ),
+        )
+        .await;
+        let (status, _headers, body) = response_json(response).await;
+
+        assert_eq!(status, StatusCode::OK);
+        let responses = body.as_array().expect("batch responses");
+        assert_eq!(responses.len(), 2);
+        assert_eq!(responses[0]["id"], 6);
+        assert_eq!(responses[1]["id"], 7);
+        assert!(responses[1]["result"]["resources"].is_array());
+
+        let response = post_mcp(
+            State(service),
+            mcp_headers(Some(&session_id)),
+            Bytes::from(json!([]).to_string()),
+        )
+        .await;
+        let (status, headers, body) = response_json(response).await;
+
+        assert_eq!(status, StatusCode::ACCEPTED);
+        assert_eq!(body, Value::Null);
+        assert!(
+            headers.get(MCP_SESSION_ID).is_none(),
+            "upstream does not echo session IDs on accepted notification-only batches"
+        );
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn mcp_initialized_notification_omits_session_echo() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        let session_id = service.create_mcp_session();
+
+        let response = post_mcp(
+            State(service),
+            mcp_headers(Some(&session_id)),
+            Bytes::from(
+                json!({
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized",
+                })
+                .to_string(),
+            ),
+        )
+        .await;
+        let (status, headers, body) = response_json(response).await;
+
+        assert_eq!(status, StatusCode::ACCEPTED);
+        assert_eq!(body, Value::Null);
+        assert!(
+            headers.get(MCP_SESSION_ID).is_none(),
+            "upstream does not echo session IDs on accepted notifications"
+        );
         fs::remove_dir_all(path).ok();
     }
 

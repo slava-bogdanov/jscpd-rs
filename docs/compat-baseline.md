@@ -105,9 +105,11 @@ starts both servers on local ports, and checks the root API info,
 JSON syntax errors, upstream-style JSON 404 responses for missing routes and
 wrong API methods, MCP initialize/session handling, `tools/list`,
 `resources/list`, `get_statistics`, `jscpd://statistics`, and `GET /mcp`
-method rejection. Stable MCP SDK-shaped responses for `initialize`,
-`tools/list`, and `resources/list` are compared exactly against upstream, with
-only the package version normalized.
+method rejection. It also checks upstream-style `DELETE /mcp` and
+`OPTIONS /mcp` JSON 404 responses plus JSON-RPC single-request and multi-request
+batch handling. Stable MCP SDK-shaped responses for `initialize`, `tools/list`,
+`resources/list`, and batch list/resource requests are compared exactly against
+upstream, with only the package version normalized.
 
 Package/install gate:
 

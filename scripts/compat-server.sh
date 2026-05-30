@@ -344,7 +344,31 @@ check_server_http() {
     -H "mcp-session-id: $session_id" \
     -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"check_duplication","arguments":{"format":"javascript"}},"id":10}' \
     "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-batch-single.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '[{"jsonrpc":"2.0","method":"tools/list","id":12}]' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-batch-multiple.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '[{"jsonrpc":"2.0","method":"tools/list","id":13},{"jsonrpc":"2.0","method":"resources/list","id":14}]' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-batch-empty.body" 202 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '[]' \
+    "http://127.0.0.1:$port/mcp"
   http_json "$dir/mcp-get.json" 405 "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-delete.json" 404 \
+    -X DELETE \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-options.json" 404 \
+    -X OPTIONS \
+    "http://127.0.0.1:$port/mcp"
 
   node --input-type=module - "$label" "$dir" <<'NODE'
 import fs from 'node:fs';
@@ -459,6 +483,26 @@ assert(missingCodeTool.result?.isError === true, `${label} mcp missing code isEr
 assert(missingCodeTool.result?.content?.[0]?.text?.includes('Invalid arguments for tool check_duplication'), `${label} mcp missing code text`);
 assert(missingCodeTool.result?.content?.[0]?.text?.includes('Invalid input: expected string, received undefined'), `${label} mcp missing code validation`);
 
+const batchSingle = read('mcp-batch-single.json');
+assert(batchSingle.result?.tools?.some((tool) => tool.name === 'check_duplication'), `${label} mcp batch single result`);
+assert(batchSingle.id === 12, `${label} mcp batch single id`);
+
+const batchMultiple = read('mcp-batch-multiple.json');
+assert(Array.isArray(batchMultiple), `${label} mcp batch multiple array`);
+assert(batchMultiple.length === 2, `${label} mcp batch multiple length`);
+assert(batchMultiple[0]?.result?.tools?.some((tool) => tool.name === 'check_duplication'), `${label} mcp batch multiple tools`);
+assert(batchMultiple[1]?.result?.resources?.some((resource) => resource.uri === 'jscpd://statistics'), `${label} mcp batch multiple resources`);
+
+for (const [file, method] of [
+  ['mcp-delete.json', 'DELETE'],
+  ['mcp-options.json', 'OPTIONS'],
+]) {
+  const body = read(file);
+  assert(body.error === 'NotFound', `${label} mcp ${method} error`);
+  assert(body.statusCode === 404, `${label} mcp ${method} statusCode`);
+  assert(body.message === `Route ${method} /mcp not found`, `${label} mcp ${method} message`);
+}
+
 function assert(condition, message) {
   if (!condition) {
     console.error(message);
@@ -502,6 +546,16 @@ assert.deepStrictEqual(
   read('rust', 'mcp-resources-list.json'),
   read('upstream', 'mcp-resources-list.json'),
   'MCP resources/list contract differs from upstream',
+);
+assert.deepStrictEqual(
+  read('rust', 'mcp-batch-single.json'),
+  read('upstream', 'mcp-batch-single.json'),
+  'MCP single-request batch contract differs from upstream',
+);
+assert.deepStrictEqual(
+  read('rust', 'mcp-batch-multiple.json'),
+  read('upstream', 'mcp-batch-multiple.json'),
+  'MCP multi-request batch contract differs from upstream',
 );
 
 console.log('ok MCP stable contract');
