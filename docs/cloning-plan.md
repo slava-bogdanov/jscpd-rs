@@ -64,7 +64,12 @@ Known MVP gaps:
   not implemented yet.
 - A native Rust API now exposes detection from configured paths and prepared
   in-memory sources. Exact upstream JavaScript package API compatibility and
-  the standalone `jscpd-server` application remain follow-up work.
+  the standalone `jscpd-server` MCP endpoint remain follow-up work.
+- A native `jscpd-server` binary exposes the first REST surface:
+  `/`, `/api/health`, `/api/stats`, `/api/check`, and `/api/recheck`.
+  The current snippet check reuses the native detector against the in-memory
+  project file set; an indexed hybrid-store path can be added if server-scale
+  benchmarks show this is needed.
 - `cache`, config `listeners`, and `tokensToSkip` are parsed for option-surface
   compatibility, but upstream currently does not consume them in runtime code.
 - No full parity for non-native syntax-specific token streams yet.

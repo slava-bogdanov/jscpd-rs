@@ -21,6 +21,7 @@ current implementation status.
 | Built-in reporters | ready | `ai`, `console`, `consoleFull`, `csv`, `html`, `json`, `markdown`, `silent`, `sarif`, `threshold`, `xcode`, `xml`, and `badge`. |
 | Blame | ready | Native `git blame -w` data is populated and gated by `scripts/compat-blame.sh`. |
 | Native Rust API | ready | `detect_clones`, `detect_clones_and_statistics`, and `detect_source_files` expose the detector core for path-based and in-memory integrations. |
+| Native REST server | partial | `jscpd-server` exposes `/`, `/api/health`, `/api/stats`, `/api/check`, and `/api/recheck`; exact upstream server and MCP parity remain follow-up. |
 | Performance harness | ready | Local benchmark script and public benchmark suite with pinned output recording and speedup gates. |
 | Release gates | ready | Default CI gate, full compatibility matrix, package check, reporter/config/CLI/blame gates. |
 
@@ -34,6 +35,7 @@ current implementation status.
 | HTML reporter polish | practical parity | Keep self-contained HTML stable. Do not chase pixel-perfect upstream parity for the first release. |
 | Terminal cosmetics | practical parity | Important messages are gated; exact wrapping/order remains lower priority. |
 | Upstream JavaScript API parity | follow-up | Native Rust API exists; exact JS package API compatibility is not implemented in the Rust crate. |
+| Server snippet matching | follow-up | Native `/api/check` is functional; optimize toward upstream's indexed hybrid-store behavior if server benchmarks require it. |
 | Latest full publication gate | ready | `scripts/release-candidate.sh` passed on `4c7e6a5`, including clippy, the default gate, the full coverage matrix, and the public benchmark/coverage suite. |
 
 ## Post-MVP
@@ -43,6 +45,6 @@ current implementation status.
 | Dynamic npm reporters | Do not implement for the first release; keep upstream-style missing-package warnings. |
 | Dynamic npm stores | Do not implement for the first release; default in-memory store is the release path. |
 | Listeners/plugins runtime | Option-surface compatibility only unless a real workflow requires native support. |
-| JSCPD server and MCP endpoint | Build on the native API when full upstream application parity becomes the active milestone. |
+| JSCPD MCP endpoint | Build on the native server when full upstream application parity becomes the active milestone. |
 | Persistent cache/store backends | Add only if public benchmark data proves the in-memory path is insufficient. |
 | Full Prism grammar port | Do not rewrite all grammars eagerly; use native crates or small scanners only for proven gaps. |

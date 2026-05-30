@@ -4,6 +4,7 @@ pub mod detector;
 pub mod files;
 pub mod formats;
 pub mod report;
+pub mod server;
 pub mod tokenizer;
 pub mod verbose;
 

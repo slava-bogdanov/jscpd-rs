@@ -97,8 +97,9 @@ scripts/package-check.sh
 This release-surface check verifies the crate package file list, rejects
 accidental publication of the upstream `jscpd/` submodule, `target/`,
 `node_modules`, and internal scripts, runs `cargo package --locked`, installs
-the `jscpd` binary into a temporary Cargo root, and checks the installed
-binary's version and upstream-compatible command name.
+the `jscpd` and `jscpd-server` binaries into a temporary Cargo root, and checks
+the installed binaries' versions and the CLI binary's upstream-compatible
+command name.
 
 Upstream CI fixture gate:
 

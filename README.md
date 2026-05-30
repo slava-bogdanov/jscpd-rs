@@ -39,6 +39,7 @@ Build without installing:
 
 ```bash
 cargo build --release --bin jscpd
+cargo build --release --bin jscpd-server
 ```
 
 ## Usage
@@ -56,6 +57,16 @@ The CLI intentionally uses the upstream command name and help shape:
 jscpd --help
 jscpd --list
 ```
+
+Start the native REST server:
+
+```bash
+jscpd-server /path/to/source --host 127.0.0.1 --port 3000
+curl http://127.0.0.1:3000/api/health
+```
+
+The current server exposes `/`, `/api/health`, `/api/stats`, `/api/check`, and
+`/api/recheck`. The upstream MCP endpoint is still follow-up work.
 
 ## Library API
 

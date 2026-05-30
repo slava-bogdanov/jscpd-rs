@@ -20,6 +20,8 @@ required_files=(
   "Cargo.toml"
   "LICENSE"
   "README.md"
+  "src/bin/jscpd-server.rs"
+  "src/lib.rs"
   "src/main.rs"
 )
 
@@ -44,6 +46,7 @@ cargo package --allow-dirty --locked
 
 INSTALL_ROOT="$TMP_ROOT/install"
 cargo install --path . --bin jscpd --root "$INSTALL_ROOT" --force --locked >/dev/null
+cargo install --path . --bin jscpd-server --root "$INSTALL_ROOT" --force --locked >/dev/null
 
 EXPECTED_VERSION="$(
   cargo metadata --no-deps --format-version 1 \
@@ -58,5 +61,10 @@ fi
 
 if ! "$INSTALL_ROOT/bin/jscpd" --help | grep -Fq 'Usage: jscpd [options] <path ...>'; then
   printf 'installed binary help does not expose upstream-compatible command name\n' >&2
+  exit 1
+fi
+
+if [[ "$("$INSTALL_ROOT/bin/jscpd-server" --version)" != "$EXPECTED_VERSION" ]]; then
+  printf 'installed server binary version mismatch\n' >&2
   exit 1
 fi
