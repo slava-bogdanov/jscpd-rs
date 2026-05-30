@@ -2,8 +2,9 @@
 
 These drafts are prepared from `docs/upstream-bugs.md` for filing issues in
 `kucherenko/jscpd`. Re-verify each issue against current upstream `main` before
-posting, and replace local absolute paths with a public fixture or reproduction
-repository when needed.
+posting. Drafts that use public repositories include pinned commits; if a draft
+still mentions a local or generated repro shape, first reduce it to a small
+public fixture before filing.
 
 ## Draft 1: JavaScript tokenizer misparses template literals in minified code
 
@@ -22,11 +23,18 @@ literal as one large string token. A related case treats `//` inside a template
 literal as a line comment that consumes the rest of a long minified line. This
 causes valid duplicated JavaScript regions to be missed.
 
-Repro shape:
+Current repro status:
 
-```bash
-FORMAT=javascript MIN_TOKENS=50 MIN_LINES=5 MAX_SIZE=1mb KEEP=1 \
-  scripts/compat.sh /path/to/generated-nextjs-or-ssr-output
+The original evidence came from generated Next.js/SSR output in a local project.
+Before posting this issue, reduce that generated chunk to a small public fixture
+or attach equivalent generated files. The relevant source shapes are:
+
+```js
+return `${config.path}?url=${encodeURIComponent(src)}&w=${width}&q=${q}${
+  src.startsWith("/") && deploymentId ? `&dpl=${deploymentId}` : ""
+}`;
+
+return `${protocol}//${host}${port ? ":" + port : ""}`;
 ```
 
 Observed symptoms:
@@ -157,14 +165,44 @@ also have reversed start/end ordering.
 Repro shapes:
 
 ```bash
-FORMAT=javascript MIN_TOKENS=50 MIN_LINES=5 MAX_SIZE=1mb KEEP=1 \
-  scripts/compat.sh /path/to/react
+git clone https://github.com/facebook/react.git /tmp/jscpd-react
+git -C /tmp/jscpd-react checkout f0dfee3
+node apps/jscpd/bin/jscpd /tmp/jscpd-react \
+  --format javascript \
+  --reporters json \
+  --output /tmp/jscpd-react-report \
+  --silent \
+  --noTips \
+  --min-tokens 50 \
+  --min-lines 5 \
+  --max-size 1mb \
+  --exitCode 0
 
-FORMAT=typescript MIN_TOKENS=50 MIN_LINES=5 MAX_SIZE=1mb STRICT=coverage KEEP=1 \
-  scripts/compat.sh /path/to/next
+git clone https://github.com/vercel/next.js.git /tmp/jscpd-next
+git -C /tmp/jscpd-next checkout 2bbb67b9
+node apps/jscpd/bin/jscpd /tmp/jscpd-next \
+  --format typescript \
+  --reporters json \
+  --output /tmp/jscpd-next-report \
+  --silent \
+  --noTips \
+  --min-tokens 50 \
+  --min-lines 5 \
+  --max-size 1mb \
+  --exitCode 0
 
-FORMAT=go MIN_TOKENS=50 MIN_LINES=5 MAX_SIZE=1mb STRICT=coverage KEEP=1 \
-  scripts/compat.sh /path/to/prometheus
+git clone https://github.com/prometheus/prometheus.git /tmp/jscpd-prometheus
+git -C /tmp/jscpd-prometheus checkout a0524ee
+node apps/jscpd/bin/jscpd /tmp/jscpd-prometheus \
+  --format go \
+  --reporters json \
+  --output /tmp/jscpd-prometheus-report \
+  --silent \
+  --noTips \
+  --min-tokens 50 \
+  --min-lines 5 \
+  --max-size 1mb \
+  --exitCode 0
 ```
 
 Observed examples:
