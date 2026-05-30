@@ -314,6 +314,20 @@ function alpha() {
 }
 EOF_JS
 cp "$FORMATS_NAMES_DIR/a/CustomScript" "$FORMATS_NAMES_DIR/b/CustomScript"
+SKIP_COMMENTS_DIR="$TMP_ROOT/skip-comments"
+mkdir -p "$SKIP_COMMENTS_DIR/a" "$SKIP_COMMENTS_DIR/b"
+cat >"$SKIP_COMMENTS_DIR/a/file1.js" <<'EOF_JS'
+// shared heading one
+// shared heading two
+// shared heading three
+// shared heading four
+// shared heading five
+const alpha = 1;
+const beta = 2;
+const gamma = alpha + beta;
+console.log(gamma);
+EOF_JS
+cp "$SKIP_COMMENTS_DIR/a/file1.js" "$SKIP_COMMENTS_DIR/b/file2.js"
 
 printf 'target: %s\n' "$TARGET_REL"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -382,6 +396,13 @@ require_both_contain stdout "$IGNORE_CASE_OFF_SUMMARY"
 
 run_case "ignore case on" 0 jscpd/fixtures/ignore-case --ignoreCase --reporters silent --noTips --min-tokens 50 --min-lines 5 --max-size 1mb
 require_both_contain stdout "$IGNORE_CASE_ON_SUMMARY"
+
+run_case "skip comments alias" 0 "$SKIP_COMMENTS_DIR" --skipComments --format javascript --reporters xcode --noTips --min-tokens 5 --min-lines 1 --max-size 1mb
+require_both_contain stdout "file1.js:6:1: warning: Found 3 lines (6-9)"
+require_both_not_contain stdout "file1.js:1:1: warning"
+
+run_case "skip comments explicit mode" 0 "$SKIP_COMMENTS_DIR" --skipComments --mode strict --format javascript --reporters xcode --noTips --min-tokens 5 --min-lines 1 --max-size 1mb
+require_both_contain stdout "file1.js:1:1: warning: Found 9 lines (1-10)"
 
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
