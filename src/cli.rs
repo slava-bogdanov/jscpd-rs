@@ -311,7 +311,7 @@ impl Options {
         if let Some(mode) = cli.mode {
             options.mode = mode;
         }
-        if cli.skip_comments {
+        if cli.skip_comments && cli.mode.is_none() {
             options.mode = Mode::Weak;
         }
         if cli.silent {
@@ -564,7 +564,8 @@ fn parse_size(value: &str) -> Result<u64> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Options, normalize_reporters, parse_format_mappings, parse_size};
+    use super::{Cli, Mode, Options, normalize_reporters, parse_format_mappings, parse_size};
+    use clap::Parser;
 
     #[test]
     fn parses_size_suffixes() {
@@ -606,5 +607,20 @@ mod tests {
         normalize_reporters(&mut options);
 
         assert_eq!(options.reporters, vec!["json", "threshold"]);
+    }
+
+    #[test]
+    fn skip_comments_does_not_override_explicit_mode() {
+        let cli = Cli::parse_from(&["jscpd-rs", "--skipComments", "."]);
+        let options = Options::from_cli(cli).unwrap();
+        assert_eq!(options.mode, Mode::Weak);
+
+        let cli = Cli::parse_from(&["jscpd-rs", "--mode", "strict", "--skipComments", "."]);
+        let options = Options::from_cli(cli).unwrap();
+        assert_eq!(options.mode, Mode::Strict);
+
+        let cli = Cli::parse_from(&["jscpd-rs", "--mode", "mild", "--skipComments", "."]);
+        let options = Options::from_cli(cli).unwrap();
+        assert_eq!(options.mode, Mode::Mild);
     }
 }
