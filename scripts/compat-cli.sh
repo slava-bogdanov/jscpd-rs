@@ -77,17 +77,23 @@ run_case() {
   slug="$(case_slug "$name")"
   local case_dir="$TMP_ROOT/$slug"
   mkdir -p "$case_dir"
+  local env_prefix=()
+  if [[ "${RUN_WITHOUT_CI:-0}" == "1" ]]; then
+    env_prefix=(env -u CI)
+  fi
 
   run_command \
     "$case_dir/rust.code" \
     "$case_dir/rust.stdout" \
     "$case_dir/rust.stderr" \
+    "${env_prefix[@]}" \
     "$ROOT/target/release/jscpd" \
     "${args[@]}"
   run_command \
     "$case_dir/upstream.code" \
     "$case_dir/upstream.stdout" \
     "$case_dir/upstream.stderr" \
+    "${env_prefix[@]}" \
     node "$ROOT/jscpd/apps/jscpd/bin/jscpd" \
     "${args[@]}"
 
@@ -108,6 +114,10 @@ run_case() {
 
   printf 'ok %-26s code=%s\n' "$name" "$expected_code"
   LAST_CASE_DIR="$case_dir"
+}
+
+run_case_without_ci() {
+  RUN_WITHOUT_CI=1 run_case "$@"
 }
 
 require_both_contain() {
@@ -498,7 +508,7 @@ require_both_contain stdout "$UNKNOWN_REPORTER_WARNING"
 require_both_contain stdout "$UNKNOWN_REPORTER_MODULE_ERROR"
 require_both_contain stdout "$SUMMARY"
 
-run_case "terminal footer tips" 0 "$TARGET_REL" --reporters silent "${COMMON_ARGS[@]}"
+run_case_without_ci "terminal footer tips" 0 "$TARGET_REL" --reporters silent "${COMMON_ARGS[@]}"
 require_both_contain stdout "time:"
 require_both_contain stdout "$TIP_AI"
 require_both_contain stdout "$TIP_GANGSTA"

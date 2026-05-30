@@ -372,7 +372,10 @@ mod tests {
     #[test]
     fn terminal_footer_matches_upstream_silent_and_tips_rules() {
         let elapsed = Duration::from_millis(42);
-        let verbose = Options::default();
+        let verbose = Options {
+            no_tips: false,
+            ..Options::default()
+        };
         let output = terminal_footer_output(&verbose, elapsed).unwrap();
 
         assert!(output.starts_with("time: "));
