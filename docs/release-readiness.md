@@ -21,7 +21,7 @@ current implementation status.
 | Built-in reporters | ready | `ai`, `console`, `consoleFull`, `csv`, `html`, `json`, `markdown`, `silent`, `sarif`, `threshold`, `xcode`, `xml`, and `badge`. |
 | Blame | ready | Native `git blame -w` data is populated and gated by `scripts/compat-blame.sh`. |
 | Native Rust API | ready | `detect_clones`, `detect_clones_and_statistics`, and `detect_source_files` expose the detector core for path-based and in-memory integrations. |
-| Native server | partial | `jscpd-server` exposes `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`; exact upstream Streamable HTTP SDK behavior remains follow-up. |
+| Native server | partial | `jscpd-server` exposes `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`; stable CLI, HTTP success/error, and MCP contracts are gated; exact upstream Streamable HTTP SDK behavior remains follow-up. |
 | Performance harness | ready | Local benchmark script and public benchmark suite with pinned output recording and speedup gates. |
 | Release gates | ready | Default CI gate, full compatibility matrix, package check, reporter/config/CLI/blame gates. |
 
@@ -36,7 +36,7 @@ current implementation status.
 | Terminal cosmetics | practical parity | Important messages are gated; exact wrapping/order remains lower priority. |
 | Upstream JavaScript API parity | follow-up | Native Rust API exists; exact JS package API compatibility is not implemented in the Rust crate. |
 | Server snippet matching | follow-up | Native `/api/check` and MCP `check_duplication` are functional; optimize toward upstream's indexed hybrid-store behavior if server benchmarks require it. |
-| Latest full publication gate | ready | `scripts/release-candidate.sh` passed on `4c7e6a5`, including clippy, the default gate, the full coverage matrix, and the public benchmark/coverage suite. |
+| Latest full publication gate | ready | `scripts/release-candidate.sh` passed on `14c7eca`, including clippy, the default gate, the full coverage matrix, and the public benchmark/coverage suite. |
 
 ## Post-MVP
 

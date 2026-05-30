@@ -4,12 +4,12 @@ Baseline date: 2026-05-31.
 
 Latest full release gate:
 `FULL=1 PUBLIC=1 scripts/release-gate.sh`
-passed on 2026-05-31 at commit `4c7e6a5` as part of
+passed on 2026-05-31 at commit `14c7eca` as part of
 `scripts/release-candidate.sh`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
-passed on 2026-05-31 at commit `4c7e6a5` as part of
+passed on 2026-05-31 at commit `14c7eca` as part of
 `scripts/release-candidate.sh`.
 
 Default gate:
@@ -96,11 +96,12 @@ scripts/compat-server.sh
 
 This smoke check compares the native `jscpd-server` binary with upstream
 `apps/jscpd-server`. It verifies stable server CLI contracts for `--help` and
-invalid or bare `--port`, starts both servers on local ports, and checks the
-root API info, `/api/health`, `/api/stats`, JSON and urlencoded `/api/check`,
-upstream-style JSON 404 responses, MCP initialize/session handling,
-`tools/list`, `get_statistics`, `jscpd://statistics`, and `GET /mcp` method
-rejection.
+invalid or bare `--port`, rejects main-CLI-only options that upstream server
+does not accept, starts both servers on local ports, and checks the root API
+info, `/api/health`, `/api/stats`, JSON and urlencoded `/api/check`, validation
+and JSON syntax errors, upstream-style JSON 404 responses for missing routes
+and wrong API methods, MCP initialize/session handling, `tools/list`,
+`get_statistics`, `jscpd://statistics`, and `GET /mcp` method rejection.
 
 Package/install gate:
 
@@ -168,7 +169,7 @@ workflow dispatch exposes `full`, `public`, `release_candidate`, and
 release-candidate gates.
 
 Latest local release-candidate check: `scripts/release-candidate.sh` passed on
-2026-05-31 at `4c7e6a5`, covering
+2026-05-31 at `14c7eca`, covering
 `cargo clippy --all-targets -- -D warnings`, the default release gate, the full
 coverage matrix, and the public benchmark/coverage suite.
 
@@ -176,9 +177,9 @@ Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.184779s | 9.980451s | 54.01x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.237314s | 14.249317s | 60.04x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.079982s | 4.609812s | 57.64x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.188360s | 9.847219s | 52.28x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.246714s | 14.216272s | 57.62x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.081342s | 4.575955s | 56.26x | pass |
 
 ## Current Matrix
 
@@ -480,9 +481,9 @@ project tree:
 
 | Target | Commit | Format | Rust avg | Upstream avg | Approx speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `facebook/react` | `f0dfee3` | `javascript` | `0.184779s` | `9.980451s` | `54x` |
-| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.237314s` | `14.249317s` | `60x` |
-| `prometheus/prometheus` | `a0524ee` | `go` | `0.079982s` | `4.609812s` | `58x` |
+| `facebook/react` | `f0dfee3` | `javascript` | `0.188360s` | `9.847219s` | `52x` |
+| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.246714s` | `14.216272s` | `58x` |
+| `prometheus/prometheus` | `a0524ee` | `go` | `0.081342s` | `4.575955s` | `56x` |
 
 ## Additional Mode Checks
 
