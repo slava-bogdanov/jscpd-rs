@@ -3,7 +3,7 @@
 Baseline date: 2026-05-30.
 
 Latest full release gate: `FULL=1 scripts/release-gate.sh` passed on
-2026-05-30.
+2026-05-30 at commit `53f0a65`.
 
 Default gate:
 
