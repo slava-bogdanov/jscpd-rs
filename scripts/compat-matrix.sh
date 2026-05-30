@@ -15,6 +15,10 @@ run_case() {
   local detect_mode="${7:-}"
   local strict_mode="${8:-$STRICT_MODE}"
   local allowed_missing_coverage="${9:-}"
+  local extra_args=()
+  if (($# > 9)); then
+    extra_args=("${@:10}")
+  fi
 
   if [[ ! -e "$target" ]]; then
     printf 'skip %-28s missing target: %s\n' "$name" "$target"
@@ -29,7 +33,7 @@ run_case() {
     MIN_TOKENS="$min_tokens" \
     MIN_LINES="$min_lines" \
     MAX_SIZE="$max_size" \
-    "$ROOT/scripts/compat.sh" "$target"
+    "$ROOT/scripts/compat.sh" "$target" "${extra_args[@]}"
 }
 
 cd "$ROOT"
@@ -37,6 +41,23 @@ cd "$ROOT"
 run_case "fixtures javascript" "jscpd/fixtures" "javascript" 20 3
 run_case "fixtures typescript" "jscpd/fixtures" "typescript" 20 3
 run_case "fixtures json" "jscpd/fixtures/javascript" "json" 20 3
+run_case "fixtures custom formats-exts" "jscpd/fixtures/custom" "" 50 5 \
+  "$DEFAULT_MAX_SIZE" "" "coverage" "" --formats-exts "c:ccc,cc1"
+run_case "fixtures ignore blocks" "jscpd/fixtures/ignore" "" 50 5 \
+  "$DEFAULT_MAX_SIZE" "" "clone-count"
+run_case "fixtures ignore-pattern" "jscpd/fixtures/ignore-pattern" "" 20 5 \
+  "$DEFAULT_MAX_SIZE" "" "coverage" "" --ignore-pattern "import.*from\\s*'.*'"
+run_case "fixtures ignoreCase off" "jscpd/fixtures/ignore-case" "" 50 5 \
+  "$DEFAULT_MAX_SIZE" "" "clone-summary"
+run_case "fixtures ignoreCase on" "jscpd/fixtures/ignore-case" "" 50 5 \
+  "$DEFAULT_MAX_SIZE" "" "clone-summary" "" --ignoreCase
+run_case "fixtures one-file" "jscpd/fixtures/one-file/one-file.js" "" 50 5
+run_case "fixtures skipLocal off" "jscpd/fixtures/folder1" "" 50 5 \
+  "$DEFAULT_MAX_SIZE" "" "coverage" "" "jscpd/fixtures/folder2"
+run_case "fixtures skipLocal on" "jscpd/fixtures/folder1" "" 50 5 \
+  "$DEFAULT_MAX_SIZE" "" "coverage" "" "jscpd/fixtures/folder2" --skipLocal
+run_case "fixtures mixed-formats" "jscpd/fixtures/mixed-formats" "" 20 3
+run_case "fixtures shebang" "jscpd/fixtures/shebang" "" 20 3
 run_case "fixtures javascript strict" "jscpd/fixtures/javascript" "javascript" 20 3 "$DEFAULT_MAX_SIZE" "strict" "1"
 run_case "fixtures typescript strict" "jscpd/fixtures" "typescript" 20 3 "$DEFAULT_MAX_SIZE" "strict" "1"
 run_case "fixtures javascript weak" "jscpd/fixtures/javascript" "javascript" 20 3 "$DEFAULT_MAX_SIZE" "weak" "coverage"

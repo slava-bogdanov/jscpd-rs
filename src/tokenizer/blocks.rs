@@ -8,7 +8,8 @@ use super::embedded::{
     tokenize_generic_with_whitespace,
 };
 use super::{
-    DetectionToken, LineIndex, TokenMap, find_ignore_regions, is_oxc_format, tokenize_oxc_maps,
+    DetectionToken, LineIndex, TokenMap, find_ignore_regions, is_oxc_format, tokenize_generic,
+    tokenize_oxc_maps,
 };
 
 const MAX_BLOCK_SOURCE_LENGTH: usize = 5_000_000;
@@ -24,11 +25,39 @@ pub(super) fn tokenize_maps(
     }
 
     match format {
+        "markup" => tokenize_markup_maps(content, options, ignore_regions),
         "vue" => tokenize_vue_maps(content, options),
         "svelte" => tokenize_svelte_maps(content, options, ignore_regions),
         "astro" => tokenize_astro_maps(content, options, ignore_regions),
         _ => Vec::new(),
     }
+}
+
+fn tokenize_markup_maps(
+    content: &str,
+    options: &Options,
+    ignore_regions: &[[usize; 2]],
+) -> Vec<TokenMap> {
+    let blocks = find_tag_blocks(content, &["script", "style"]);
+    let inner_ranges = blocks
+        .iter()
+        .map(|block| [block.inner_start, block.inner_end])
+        .collect::<Vec<_>>();
+    let sanitized = blank_ranges_preserve_newlines(content, &inner_ranges);
+    let mut grouped = BTreeMap::<String, Vec<DetectionToken>>::new();
+    let mut markup_tokens = tokenize_generic(&sanitized, "markup", options, ignore_regions);
+    grouped
+        .entry("markup".to_string())
+        .or_default()
+        .append(&mut markup_tokens);
+
+    let line_index = LineIndex::new(content);
+    for block in blocks {
+        let format = resolve_markup_block_format(&block);
+        append_offset_block_tokens(&mut grouped, content, &block, &format, options, &line_index);
+    }
+
+    grouped_maps(grouped)
 }
 
 fn tokenize_vue_maps(content: &str, options: &Options) -> Vec<TokenMap> {
@@ -220,6 +249,28 @@ fn resolve_astro_block_format(block: &TagBlock) -> String {
         "style" => match lang.as_str() {
             "scss" => "scss".to_string(),
             "less" => "less".to_string(),
+            _ => "css".to_string(),
+        },
+        _ => "markup".to_string(),
+    }
+}
+
+fn resolve_markup_block_format(block: &TagBlock) -> String {
+    let lang = attr_value(&block.attrs, "lang")
+        .or_else(|| attr_value(&block.attrs, "language"))
+        .or_else(|| attr_value(&block.attrs, "type"))
+        .unwrap_or_default();
+    match block.tag.as_str() {
+        "script" => match lang.as_str() {
+            "ts" | "typescript" | "text/typescript" | "application/typescript" => {
+                "typescript".to_string()
+            }
+            _ => "javascript".to_string(),
+        },
+        "style" => match lang.as_str() {
+            "scss" | "text/scss" => "scss".to_string(),
+            "sass" | "text/sass" => "sass".to_string(),
+            "less" | "text/less" => "less".to_string(),
             _ => "css".to_string(),
         },
         _ => "markup".to_string(),

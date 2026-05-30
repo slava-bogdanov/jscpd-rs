@@ -167,6 +167,34 @@ fn markdown_embedded_generic_blocks_keep_whitespace_tokens() {
 }
 
 #[test]
+fn markup_emits_embedded_script_and_style_maps() {
+    let content = "<html>\n<script language=\"JavaScript\">\nfunction demo() { return 1; }\n</script>\n<style type=\"text/css\">\nbody { color: red; }\n</style>\n</html>\n";
+    let maps = tokenize_maps_for_detection(content, "markup", &Options::default());
+
+    assert!(maps.iter().any(|map| map.format == "markup"));
+    let javascript = maps
+        .iter()
+        .find(|map| map.format == "javascript")
+        .expect("embedded javascript map");
+    let css = maps
+        .iter()
+        .find(|map| map.format == "css")
+        .expect("embedded css map");
+
+    assert_eq!(javascript.tokens[0].start.line, 3);
+    assert_eq!(
+        &content[javascript.tokens[0].range[0]..javascript.tokens[0].range[1]],
+        "function"
+    );
+    let body = css
+        .tokens
+        .iter()
+        .find(|token| &content[token.range[0]..token.range[1]] == "body")
+        .expect("body selector token");
+    assert_eq!(body.start.line, 6);
+}
+
+#[test]
 fn vue_sfc_emits_template_script_and_style_maps() {
     let content = "<template>\n  <section>{{ title }}</section>\n</template>\n<style lang=\"scss\">\n.panel { color: red; }\n</style>\n<script setup lang=\"ts\">\nconst title: string = 'Demo';\n</script>\n";
     let maps = tokenize_maps_for_detection(content, "vue", &Options::default());
@@ -391,6 +419,7 @@ fn long_tail_code_like_formats_split_punctuation_and_operators() {
         "ocaml",
         "plsql",
         "purescript",
+        "python",
         "rescript",
         "tt2",
     ] {

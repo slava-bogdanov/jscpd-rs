@@ -21,6 +21,16 @@ compatibility is converging.
 | `jscpd/fixtures` | `javascript` | pass | exact summary parity |
 | `jscpd/fixtures` | `typescript` | pass | exact summary parity |
 | `jscpd/fixtures/javascript` | `json` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/custom` | auto + `--formats-exts c:ccc,cc1` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/ignore` | auto | pass | clone-count gate; ignored blocks produce 0 clones |
+| `jscpd/fixtures/ignore-pattern` | auto + `--ignore-pattern` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/ignore-case` | auto | pass | clone-summary gate; no clones without `--ignoreCase` |
+| `jscpd/fixtures/ignore-case` | auto + `--ignoreCase` | pass | clone-summary gate; 1 clone with case folding |
+| `jscpd/fixtures/one-file/one-file.js` | auto | pass | exact summary parity for intra-file clones |
+| `jscpd/fixtures/folder1` + `jscpd/fixtures/folder2` | auto | pass | exact clone and line summary parity without `--skipLocal` |
+| `jscpd/fixtures/folder1` + `jscpd/fixtures/folder2` | auto + `--skipLocal` | pass | exact clone and line summary parity with local clones skipped |
+| `jscpd/fixtures/mixed-formats` | auto | pass | upstream JS-in-HTML clone line-covered; Rust reports a wider cross-file JS range |
+| `jscpd/fixtures/shebang` | auto | pass | exact clone and line summary parity for extensionless bash/python shebang files |
 | `jscpd/fixtures/javascript` | `javascript` / `strict` | pass | exact summary parity |
 | `jscpd/fixtures` | `typescript` / `strict` | pass | exact summary parity |
 | `jscpd/fixtures/javascript` | `javascript` / `weak` | pass | clone and line summary parity; token totals differ slightly |
@@ -168,6 +178,9 @@ compatibility is converging.
 - Vue, Svelte, and Astro now split embedded template/script/style/frontmatter
   regions into format maps. Their fixtures are line-covered, with expected
   wider ranges from generic markup/style tokenization.
+- Plain `markup` now extracts top-level `<script>` and `<style>` blocks into
+  embedded JavaScript/TypeScript/CSS-like maps. This covers upstream mixed HTML
+  fixture clones, though Rust may report a wider equivalent embedded range.
 - Non-native generic formats use coarse whitespace tokenization; weak mode
   strips best-effort common comment spans, including `#`, `//`, `/* */`,
   `<!-- -->`, SQL-style `--`, and Lisp/INI-style `;` comments where those

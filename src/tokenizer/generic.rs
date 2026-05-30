@@ -254,6 +254,7 @@ fn code_like_format(format: &str) -> bool {
             | "plsql"
             | "properties"
             | "purescript"
+            | "python"
             | "r"
             | "rescript"
             | "rust"

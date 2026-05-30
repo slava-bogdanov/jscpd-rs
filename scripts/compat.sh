@@ -3,6 +3,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET_PATH="${1:-$ROOT/jscpd/fixtures}"
+if (($# > 0)); then
+  shift
+fi
+EXTRA_ARGS=("$@")
 MIN_TOKENS="${MIN_TOKENS:-20}"
 MIN_LINES="${MIN_LINES:-3}"
 MAX_SIZE="${MAX_SIZE:-10mb}"
@@ -73,6 +77,10 @@ if [[ -n "$DETECTION_MODE" ]]; then
   rust_cmd+=(--mode "$DETECTION_MODE")
   node_cmd+=(--mode "$DETECTION_MODE")
 fi
+if ((${#EXTRA_ARGS[@]} > 0)); then
+  rust_cmd+=("${EXTRA_ARGS[@]}")
+  node_cmd+=("${EXTRA_ARGS[@]}")
+fi
 
 printf 'target: %s\n' "$TARGET_PATH"
 printf 'min tokens: %s, min lines: %s, max size: %s\n' "$MIN_TOKENS" "$MIN_LINES" "$MAX_SIZE"
@@ -81,6 +89,11 @@ if [[ -n "$FORMAT" ]]; then
 fi
 if [[ -n "$DETECTION_MODE" ]]; then
   printf 'mode: %s\n' "$DETECTION_MODE"
+fi
+if ((${#EXTRA_ARGS[@]} > 0)); then
+  printf 'extra args:'
+  printf ' %q' "${EXTRA_ARGS[@]}"
+  printf '\n'
 fi
 printf 'tmp: %s\n\n' "$TMP_ROOT"
 

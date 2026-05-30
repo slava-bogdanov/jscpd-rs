@@ -126,10 +126,24 @@ if (process.env.STRICT === 'coverage' || process.env.STRICT === 'coverage-first'
   }
 }
 
+if (process.env.STRICT === 'clone-summary') {
+  const failures = summaryFailures(['sources', 'lines', 'clones', 'duplicatedLines', 'percentage']);
+  if (failures.length > 0) {
+    console.error(`clone-summary comparison failed: ${failures.join(', ')}`);
+    process.exit(1);
+  }
+}
+
+if (process.env.STRICT === 'clone-count') {
+  const failures = summaryFailures(['clones']);
+  if (failures.length > 0) {
+    console.error(`clone-count comparison failed: ${failures.join(', ')}`);
+    process.exit(1);
+  }
+}
+
 if (process.env.STRICT === '1') {
-  const mismatches = Object.entries(rustSummary)
-    .filter(([key, value]) => Number(value) !== Number(upstreamSummary[key]))
-    .map(([key]) => key);
+  const mismatches = summaryFailures(Object.keys(rustSummary));
   if (mismatches.length > 0) {
     console.error(`strict comparison failed: ${mismatches.join(', ')}`);
     process.exit(1);
@@ -145,6 +159,10 @@ function coverageFailures() {
     failures.push(`rust clones ${rustSummary.clones} < upstream clones ${upstreamSummary.clones}`);
   }
   return failures;
+}
+
+function summaryFailures(keys) {
+  return keys.filter((key) => Number(rustSummary[key]) !== Number(upstreamSummary[key]));
 }
 
 function parseAllowedRanges(value) {

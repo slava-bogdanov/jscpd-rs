@@ -99,7 +99,7 @@ pub fn tokenize_maps_for_detection(
         markdown::tokenize_maps(content, options, &ignore_regions)
     } else if format == "apex" {
         apex::tokenize_maps(content, options, &ignore_regions)
-    } else if matches!(format, "vue" | "svelte" | "astro") {
+    } else if matches!(format, "markup" | "vue" | "svelte" | "astro") {
         blocks::tokenize_maps(content, format, options, &ignore_regions)
     } else if is_oxc_format(format) {
         tokenize_oxc_maps(content, format, options, &ignore_regions)
