@@ -9,6 +9,7 @@ mod markdown;
 mod markup_attrs;
 mod oxc;
 mod scan;
+mod tap;
 
 use serde::Serialize;
 
@@ -100,6 +101,8 @@ pub fn tokenize_maps_for_detection(
         markdown::tokenize_maps(content, options, &ignore_regions)
     } else if format == "apex" {
         apex::tokenize_maps(content, options, &ignore_regions)
+    } else if format == "tap" {
+        tap::tokenize_maps(content, options, &ignore_regions)
     } else if matches!(format, "markup" | "vue" | "svelte" | "astro") {
         blocks::tokenize_maps(content, format, options, &ignore_regions)
     } else if is_oxc_format(format) {

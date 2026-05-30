@@ -273,7 +273,7 @@ Latest public benchmark measurements:
 | `jscpd/fixtures/vb` | `vbnet` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/text` | `txt` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/robotframework` | `robotframework` | pass | 4/4 upstream fragments line-covered; upstream reports final newline as one-past-content |
-| `jscpd/fixtures/tap` | `tap` | pass | upstream YAML embedded block is covered by a wider TAP clone |
+| `jscpd/fixtures/tap` | `tap` | pass | exact clone and line summary parity for embedded YAML diagnostics |
 | `jscpd/fixtures/textile` | `textile` | pass | exact clone summary parity |
 | `jscpd/fixtures/antlr4` | `antlr4` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/apl` | `apl` | pass | 2/2 upstream fragments line-covered |

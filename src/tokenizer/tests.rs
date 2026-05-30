@@ -496,6 +496,24 @@ fn apex_soql_blocks_emit_sql_map() {
 }
 
 #[test]
+fn tap_yamlish_blocks_emit_yaml_map() {
+    let content = "not ok 1 - failed\n  ---\n  message: Expected value\n  actual: null\n  ...\n";
+    let maps = tokenize_maps_for_detection(content, "tap", &Options::default());
+    let yaml = maps
+        .iter()
+        .find(|map| map.format == "yaml")
+        .expect("yaml map");
+
+    assert_eq!(yaml.tokens[0].start.line, 2);
+    assert_eq!(yaml.tokens[0].start.column, 3);
+    assert_eq!(
+        &content[yaml.tokens[0].range[0]..yaml.tokens[0].range[1]],
+        "---"
+    );
+    assert!(maps.iter().any(|map| map.format == "tap"));
+}
+
+#[test]
 fn weak_mode_skips_generic_comments() {
     let content = "# first comment\nalpha beta\n// second comment\ngamma\n";
     let weak_options = Options {
