@@ -1,0 +1,128 @@
+use super::super::scan::{scan_block_comment, scan_line_comment};
+use super::super::{ByteSpan, DetectionToken, LineIndex, TokenContext, TokenKind, push_token};
+use super::lexical::{is_js_constant, is_js_keyword};
+
+pub(super) fn tokenize_js_like_range(
+    tokens: &mut Vec<DetectionToken>,
+    context: &TokenContext<'_>,
+    range_start: usize,
+    range_end: usize,
+    line_index: &LineIndex,
+) {
+    let bytes = context.content.as_bytes();
+    let mut idx = range_start;
+
+    while idx < range_end {
+        let ch = context.content[idx..].chars().next().unwrap_or('\0');
+        if ch.is_whitespace() {
+            idx += ch.len_utf8();
+            continue;
+        }
+
+        let (end, kind) = if idx + 1 < range_end && bytes[idx] == b'/' && bytes[idx + 1] == b'/' {
+            (scan_line_comment(bytes, idx, range_end), TokenKind::Comment)
+        } else if idx + 1 < range_end && bytes[idx] == b'/' && bytes[idx + 1] == b'*' {
+            (
+                scan_block_comment(bytes, idx, range_end),
+                TokenKind::Comment,
+            )
+        } else if matches!(bytes[idx], b'\'' | b'"' | b'`') {
+            (
+                scan_string(bytes, idx, bytes[idx], range_end),
+                TokenKind::String,
+            )
+        } else if is_identifier_start(ch) {
+            let end = scan_identifier(context.content, idx, range_end);
+            let value = &context.content[idx..end];
+            let kind = if is_js_constant(value) {
+                TokenKind::Constant
+            } else if is_js_keyword(value) {
+                TokenKind::Keyword
+            } else {
+                TokenKind::Default
+            };
+            (end, kind)
+        } else if bytes[idx].is_ascii_digit() {
+            (scan_number(bytes, idx, range_end), TokenKind::Number)
+        } else {
+            scan_operator_or_punctuation(bytes, idx, range_end)
+        };
+
+        push_token(
+            tokens,
+            context,
+            kind,
+            ByteSpan { start: idx, end },
+            line_index.location(idx),
+            line_index.location(end),
+        );
+        idx = end.max(idx + 1);
+    }
+}
+
+fn scan_string(bytes: &[u8], start: usize, quote: u8, limit: usize) -> usize {
+    let mut idx = start + 1;
+    while idx < limit {
+        if bytes[idx] == b'\\' {
+            idx = (idx + 2).min(limit);
+            continue;
+        }
+        if bytes[idx] == quote {
+            return idx + 1;
+        }
+        idx += 1;
+    }
+    limit
+}
+
+fn scan_identifier(content: &str, start: usize, limit: usize) -> usize {
+    let mut idx = start;
+    while idx < limit {
+        let ch = content[idx..].chars().next().unwrap_or('\0');
+        if !is_identifier_continue(ch) {
+            break;
+        }
+        idx += ch.len_utf8();
+    }
+    idx
+}
+
+fn scan_number(bytes: &[u8], start: usize, limit: usize) -> usize {
+    let mut idx = start;
+    while idx < limit
+        && (bytes[idx].is_ascii_alphanumeric() || matches!(bytes[idx], b'.' | b'_' | b'+' | b'-'))
+    {
+        idx += 1;
+    }
+    idx
+}
+
+fn scan_operator_or_punctuation(bytes: &[u8], start: usize, limit: usize) -> (usize, TokenKind) {
+    const OPERATORS: &[&[u8]] = &[
+        b">>>=", b"===", b"!==", b">>>", b"<<=", b">>=", b"**=", b"=>", b"==", b"!=", b"<=", b">=",
+        b"++", b"--", b"&&", b"||", b"??", b"?.", b"...", b"+=", b"-=", b"*=", b"/=", b"%=", b"&=",
+        b"|=", b"^=", b"<<", b">>", b"**",
+    ];
+    for operator in OPERATORS {
+        if bytes[start..limit].starts_with(operator) {
+            return (start + operator.len(), TokenKind::Operator);
+        }
+    }
+    let kind = if matches!(
+        bytes[start],
+        b'{' | b'}' | b'[' | b']' | b'(' | b')' | b';' | b',' | b':' | b'.'
+    ) {
+        TokenKind::Punctuation
+    } else {
+        TokenKind::Operator
+    };
+    (start + 1, kind)
+}
+
+fn is_identifier_start(ch: char) -> bool {
+    ch == '_' || ch == '$' || ch.is_ascii_alphabetic() || (ch as u32) > 0x7f
+}
+
+fn is_identifier_continue(ch: char) -> bool {
+    is_identifier_start(ch) || ch.is_ascii_digit()
+}
