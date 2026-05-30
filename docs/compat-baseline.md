@@ -35,6 +35,7 @@ range while compatibility is converging.
 | `jscpd/fixtures/yaml` | `yaml` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/sql` | `sql` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/toml` | `toml` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/shell` | `bash` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
