@@ -22,6 +22,8 @@ mod threshold;
 mod xcode;
 mod xml;
 
+pub use threshold::ThresholdExceeded;
+
 pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> {
     warn_unknown_reporters(options);
 

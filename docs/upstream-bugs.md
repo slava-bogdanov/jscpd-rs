@@ -109,3 +109,25 @@ path as a regular file, so `git blame` exits with 128.
 
 Expected behavior: blame should run from the file's own repository/worktree, or
 fail per file without aborting the entire detection run.
+
+## Option fields are exposed but unused at runtime
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+The option surface contains fields that look like user-facing workflow hooks,
+but the current CLI/runtime does not consume them after option parsing or
+defaulting:
+
+- `cache` is defined in
+  `jscpd/packages/core/src/interfaces/options.interface.ts`, defaults to `true`
+  in `jscpd/packages/core/src/options.ts`, and is copied from the CLI object in
+  `jscpd/apps/jscpd/src/options.ts`. There is no `--cache` CLI option and no
+  runtime read of `options.cache` in core/finder/tokenizer.
+- `listeners` is defined in the options interface and normalized to `[]` in
+  `jscpd/apps/jscpd/src/options.ts`, but runtime subscribers are registered
+  only from built-in `verbose` and progress rules.
+- `tokensToSkip` appears only in the options interface. It is not consumed by
+  tokenization or detector code.
+
+Expected behavior: either document these fields as reserved/no-op, remove them
+from the public option surface, or wire them to runtime behavior.

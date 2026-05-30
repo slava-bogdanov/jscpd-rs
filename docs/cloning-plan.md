@@ -50,11 +50,14 @@ Known MVP gaps:
 - `strict/mild/weak` are only approximated.
 - Terminal timing/tips/progress/verbose behavior is partially aligned with
   upstream, including clone progress and detector event output.
-- Blame, persistent store, and cache workflow options are parsed, but the
-  workflows themselves are not implemented yet.
+- Blame data is populated from native `git blame -w`. Store options currently
+  match the local upstream missing-store fallback. Dynamic external stores are
+  not implemented yet.
+- `cache`, config `listeners`, and `tokensToSkip` are parsed for option-surface
+  compatibility, but upstream currently does not consume them in runtime code.
 - No full parity for non-native syntax-specific token streams yet.
 - Markdown front matter and fenced code blocks are extracted into embedded
-  format maps, but full Markdown fixture parity is not claimed yet.
+  format maps, with coverage parity on the current upstream fixture.
 
 ## Growth Plan
 
@@ -66,11 +69,11 @@ Known MVP gaps:
    language-aware token streams. Prefer existing parsers/tokenizers over custom
    grammars.
 4. Reporters: polish remaining report details and terminal UX.
-5. Advanced sources: full non-native tokenizer parity, persistent stores,
-   blame/cache workflows, and stricter `strict`/`mild`/`weak` parity.
+5. Advanced sources: full non-native tokenizer parity, dynamic external stores,
+   dynamic external reporters, and stricter `strict`/`mild`/`weak` parity.
 6. Performance work: parallel file reads/tokenization, compact hash storage,
-   faster hashers where compatible, memory profiling, and optional persistent
-   cache/store.
+   faster hashers where compatible, memory profiling, and optional external
+   store backends.
 
 ## Current Benchmark
 

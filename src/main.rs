@@ -17,6 +17,10 @@ use crate::files::SourceFile;
 
 fn main() {
     if let Err(error) = run() {
+        if let Some(threshold) = error.downcast_ref::<report::ThresholdExceeded>() {
+            eprintln!("{}", threshold.message());
+            std::process::exit(1);
+        }
         eprintln!("error: {error:#}");
         std::process::exit(1);
     }

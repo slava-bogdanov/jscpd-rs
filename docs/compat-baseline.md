@@ -56,11 +56,15 @@ range while compatibility is converging.
   from CLI/config where applicable. The default `executionId` is generated as a
   UTC RFC3339 timestamp, matching the upstream workflow shape. `--blame`
   populates clone fragment blame data from native `git blame -w` output when
-  available. Persistent stores, listener plugins, custom token skipping, and
-  cache workflows are still implementation gaps.
+  available.
+- `cache`, config `listeners`, and `tokensToSkip` are intentionally treated as
+  option-surface compatibility only for now: the upstream CLI/reference code
+  defines or merges these fields, but does not consume them in the detection,
+  tokenizer, reporter, or store runtime.
 - `--store <name>` currently follows the upstream missing-store fallback shape:
   it warns that the store package is not installed and continues with in-memory
-  detection. Persistent stores remain an implementation gap.
+  detection. Dynamic loading of external store packages remains an
+  implementation gap.
 - `--debug` is a dry run like upstream: it prints options and discovered files,
   then exits before clone detection and reporter execution.
 - `--list` follows the upstream output shape: a `Supported formats:` header
