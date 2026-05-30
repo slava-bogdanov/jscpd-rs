@@ -18,7 +18,7 @@ current implementation status.
 | Detector core | ready | Numeric hashes, compact token streams, per-format sharding, parallel preparation/detection, coverage-first comparator. |
 | Hot JS/TS tokenization | ready | Native Oxc-backed paths for JavaScript, TypeScript, JSX, and TSX with coverage gates. |
 | Embedded/block formats | ready | Markdown, markup, Vue, Svelte, Astro, Apex, and TAP have native block handling where needed for upstream coverage. |
-| Built-in reporters | ready | `ai`, `console`, `consoleFull`, `csv`, `html`, `json`, `markdown`, `silent`, `sarif`, `threshold`, `xcode`, `xml`, and `badge`. |
+| Built-in reporters | ready | `ai`, `console`, `consoleFull`, `csv`, `html`, `json`, `markdown`, `silent`, `sarif`, `threshold`, `xcode`, `xml`, and `badge`; file reporters are gated for clone and no-duplicate reports. |
 | Blame | ready | Native `git blame -w` data is populated and gated by `scripts/compat-blame.sh`. |
 | Native Rust API | ready | `detect_clones`, `detect_clones_and_statistics`, and `detect_source_files` expose the detector core for path-based and in-memory integrations. |
 | Native server | partial | `jscpd-server` exposes `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`; stable CLI, HTTP success/error, and MCP contracts are gated; exact upstream Streamable HTTP SDK behavior remains follow-up. |

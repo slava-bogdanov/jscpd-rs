@@ -34,9 +34,12 @@ This smoke check runs Rust and upstream with
 `json,csv,markdown,xml,sarif,badge,html`, verifies the expected report files,
 parses JSON/SARIF payloads, checks stable artifact contracts, and compares the
 root JSON report with the default coverage rule. Stable artifact checks include
-CSV/Markdown line and clone summary columns, exact XML output for the fixture,
-SARIF structure with normalized paths, badge title/aria text, HTML report text,
-and equality between each HTML JSON payload and its root JSON report.
+CSV/Markdown line and clone summary columns, the upstream Markdown heading
+prefix, exact XML output for the fixture, SARIF structure with normalized
+paths, badge title/aria text, HTML report text and clone summaries, and
+equality between each HTML JSON payload and its root JSON report. The aggregate
+release gate also runs this reporter check against a no-duplicates JavaScript
+fixture so empty JSON/CSV/Markdown/XML/SARIF/badge/HTML reports stay covered.
 
 CLI gate:
 

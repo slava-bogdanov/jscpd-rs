@@ -26,6 +26,21 @@ scripts/compat-config.sh
 printf '\n== reporter compatibility ==\n'
 scripts/compat-reporters.sh
 
+printf '\n== reporter compatibility (no duplicates) ==\n'
+REPORTER_ZERO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/jscpd-rs-reporters-zero.XXXXXX")"
+cleanup_reporter_zero() {
+  rm -rf "$REPORTER_ZERO_DIR"
+}
+trap cleanup_reporter_zero EXIT
+mkdir -p "$REPORTER_ZERO_DIR/src"
+cat >"$REPORTER_ZERO_DIR/src/unique.js" <<'EOF'
+const alpha = 1;
+const beta = 2;
+const gamma = 3;
+console.log(alpha + beta + gamma);
+EOF
+MIN_TOKENS=50 MIN_LINES=5 scripts/compat-reporters.sh "$REPORTER_ZERO_DIR/src"
+
 printf '\n== blame compatibility ==\n'
 scripts/compat-blame.sh
 

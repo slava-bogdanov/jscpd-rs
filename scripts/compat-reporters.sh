@@ -212,6 +212,13 @@ function parseCsv(file) {
 }
 
 function compareMarkdownReports(rustDir, upstreamDir) {
+  const rustRaw = normalizeNewlines(fs.readFileSync(path.join(rustDir, 'jscpd-report.md'), 'utf8'));
+  const upstreamRaw = normalizeNewlines(fs.readFileSync(path.join(upstreamDir, 'jscpd-report.md'), 'utf8'));
+  assertDeepEqual(
+    rustRaw.startsWith('\n# Copy/paste detection report\n'),
+    upstreamRaw.startsWith('\n# Copy/paste detection report\n'),
+    'Markdown heading prefix matches upstream',
+  );
   const rust = parseMarkdownTable(path.join(rustDir, 'jscpd-report.md'));
   const upstream = parseMarkdownTable(path.join(upstreamDir, 'jscpd-report.md'));
   assertDeepEqual(
@@ -324,7 +331,8 @@ function htmlContract(file) {
   return {
     title: extract(html, /<title>([^<]+)<\/title>/, file),
     h1: extract(html, /<h1[^>]*>([^<]+)<\/h1>/, file),
-    cloneText: extract(html, /(jscpd\/fixtures\/clike\/file2\.c \(Line 18:3 - Line 28:9\), jscpd\/fixtures\/clike\/file2\.c \(Line 8:3 - Line 18:8\))/, file),
+    cloneSummaries: [...html.matchAll(/([^<>]+ \(Line \d+:\d+ - Line \d+:\d+\), [^<>]+ \(Line \d+:\d+ - Line \d+:\d+\))/g)]
+      .map((match) => match[1]),
     showCode: html.includes('Show code'),
     hideCode: html.includes('Hide code'),
   };

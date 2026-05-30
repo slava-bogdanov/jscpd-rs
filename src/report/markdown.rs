@@ -58,6 +58,7 @@ impl MarkdownReport {
 
 impl std::fmt::Display for MarkdownReport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f)?;
         writeln!(f, "# Copy/paste detection report")?;
         writeln!(f)?;
         writeln!(f, "{}", self.summary_line)?;
@@ -127,7 +128,7 @@ mod tests {
         let md = std::fs::read_to_string(output.join("jscpd-report.md")).unwrap();
         let _ = std::fs::remove_dir_all(output);
 
-        assert!(md.starts_with("# Copy/paste detection report"));
+        assert!(md.starts_with("\n# Copy/paste detection report"));
         assert!(md.contains("> Duplications detection:"));
     }
 
@@ -145,6 +146,7 @@ mod tests {
         assert_eq!(
             md,
             [
+                "",
                 "# Copy/paste detection report",
                 "",
                 "> Duplications detection: Found 0 exact clones with 5(25%) duplicated lines in 2 (1 formats) files.",
