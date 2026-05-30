@@ -401,6 +401,27 @@ fn vue_sfc_trims_edge_whitespace_from_embedded_block_maps() {
 }
 
 #[test]
+fn vue_sfc_style_blocks_skip_internal_whitespace_tokens() {
+    let content = "<style lang=\"scss\">\n.panel {\n  color: red;\n}\n</style>\n";
+    let maps = tokenize_maps_for_detection(content, "vue", &Options::default());
+    let scss = maps
+        .iter()
+        .find(|map| map.format == "scss")
+        .expect("scss map");
+    let values = scss
+        .tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(
+        !values
+            .iter()
+            .any(|value| value.chars().all(char::is_whitespace))
+    );
+}
+
+#[test]
 fn vue_template_emits_inline_style_attr_css_map() {
     let content = "<template>\n  <div style=\"color: red\">{{ title }}</div>\n</template>\n";
     let maps = tokenize_maps_for_detection(content, "vue", &Options::default());

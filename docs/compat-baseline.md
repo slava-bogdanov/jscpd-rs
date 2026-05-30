@@ -186,7 +186,7 @@ Latest public benchmark measurements:
 | `jscpd/fixtures` | `jsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures` | `tsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures/markdown` | `markdown` | pass | 18/18 upstream fragments line-covered; embedded YAML starts now align; Markdown prose still reports wider/split ranges |
-| `jscpd/fixtures` | `vue` | pass | 18/18 upstream fragments line-covered; template starts match upstream; one wider internal scss range remains |
+| `jscpd/fixtures` | `vue` | pass | exact upstream fragment/start coverage; Rust still reports duplicate extra script/template clones |
 | `jscpd/fixtures` | `svelte` | pass | 6/6 upstream fragments line-covered; exact start differs for wider css range |
 | `jscpd/fixtures` | `astro` | pass | exact upstream fragment/start coverage; Rust still reports duplicate extra embedded clones |
 | `jscpd/fixtures/pug` | `pug` | pass | exact clone and line summary parity; upstream overextended `style.` range is mirrored |
@@ -327,12 +327,11 @@ Latest public benchmark measurements:
   format maps. YAML quoted scalars are kept whole so front matter starts align
   with upstream; Markdown prose remains line-covered with wider/split ranges.
 - Vue, Svelte, and Astro now split embedded template/script/style/frontmatter
-  regions into format maps. Embedded generic block maps split common
-  punctuation while preserving internal whitespace, and SFC block-edge
-  whitespace is trimmed so Vue template/style and Astro markup starts align
-  with upstream where tokenization otherwise matches. Their fixtures are
-  line-covered, with remaining wider ranges from generic markup/style
-  tokenization.
+  regions into format maps. CSS-like style blocks skip internal whitespace
+  tokens so Vue SCSS starts align with upstream, while other embedded generic
+  block maps still preserve internal whitespace where it is needed for
+  coverage. Their fixtures are line-covered, with remaining wider ranges from
+  generic markup/style tokenization.
 - Plain `markup` now extracts top-level `<script>` and `<style>` blocks into
   embedded JavaScript/TypeScript/CSS-like maps. This covers upstream mixed HTML
   fixture clones, though Rust may report a wider equivalent embedded range.

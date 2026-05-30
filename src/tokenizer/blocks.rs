@@ -168,6 +168,12 @@ fn append_offset_block_tokens(
         tokenize_oxc_maps(inner, format, options, &inner_ignore_regions)
     } else if format == "markup" {
         tokenize_markup_fragment_maps(inner, options, &inner_ignore_regions, true)
+    } else if css_like_block_format(format) {
+        vec![TokenMap {
+            format: format.to_string(),
+            tokens: tokenize_generic(inner, format, options, &inner_ignore_regions),
+            positions_assigned: false,
+        }]
     } else {
         vec![TokenMap {
             format: format.to_string(),
@@ -208,6 +214,10 @@ fn trim_edge_whitespace_tokens(tokens: &mut Vec<DetectionToken>, content: &str) 
 
 fn token_slice<'a>(content: &'a str, token: &DetectionToken) -> &'a str {
     &content[token.range[0]..token.range[1]]
+}
+
+fn css_like_block_format(format: &str) -> bool {
+    matches!(format, "css" | "less" | "sass" | "scss" | "stylus")
 }
 
 fn tokenize_markup_fragment_maps(
