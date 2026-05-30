@@ -9,11 +9,13 @@ RUNS="${RUNS:-3}"
 MIN_TOKENS="${MIN_TOKENS:-50}"
 MIN_LINES="${MIN_LINES:-5}"
 MAX_SIZE="${MAX_SIZE:-1mb}"
+MIN_SPEEDUP="${MIN_SPEEDUP:-0}"
 FETCH="${FETCH:-1}"
 UPDATE="${UPDATE:-0}"
 CHECK_COMPAT="${CHECK_COMPAT:-0}"
 LIST="${LIST:-0}"
 CASES="${CASES:-}"
+SUMMARY_FILE="${SUMMARY_FILE:-$RESULTS_DIR/summary.tsv}"
 
 SUITE_CASES=(
   "react|https://github.com/facebook/react.git|main|javascript|."
@@ -33,10 +35,12 @@ Environment:
   FETCH        Clone missing repositories, default 1.
   UPDATE       Fetch/reset existing repositories, default 0.
   CHECK_COMPAT Run coverage compat after each benchmark, default 0.
+  MIN_SPEEDUP  Fail when upstream/Rust speedup is below this value, default 0.
   LIST         Print configured cases and exit, default 0.
   BENCH_ROOT   Root for generated clones/results, default ~/.cache/jscpd-rs/public-bench.
   REPOS_DIR    Clone directory, default $BENCH_ROOT/repos.
   RESULTS_DIR  Benchmark output directory, default $BENCH_ROOT/results.
+  SUMMARY_FILE TSV summary path, default $RESULTS_DIR/summary.tsv.
 
 Examples:
   LIST=1 scripts/public-bench-suite.sh
@@ -88,6 +92,50 @@ print_cases() {
   done
 }
 
+parse_avg() {
+  local file="$1"
+  local label="$2"
+
+  awk -v label="$label" '
+    $0 == label { in_section = 1; next }
+    /^[^[:space:]]/ { in_section = 0 }
+    in_section && $1 == "avg:" {
+      gsub(/s$/, "", $2)
+      print $2
+      exit
+    }
+  ' "$file"
+}
+
+speedup_ratio() {
+  local rust_avg="$1"
+  local upstream_avg="$2"
+
+  awk -v rust="$rust_avg" -v upstream="$upstream_avg" 'BEGIN {
+    if (rust <= 0) {
+      print "inf"
+    } else {
+      printf "%.2f", upstream / rust
+    }
+  }'
+}
+
+assert_min_speedup() {
+  local name="$1"
+  local speedup="$2"
+
+  if [[ "$MIN_SPEEDUP" == "0" ]]; then
+    return 0
+  fi
+
+  awk -v name="$name" -v speedup="$speedup" -v min="$MIN_SPEEDUP" 'BEGIN {
+    if (speedup + 0 < min + 0) {
+      printf "speedup gate failed for %s: %.2fx < %.2fx\n", name, speedup, min > "/dev/stderr"
+      exit 1
+    }
+  }'
+}
+
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 0
@@ -99,6 +147,8 @@ if [[ "$LIST" == "1" ]]; then
 fi
 
 mkdir -p "$RESULTS_DIR"
+printf 'case\tcommit\tformat\trust_avg_s\tupstream_avg_s\tspeedup\n' >"$SUMMARY_FILE"
+ran_cases=0
 
 for spec in "${SUITE_CASES[@]}"; do
   IFS='|' read -r name url branch format subpath <<<"$spec"
@@ -106,6 +156,7 @@ for spec in "${SUITE_CASES[@]}"; do
     continue
   fi
 
+  ran_cases=$((ran_cases + 1))
   ensure_repo "$name" "$url" "$branch"
   repo_path="$(repo_path_for "$name")"
   target_path="$repo_path/$subpath"
@@ -121,6 +172,18 @@ for spec in "${SUITE_CASES[@]}"; do
     MAX_SIZE="$MAX_SIZE" \
     "$ROOT/scripts/bench.sh" "$target_path" | tee "$result_file"
 
+  rust_avg="$(parse_avg "$result_file" "rust mvp")"
+  upstream_avg="$(parse_avg "$result_file" "upstream jscpd")"
+  if [[ -z "$rust_avg" || -z "$upstream_avg" ]]; then
+    printf 'failed to parse benchmark averages from %s\n' "$result_file" >&2
+    exit 1
+  fi
+  speedup="$(speedup_ratio "$rust_avg" "$upstream_avg")"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$name" "$commit" "$format" "$rust_avg" "$upstream_avg" "$speedup" >>"$SUMMARY_FILE"
+  printf 'speedup: %sx\n' "$speedup"
+  assert_min_speedup "$name" "$speedup"
+
   if [[ "$CHECK_COMPAT" == "1" ]]; then
     printf '\n== %s coverage compatibility ==\n' "$name"
     FORMAT="$format" \
@@ -133,3 +196,10 @@ for spec in "${SUITE_CASES[@]}"; do
 
   printf 'saved benchmark output: %s\n' "$result_file"
 done
+
+if [[ "$ran_cases" == "0" ]]; then
+  printf 'no benchmark cases selected (CASES=%s)\n' "$CASES" >&2
+  exit 1
+fi
+
+printf '\nsummary: %s\n' "$SUMMARY_FILE"

@@ -31,11 +31,16 @@ Usage:
 LIST=1 scripts/public-bench-suite.sh
 CASES=react,next RUNS=3 scripts/public-bench-suite.sh
 CHECK_COMPAT=1 CASES=react scripts/public-bench-suite.sh
+MIN_SPEEDUP=10 CASES=react,next RUNS=3 scripts/public-bench-suite.sh
 ```
 
 Default behavior clones missing repositories with `--depth=1`, runs Rust and
 upstream `jscpd` through `scripts/bench.sh`, and writes raw benchmark output to
-`$BENCH_ROOT/results`. Set `UPDATE=1` to refresh existing clones.
+`$BENCH_ROOT/results`. It also writes a TSV summary to
+`$BENCH_ROOT/results/summary.tsv` with case, commit, format, Rust average,
+upstream average, and speedup. Set `UPDATE=1` to refresh existing clones.
+Set `MIN_SPEEDUP` to make the suite fail when any selected case falls below the
+required upstream/Rust speedup.
 
 Initial measurements on May 30, 2026:
 
