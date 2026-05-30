@@ -151,6 +151,10 @@ Tokenizer strategy remains hybrid:
 
 ## Accepted Hard-Feature Decisions
 
+The current release decisions are canonicalized in
+`docs/release-decisions.md`. The summary below mirrors that file for quick
+orientation.
+
 These choices are part of the current cloning direction until a compatibility
 gate proves they are insufficient:
 

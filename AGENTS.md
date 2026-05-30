@@ -13,6 +13,11 @@ deliberate incompatibility is documented.
 The upstream `jscpd` repository is kept in `jscpd/` as a git submodule and is the
 primary reference for behavior.
 
+Current first-release decisions are recorded in `docs/release-decisions.md`.
+Follow that document for compatibility gate semantics, native-only runtime
+strategy, reporter/store scope, long-tail format policy, and upstream-quirk
+handling.
+
 ## Compatibility Policy
 
 The primary compatibility gate is coverage-first parity: on the same inputs and

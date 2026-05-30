@@ -152,6 +152,28 @@ mod tests {
     }
 
     #[test]
+    fn warns_for_duplicate_unknown_reporters_in_order() {
+        let options = Options {
+            reporters: vec![
+                "badgezz".to_string(),
+                "myreport".to_string(),
+                "badgezz".to_string(),
+            ],
+            silent: true,
+            ..Options::default()
+        };
+
+        assert_eq!(
+            unknown_reporter_warnings(&options),
+            vec![
+                "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)",
+                "warning: myreport not installed (install packages named @jscpd/myreport-reporter or jscpd-myreport-reporter)",
+                "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)",
+            ]
+        );
+    }
+
+    #[test]
     fn progress_prints_clone_headers_when_not_silent_or_ai() {
         let result = test_support::make_test_result_with_clone("src/a.js", "src/b.js");
         let options = Options::default();
