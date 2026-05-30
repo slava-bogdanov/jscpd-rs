@@ -145,6 +145,36 @@ fn generic_tokenizer_handles_common_non_native_formats() {
 }
 
 #[test]
+fn all_supported_formats_have_a_tokenizer_smoke_path() {
+    for format in crate::formats::supported_formats() {
+        let content = smoke_content_for_format(format);
+        let maps = tokenize_maps_for_detection(content, format, &Options::default());
+        assert!(
+            maps.iter().any(|map| !map.tokens.is_empty()),
+            "format {format} produced no tokens"
+        );
+        assert!(
+            maps.iter()
+                .all(|map| crate::formats::supported_formats().contains(&map.format.as_str())),
+            "format {format} produced an unsupported embedded map"
+        );
+    }
+}
+
+fn smoke_content_for_format(format: &str) -> &'static str {
+    match format {
+        "astro" => "---\nconst title = 'Demo';\n---\n<section>{title}</section>\n",
+        "jsx" => "const view = <section>{title}</section>;\n",
+        "markdown" => "# Demo\n\n```js\nconst value = 1;\n```\n",
+        "markup" => "<section><span>alpha beta</span></section>\n",
+        "svelte" => "<script>let title = 'Demo';</script>\n<h1>{title}</h1>\n",
+        "tsx" => "const view: JSX.Element = <section>{title}</section>;\n",
+        "vue" => "<template>\n  <section>{{ title }}</section>\n</template>\n",
+        _ => "alpha beta gamma\nalpha beta delta\n",
+    }
+}
+
+#[test]
 fn haml_comment_block_is_single_comment_token() {
     let content = "%section\n  %p Same\n-# File-specific comment\n  .settings\n    %h2 Title\n";
     let tokens = tokenize_for_detection(content, "haml", &Options::default());
