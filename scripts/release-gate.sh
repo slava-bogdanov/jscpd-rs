@@ -29,6 +29,9 @@ scripts/compat-reporters.sh
 printf '\n== blame compatibility ==\n'
 scripts/compat-blame.sh
 
+printf '\n== server compatibility ==\n'
+scripts/compat-server.sh
+
 printf '\n== upstream CI fixture compatibility ==\n'
 scripts/compat-upstream-ci.sh
 

@@ -88,6 +88,20 @@ runs both implementations with `--blame --reporters json`, verifies that both
 JSON reports include matching blame data on both duplicate fragments, and then
 compares the reports with the default coverage rule.
 
+Server gate:
+
+```bash
+scripts/compat-server.sh
+```
+
+This smoke check compares the native `jscpd-server` binary with upstream
+`apps/jscpd-server`. It verifies stable server CLI contracts for `--help` and
+invalid or bare `--port`, starts both servers on local ports, and checks the
+root API info, `/api/health`, `/api/stats`, JSON and urlencoded `/api/check`,
+upstream-style JSON 404 responses, MCP initialize/session handling,
+`tools/list`, `get_statistics`, `jscpd://statistics`, and `GET /mcp` method
+rejection.
+
 Package/install gate:
 
 ```bash
@@ -121,12 +135,12 @@ PUBLIC=1 scripts/release-gate.sh
 ```
 
 The default run covers formatting, unit tests, shell syntax, package/install
-verification, and fast CLI/config/reporter compatibility checks. `FULL=1` also
-runs the full coverage-first compatibility matrix. `PUBLIC=1` runs the
-project-owned public benchmark suite with coverage compatibility enabled, using
-`PUBLIC_CASES`, `PUBLIC_RUNS`, `PUBLIC_CHECK_COMPAT`, and `PUBLIC_MIN_SPEEDUP`
-to override its defaults. `FULL=1 PUBLIC=1 scripts/release-gate.sh` is required
-before publication.
+verification, and fast CLI/config/reporter/blame/server compatibility checks.
+`FULL=1` also runs the full coverage-first compatibility matrix. `PUBLIC=1`
+runs the project-owned public benchmark suite with coverage compatibility
+enabled, using `PUBLIC_CASES`, `PUBLIC_RUNS`, `PUBLIC_CHECK_COMPAT`, and
+`PUBLIC_MIN_SPEEDUP` to override its defaults.
+`FULL=1 PUBLIC=1 scripts/release-gate.sh` is required before publication.
 
 Release candidate gate:
 
