@@ -165,23 +165,31 @@ pub(super) fn read_package_json_config() -> Result<Option<(FileConfig, PathBuf)>
             return Ok(None);
         }
     };
-    let value = match serde_json::from_str::<serde_json::Value>(&data) {
-        Ok(value) => value,
+    let package = match serde_json::from_str::<PackageJson>(&data) {
+        Ok(package) => package,
         Err(error) => {
+            if serde_json::from_str::<serde_json::Value>(&data).is_ok() {
+                return Err(error).with_context(|| {
+                    format!("failed to parse jscpd config in `{}`", path.display())
+                });
+            }
             eprintln!("Warning: Could not parse {}: {error}", path.display());
             return Ok(None);
         }
     };
-    let Some(jscpd) = value.get("jscpd") else {
+    let Some(config) = package.jscpd else {
         return Ok(None);
     };
-    let config = serde_json::from_value::<FileConfig>(jscpd.clone())
-        .with_context(|| format!("failed to parse jscpd config in `{}`", path.display()))?;
     let config_dir = path
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .to_path_buf();
     Ok(Some((config, config_dir)))
+}
+
+#[derive(Debug, Deserialize)]
+struct PackageJson {
+    jscpd: Option<FileConfig>,
 }
 
 pub(super) fn apply_config(

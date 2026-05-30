@@ -279,3 +279,48 @@ the default value for bare flags.
 Rust clone handling: bare `--threshold` and bare `--exitCode` are mirrored for
 CLI compatibility. The `--exitCode` behavior remains an upstream bug candidate,
 but preserving it is cheaper than leaving a visible CLI parity gap.
+
+## Bare optional string CLI flags produce inconsistent failures
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+Several Commander string options are declared with optional values. When the
+flag is passed without a value, Commander supplies boolean `true`, and later
+runtime code either crashes with a type error or continues depending on whether
+that option is used.
+
+Repro shape:
+
+```sh
+node jscpd/apps/jscpd/bin/jscpd <flag> \
+  --silent \
+  --noTips \
+  jscpd/fixtures/clike/file2.c \
+  --min-tokens 20 \
+  --min-lines 3 \
+  --max-size 1mb
+```
+
+Observed first stdout lines:
+
+| Flag | Exit | First line |
+| --- | ---: | --- |
+| `--config` | 1 | `TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received type boolean (true)` |
+| `--ignore` | 1 | `TypeError: cli.ignore.split is not a function` |
+| `--ignore-pattern` | 1 | `TypeError: cli.ignorePattern.split is not a function` |
+| `--reporters` | 1 | `TypeError: cli.reporters.split is not a function` |
+| `--mode` | 1 | `TypeError: mode is not a function` |
+| `--format` | 1 | `TypeError: cli.format.split is not a function` |
+| `--formats-exts` | 1 | `TypeError: extensions.split is not a function` |
+| `--formats-names` | 1 | `TypeError: extensions.split is not a function` |
+| `--output` | 0 | continues when no file-writing reporter uses `output` |
+
+`--output --reporters json` later fails when the JSON reporter passes boolean
+`true` to filesystem path creation.
+
+Expected behavior: require string values for these flags, or normalize bare
+flags before option conversion.
+
+Rust clone handling: only low-risk bare-value cases that upstream continues with
+are mirrored by default. These crash-only edge cases remain documented until a
+release gate makes them worth preserving exactly.

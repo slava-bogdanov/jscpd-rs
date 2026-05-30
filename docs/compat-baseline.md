@@ -44,9 +44,10 @@ Config gate:
 scripts/compat-config.sh
 ```
 
-This smoke check runs both implementations from a real `.jscpd.json`, including
-relative `path`, config `output`, `silent`, JSON reporter setup, and
-order-sensitive `formatsExts` object mappings.
+This smoke check runs both implementations from real `.jscpd.json` and
+`package.json#jscpd` configs, including relative `path`, config `output`,
+`silent`, JSON reporter setup, `exitCode`, and order-sensitive `formatsExts`
+object mappings.
 
 Upstream CI fixture gate:
 
