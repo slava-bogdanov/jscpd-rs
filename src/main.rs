@@ -32,6 +32,8 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
+    print_store_warning(&options);
+
     let result = detector::detect(files, &options);
 
     report::write_reports(&result, &options)?;
@@ -45,6 +47,19 @@ fn run() -> Result<()> {
 
 fn print_debug(options: &Options, files: &[SourceFile]) {
     print!("{}", debug_output(options, files));
+}
+
+fn print_store_warning(options: &Options) {
+    if let Some(warning) = store_warning(options) {
+        eprintln!("{warning}");
+    }
+}
+
+fn store_warning(options: &Options) -> Option<String> {
+    options
+        .store
+        .as_ref()
+        .map(|store| format!("store name {store} not installed."))
 }
 
 fn debug_output(options: &Options, files: &[SourceFile]) -> String {
@@ -106,5 +121,19 @@ mod tests {
         assert!(output.contains("abap, actionscript, ada"));
         assert!(output.contains(", typescript, "));
         assert!(!output.lines().skip(1).any(|line| line == "typescript"));
+    }
+
+    #[test]
+    fn store_warning_matches_upstream_fallback_shape() {
+        let options = Options {
+            store: Some("leveldb".to_string()),
+            ..Options::default()
+        };
+
+        assert_eq!(
+            store_warning(&options).as_deref(),
+            Some("store name leveldb not installed.")
+        );
+        assert!(store_warning(&Options::default()).is_none());
     }
 }
