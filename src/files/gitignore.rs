@@ -1,0 +1,108 @@
+use std::collections::HashSet;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use super::paths::relative_path;
+
+pub(super) fn collect_gitignore_patterns(roots: &[PathBuf]) -> Vec<String> {
+    let mut patterns = Vec::new();
+    let mut visited_dirs = HashSet::new();
+    let mut visited_repos = HashSet::new();
+
+    for root in roots {
+        let abs_root = root.canonicalize().unwrap_or_else(|_| root.clone());
+        let mut current = if abs_root.is_file() {
+            abs_root
+                .parent()
+                .map(Path::to_path_buf)
+                .unwrap_or_else(|| abs_root.clone())
+        } else {
+            abs_root
+        };
+        let mut dirs = Vec::new();
+        let mut repo_root = None;
+
+        loop {
+            if !visited_dirs.contains(&current) {
+                dirs.push(current.clone());
+            }
+            if current.join(".git").exists() {
+                repo_root = Some(current.clone());
+                break;
+            }
+            let Some(parent) = current.parent() else {
+                break;
+            };
+            if parent == current {
+                break;
+            }
+            current = parent.to_path_buf();
+        }
+
+        for dir in dirs {
+            if !visited_dirs.insert(dir.clone()) {
+                continue;
+            }
+            let Ok(content) = fs::read_to_string(dir.join(".gitignore")) else {
+                continue;
+            };
+            for line in content.lines() {
+                patterns.extend(gitignore_line_to_globs(line, Some(&dir)));
+            }
+        }
+
+        if let Some(repo_root) = repo_root
+            && visited_repos.insert(repo_root.clone())
+        {
+            let exclude = repo_root.join(".git").join("info").join("exclude");
+            if let Ok(content) = fs::read_to_string(exclude) {
+                for line in content.lines() {
+                    patterns.extend(gitignore_line_to_globs(line, Some(&repo_root)));
+                }
+            }
+        }
+    }
+
+    patterns
+}
+
+pub(super) fn gitignore_line_to_globs(line: &str, base_dir: Option<&Path>) -> Vec<String> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with('!') {
+        return Vec::new();
+    }
+
+    let is_rooted = trimmed.starts_with('/');
+    let pattern = trimmed
+        .trim_start_matches('/')
+        .trim_end_matches('/')
+        .replace('\\', "/");
+    if pattern.is_empty() {
+        return Vec::new();
+    }
+
+    let has_middle_slash = pattern.contains('/');
+    if (is_rooted || has_middle_slash)
+        && let Some(base_dir) = base_dir
+    {
+        let mut globs = Vec::new();
+        push_gitignore_glob_variants(&mut globs, &base_dir.join(&pattern));
+        return globs;
+    }
+
+    vec![format!("**/{pattern}"), format!("**/{pattern}/**")]
+}
+
+fn push_gitignore_glob_variants(globs: &mut Vec<String>, path: &Path) {
+    let absolute = path.display().to_string().replace('\\', "/");
+    globs.push(absolute.clone());
+    globs.push(format!("{absolute}/**"));
+
+    if let Ok(cwd) = std::env::current_dir()
+        && let Some(relative) = relative_path(path, &cwd)
+    {
+        let relative = relative.display().to_string().replace('\\', "/");
+        globs.push(relative.clone());
+        globs.push(format!("{relative}/**"));
+    }
+}

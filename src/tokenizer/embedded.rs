@@ -1,9 +1,7 @@
 use crate::cli::Options;
 
-use super::{
-    ByteSpan, DetectionToken, LineIndex, Location, TokenContext, TokenKind,
-    generic_comment_span_end, push_token, scan_generic_token,
-};
+use super::generic::{generic_comment_span_end, scan_generic_token};
+use super::{ByteSpan, DetectionToken, LineIndex, Location, TokenContext, TokenKind, push_token};
 
 pub(super) fn blank_ranges_preserve_newlines(content: &str, ranges: &[[usize; 2]]) -> String {
     if ranges.is_empty() {

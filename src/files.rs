@@ -1,8 +1,5 @@
-use std::cmp::Ordering;
-use std::ffi::OsString;
 use std::fs;
-use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
@@ -12,6 +9,14 @@ use rayon::prelude::*;
 
 use crate::cli::Options;
 use crate::formats;
+
+mod gitignore;
+mod paths;
+mod shebang;
+
+use gitignore::collect_gitignore_patterns;
+use paths::{display_relative_to, fast_glob_like_path_cmp};
+use shebang::shebang_format_for_path;
 
 #[derive(Clone, Debug)]
 pub struct SourceFile {
@@ -166,104 +171,6 @@ fn collect_candidate(
     Ok(())
 }
 
-fn shebang_format_for_path(path: &Path, metadata: &fs::Metadata) -> Result<Option<&'static str>> {
-    if !is_executable(metadata) || is_symlink(path) {
-        return Ok(None);
-    }
-
-    let mut file =
-        fs::File::open(path).with_context(|| format!("failed to read `{}`", path.display()))?;
-    let mut buf = [0u8; 128];
-    let read = file
-        .read(&mut buf)
-        .with_context(|| format!("failed to read `{}`", path.display()))?;
-    let head = String::from_utf8_lossy(&buf[..read]);
-    let Some(first_line) = head.lines().next() else {
-        return Ok(None);
-    };
-    if !first_line.starts_with("#!") {
-        return Ok(None);
-    }
-
-    let mut tokens = first_line[2..].split_whitespace();
-    let Some(first_token) = tokens.next() else {
-        return Ok(None);
-    };
-    let interpreter = if Path::new(first_token)
-        .file_name()
-        .is_some_and(|name| name.to_string_lossy().starts_with("env"))
-    {
-        let Some(second_token) = tokens.next() else {
-            return Ok(None);
-        };
-        if second_token.starts_with('-') {
-            return Ok(None);
-        }
-        second_token
-    } else {
-        first_token
-    };
-
-    let Some(raw_name) = Path::new(interpreter).file_name() else {
-        return Ok(None);
-    };
-    let raw_name = raw_name.to_string_lossy();
-    if raw_name.as_bytes().first().is_some_and(u8::is_ascii_digit) {
-        return Ok(None);
-    }
-
-    Ok(shebang_name_to_format(&normalize_shebang_name(&raw_name)))
-}
-
-fn shebang_name_to_format(name: &str) -> Option<&'static str> {
-    match name {
-        "bash" | "sh" | "zsh" | "dash" | "ksh" => Some("bash"),
-        "python" => Some("python"),
-        "ruby" => Some("ruby"),
-        "perl" => Some("perl"),
-        "php" => Some("php"),
-        "node" | "nodejs" => Some("javascript"),
-        "lua" => Some("lua"),
-        "tclsh" | "wish" => Some("tcl"),
-        "groovy" => Some("groovy"),
-        "awk" | "gawk" | "nawk" => Some("awk"),
-        "rscript" => Some("r"),
-        _ => None,
-    }
-}
-
-fn normalize_shebang_name(raw_name: &str) -> String {
-    let mut end = raw_name.len();
-    if raw_name.as_bytes().last().is_some_and(u8::is_ascii_digit) {
-        while end > 0
-            && raw_name.as_bytes()[end - 1].is_ascii()
-            && (raw_name.as_bytes()[end - 1].is_ascii_digit()
-                || raw_name.as_bytes()[end - 1] == b'.')
-        {
-            end -= 1;
-        }
-    }
-    raw_name[..end].to_ascii_lowercase()
-}
-
-fn is_symlink(path: &Path) -> bool {
-    fs::symlink_metadata(path)
-        .map(|metadata| metadata.file_type().is_symlink())
-        .unwrap_or(false)
-}
-
-#[cfg(unix)]
-fn is_executable(metadata: &fs::Metadata) -> bool {
-    use std::os::unix::fs::PermissionsExt;
-
-    metadata.permissions().mode() & 0o111 != 0
-}
-
-#[cfg(not(unix))]
-fn is_executable(_metadata: &fs::Metadata) -> bool {
-    false
-}
-
 fn read_candidate(
     candidate: CandidateFile,
     options: &Options,
@@ -327,174 +234,6 @@ fn is_ignored(path: &Path, ignore_set: &GlobSet, cwd: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn collect_gitignore_patterns(roots: &[PathBuf]) -> Vec<String> {
-    let mut patterns = Vec::new();
-    let mut visited_dirs = std::collections::HashSet::new();
-    let mut visited_repos = std::collections::HashSet::new();
-
-    for root in roots {
-        let abs_root = root.canonicalize().unwrap_or_else(|_| root.clone());
-        let mut current = if abs_root.is_file() {
-            abs_root
-                .parent()
-                .map(Path::to_path_buf)
-                .unwrap_or_else(|| abs_root.clone())
-        } else {
-            abs_root
-        };
-        let mut dirs = Vec::new();
-        let mut repo_root = None;
-
-        loop {
-            if !visited_dirs.contains(&current) {
-                dirs.push(current.clone());
-            }
-            if current.join(".git").exists() {
-                repo_root = Some(current.clone());
-                break;
-            }
-            let Some(parent) = current.parent() else {
-                break;
-            };
-            if parent == current {
-                break;
-            }
-            current = parent.to_path_buf();
-        }
-
-        for dir in dirs {
-            if !visited_dirs.insert(dir.clone()) {
-                continue;
-            }
-            let Ok(content) = fs::read_to_string(dir.join(".gitignore")) else {
-                continue;
-            };
-            for line in content.lines() {
-                patterns.extend(gitignore_line_to_globs(line, Some(&dir)));
-            }
-        }
-
-        if let Some(repo_root) = repo_root
-            && visited_repos.insert(repo_root.clone())
-        {
-            let exclude = repo_root.join(".git").join("info").join("exclude");
-            if let Ok(content) = fs::read_to_string(exclude) {
-                for line in content.lines() {
-                    patterns.extend(gitignore_line_to_globs(line, Some(&repo_root)));
-                }
-            }
-        }
-    }
-
-    patterns
-}
-
-fn gitignore_line_to_globs(line: &str, base_dir: Option<&Path>) -> Vec<String> {
-    let trimmed = line.trim();
-    if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with('!') {
-        return Vec::new();
-    }
-
-    let is_rooted = trimmed.starts_with('/');
-    let pattern = trimmed
-        .trim_start_matches('/')
-        .trim_end_matches('/')
-        .replace('\\', "/");
-    if pattern.is_empty() {
-        return Vec::new();
-    }
-
-    let has_middle_slash = pattern.contains('/');
-    if (is_rooted || has_middle_slash)
-        && let Some(base_dir) = base_dir
-    {
-        let mut globs = Vec::new();
-        push_gitignore_glob_variants(&mut globs, &base_dir.join(&pattern));
-        return globs;
-    }
-
-    vec![format!("**/{pattern}"), format!("**/{pattern}/**")]
-}
-
-fn push_gitignore_glob_variants(globs: &mut Vec<String>, path: &Path) {
-    let absolute = path.display().to_string().replace('\\', "/");
-    globs.push(absolute.clone());
-    globs.push(format!("{absolute}/**"));
-
-    if let Ok(cwd) = std::env::current_dir()
-        && let Some(relative) = relative_path(path, &cwd)
-    {
-        let relative = relative.display().to_string().replace('\\', "/");
-        globs.push(relative.clone());
-        globs.push(format!("{relative}/**"));
-    }
-}
-
-fn display_relative_to(path: &Path, cwd: &Path) -> String {
-    relative_path(path, cwd)
-        .unwrap_or_else(|| path.to_path_buf())
-        .display()
-        .to_string()
-}
-
-fn relative_path(path: &Path, base: &Path) -> Option<PathBuf> {
-    if !path.is_absolute() {
-        return Some(path.to_path_buf());
-    }
-    if !base.is_absolute() {
-        return None;
-    }
-
-    let path_components = normal_components(path);
-    let base_components = normal_components(base);
-    let common_len = path_components
-        .iter()
-        .zip(&base_components)
-        .take_while(|(left, right)| left == right)
-        .count();
-
-    let mut relative = PathBuf::new();
-    for _ in common_len..base_components.len() {
-        relative.push("..");
-    }
-    for component in &path_components[common_len..] {
-        relative.push(component);
-    }
-    Some(relative)
-}
-
-fn normal_components(path: &Path) -> Vec<OsString> {
-    path.components()
-        .filter_map(|component| match component {
-            std::path::Component::Normal(value) => Some(value.to_os_string()),
-            _ => None,
-        })
-        .collect()
-}
-
-fn fast_glob_like_path_cmp(left: &Path, right: &Path) -> Ordering {
-    let left_components = left.components().collect::<Vec<_>>();
-    let right_components = right.components().collect::<Vec<_>>();
-    match left_components.len().cmp(&right_components.len()) {
-        Ordering::Equal => {}
-        ordering => return ordering,
-    }
-
-    for idx in 0..left_components.len() {
-        let left_component = left_components[idx].as_os_str();
-        let right_component = right_components[idx].as_os_str();
-        if left_component == right_component {
-            continue;
-        }
-
-        return left_component
-            .to_string_lossy()
-            .cmp(&right_component.to_string_lossy());
-    }
-
-    Ordering::Equal
-}
-
 fn build_glob_set(patterns: &[String]) -> Result<GlobSet> {
     let mut builder = GlobSetBuilder::new();
     if patterns.is_empty() {
@@ -514,10 +253,9 @@ mod tests {
 
     use crate::cli::Options;
 
-    use super::{
-        discover, display_relative_to, fast_glob_like_path_cmp, gitignore_line_to_globs,
-        relative_path,
-    };
+    use super::gitignore::gitignore_line_to_globs;
+    use super::paths::relative_path;
+    use super::{discover, display_relative_to, fast_glob_like_path_cmp};
 
     #[test]
     fn fast_glob_like_order_places_parent_files_before_child_files() {
