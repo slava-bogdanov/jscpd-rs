@@ -43,6 +43,9 @@ Before publishing, all of these must be true:
 - `README.md`, `docs/compat-baseline.md`, and
   `docs/public-benchmark-suite.md` contain the same latest public benchmark
   numbers.
+- For the first publication, the `jscpd-rs` crate name is still available or
+  already owned by this project, and `v0.1.0` does not already exist locally or
+  on the remote.
 - `docs/upstream-bugs.md` contains concrete repro commands for upstream issues
   we plan to file.
 - `docs/upstream-issue-drafts.md` contains reviewed issue drafts ready to
@@ -89,6 +92,9 @@ Run from the repository root:
 ```bash
 git status --short
 git submodule status jscpd
+git tag -l 'v0.1.0'
+git ls-remote --tags origin 'refs/tags/v0.1.0'
+cargo search jscpd-rs --limit 5
 scripts/release-candidate.sh
 scripts/package-check.sh
 cargo publish --dry-run --locked
@@ -97,6 +103,11 @@ cargo publish --dry-run --locked
 Then push the exact release commit and verify the GitHub Actions
 `release-gate` result. Use the workflow dispatch `release_candidate` input for a
 full CI-side release-candidate run when needed.
+
+For the first publication candidate checked on 2026-05-31, local and remote
+`v0.1.0` tag lookups returned no entries. `cargo search jscpd-rs --limit 5`
+returned no exact package, and the sparse crates.io index path
+`https://index.crates.io/js/cp/jscpd-rs` returned 404.
 
 ## Post-Tag Smoke
 
