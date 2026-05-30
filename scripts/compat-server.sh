@@ -147,6 +147,11 @@ check_server_cli() {
 check_server_cli rust "$ROOT/target/release/jscpd-server"
 check_server_cli upstream node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
 
+if ! diff -u "$TMP_ROOT/upstream-cli/help.stdout" "$TMP_ROOT/rust-cli/help.stdout"; then
+  printf 'server --help output differs from upstream\n' >&2
+  exit 1
+fi
+
 start_server() {
   local label="$1"
   local port="$2"

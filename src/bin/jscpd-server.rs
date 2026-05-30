@@ -162,17 +162,26 @@ Options:
   -V, --version              output the version number
   -p, --port [number]        port to run the server on (Default is 3000)
   -H, --host [string]        host to bind the server to (Default is 0.0.0.0)
-  -c, --config [string]      path to config file (Default is .jscpd.json in <path>)
+  -c, --config [string]      path to config file (Default is .jscpd.json in
+                             <path>)
   -f, --format [string]      format or formats separated by comma
   -i, --ignore [string]      glob pattern for files to exclude
   --ignore-pattern [string]  ignore code blocks matching regexp patterns
-  -l, --min-lines [number]   min size of duplication in code lines (Default is 5)
-  -k, --min-tokens [number]  min size of duplication in code tokens (Default is 50)
+  -l, --min-lines [number]   min size of duplication in code lines (Default is
+                             5)
+  -k, --min-tokens [number]  min size of duplication in code tokens (Default is
+                             50)
   -x, --max-lines [number]   max size of source in lines (Default is 1000)
-  -z, --max-size [string]    max size of source in bytes, examples: 1kb, 1mb, 120kb (Default is 100kb)
-  -m, --mode [string]        mode of quality of search, can be "strict", "mild" and "weak"
-  --store [string]           use for define custom store (e.g. --store leveldb used for big codebase)
-  --store-path [string]      directory to use for store cache (e.g. --store-path /tmp/jscpd-cache, useful when running multiple instances in parallel)
+  -z, --max-size [string]    max size of source in bytes, examples: 1kb, 1mb,
+                             120kb (Default is 100kb)
+  -m, --mode [string]        mode of quality of search, can be "strict", "mild" and "weak" (Default is "function mild(token) {
+    return strict(token) && token.type !== "empty" && token.type !== "new_line";
+  }")
+  --store [string]           use for define custom store (e.g. --store leveldb
+                             used for big codebase)
+  --store-path [string]      directory to use for store cache (e.g.
+                             --store-path /tmp/jscpd-cache, useful when running
+                             multiple instances in parallel)
   -a, --absolute             use absolute path in reports
   -n, --noSymlinks           dont use symlinks for detection
   --ignoreCase               ignore case of symbols in code (experimental)
@@ -256,6 +265,10 @@ mod tests {
         assert!(help.contains("Start jscpd as a server"));
         assert!(help.contains("-p, --port [number]"));
         assert!(help.contains("-H, --host [string]"));
+        assert!(
+            help.contains("function mild(token)"),
+            "server help should preserve upstream default mode text"
+        );
         assert!(!help.contains("detector of copy/paste in files"));
     }
 

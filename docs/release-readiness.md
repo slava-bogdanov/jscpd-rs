@@ -21,7 +21,7 @@ current implementation status.
 | Built-in reporters | ready | `ai`, `console`, `consoleFull`, `csv`, `html`, `json`, `markdown`, `silent`, `sarif`, `threshold`, `xcode`, `xml`, and `badge`; file reporters are gated for clone and no-duplicate reports. |
 | Blame | ready | Native `git blame -w` data is populated and gated by `scripts/compat-blame.sh`. |
 | Native Rust API | ready | `detect_clones`, `detect_clones_and_statistics`, and `detect_source_files` expose the detector core for path-based and in-memory integrations. |
-| Native server | partial | `jscpd-server` exposes `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`; stable CLI, HTTP success/error, and MCP contracts are gated; exact upstream Streamable HTTP SDK behavior remains follow-up. |
+| Native server | partial | `jscpd-server` exposes `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`; exact help text, stable CLI, HTTP success/error, and MCP contracts are gated; exact upstream Streamable HTTP SDK behavior remains follow-up. |
 | Performance harness | ready | Local benchmark script and public benchmark suite with pinned output recording and speedup gates. |
 | Release gates | ready | Default CI gate, full compatibility matrix, package check, reporter/config/CLI/blame gates. |
 
