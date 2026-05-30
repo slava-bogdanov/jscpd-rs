@@ -54,3 +54,15 @@ clear false-positive regression.
   on upstream behavior.
 - Document intentional deviations from upstream in the relevant code, tests, or
   project documentation.
+
+## Local Junior Delegation
+
+- Use local junior agents only through the process in `docs/junior-workflow.md`.
+- Keep junior work in a separate git worktree created with
+  `scripts/junior-worktree.sh`; do not let junior edit the main checkout.
+- Delegate small implementation or test tasks with exact files and exact
+  verification commands. Do not delegate architecture, broad review, or
+  compatibility policy decisions.
+- Prefer `pi --no-session --tools read,edit,bash -p` for one-shot tasks.
+- Run at most one junior process at a time, and review every junior diff before
+  accepting it.
