@@ -14,6 +14,17 @@ formats, fragment boundaries, source totals, line totals, and pair ordering are
 diagnostic only because Rust may find a wider or split equivalent range while
 compatibility is converging.
 
+Reporter gate:
+
+```bash
+scripts/compat-reporters.sh
+```
+
+This smoke check runs Rust and upstream with
+`json,csv,markdown,xml,sarif,badge,html`, verifies the expected report files,
+parses JSON/SARIF payloads, and compares the root JSON report with the default
+coverage rule.
+
 ## Current Matrix
 
 | Target | Format | Gate | Notes |
