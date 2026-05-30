@@ -42,9 +42,9 @@ Latest release-candidate public benchmark measurements from
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| React | `f0dfee3` | JavaScript | 0.187801s | 9.912557s | 52.78x | pass |
-| Next.js | `2bbb67b9` | TypeScript | 0.244143s | 14.149038s | 57.95x | pass |
-| Prometheus | `a0524ee` | Go | 0.077125s | 4.575644s | 59.33x | pass |
+| React | `f0dfee3` | JavaScript | 0.193660s | 9.879824s | 51.02x | pass |
+| Next.js | `2bbb67b9` | TypeScript | 0.249000s | 14.349172s | 57.63x | pass |
+| Prometheus | `a0524ee` | Go | 0.080205s | 4.576102s | 57.06x | pass |
 
 ### Known First-Release Deviations
 
