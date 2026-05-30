@@ -23,6 +23,8 @@ mod xcode;
 mod xml;
 
 pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> {
+    warn_unknown_reporters(options);
+
     if should_write_report("console", options) && !options.silent {
         console::write(result, options);
     }
@@ -67,4 +69,88 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
 
 fn should_write_report(name: &str, options: &Options) -> bool {
     options.reporters.iter().any(|reporter| reporter == name)
+}
+
+fn warn_unknown_reporters(options: &Options) {
+    for warning in unknown_reporter_warnings(options) {
+        println!("{warning}");
+    }
+}
+
+fn is_builtin_reporter(reporter: &str) -> bool {
+    matches!(
+        reporter,
+        "ai" | "xml"
+            | "json"
+            | "csv"
+            | "markdown"
+            | "consoleFull"
+            | "html"
+            | "console"
+            | "silent"
+            | "threshold"
+            | "xcode"
+            | "sarif"
+            | "badge"
+    )
+}
+
+fn unknown_reporter_warnings(options: &Options) -> Vec<String> {
+    options
+        .reporters
+        .iter()
+        .filter(|reporter| !is_builtin_reporter(reporter))
+        .map(|reporter| {
+            format!(
+                "warning: {reporter} not installed (install packages named @jscpd/{reporter}-reporter or jscpd-{reporter}-reporter)"
+            )
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recognizes_builtin_reporters() {
+        for reporter in [
+            "ai",
+            "xml",
+            "json",
+            "csv",
+            "markdown",
+            "consoleFull",
+            "html",
+            "console",
+            "silent",
+            "threshold",
+            "xcode",
+            "sarif",
+            "badge",
+        ] {
+            assert!(is_builtin_reporter(reporter), "{reporter}");
+        }
+        assert!(!is_builtin_reporter("badgezz"));
+    }
+
+    #[test]
+    fn warns_for_unknown_reporters_like_upstream() {
+        let options = Options {
+            reporters: vec![
+                "json".to_string(),
+                "badgezz".to_string(),
+                "console".to_string(),
+            ],
+            silent: true,
+            ..Options::default()
+        };
+
+        assert_eq!(
+            unknown_reporter_warnings(&options),
+            vec![
+                "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
+            ]
+        );
+    }
 }
