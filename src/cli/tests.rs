@@ -41,6 +41,22 @@ fn parses_cli_integer_flags_like_upstream_parse_int() {
 }
 
 #[test]
+fn accepts_missing_cli_integer_values_like_upstream() {
+    let cli = Cli::parse_from(&[
+        "jscpd-rs",
+        ".",
+        "--min-lines",
+        "--min-tokens",
+        "--max-lines",
+    ]);
+    let options = Options::from_cli(cli).unwrap();
+
+    assert_eq!(options.min_lines, 0);
+    assert_eq!(options.min_tokens, 50);
+    assert_eq!(options.max_lines, usize::MAX);
+}
+
+#[test]
 fn help_output_keeps_upstream_cli_contract_text() {
     let mut command = Cli::command();
     let mut output = Vec::new();

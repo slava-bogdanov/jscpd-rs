@@ -32,6 +32,8 @@ pub struct Cli {
         short = 'l',
         long = "min-lines",
         value_name = "number",
+        num_args = 0..=1,
+        default_missing_value = "0",
         value_parser = parse_js_usize,
         help = "min size of duplication in code lines (Default is 5)"
     )]
@@ -41,6 +43,8 @@ pub struct Cli {
         short = 'k',
         long = "min-tokens",
         value_name = "number",
+        num_args = 0..=1,
+        default_missing_value = "50",
         value_parser = parse_js_usize,
         help = "min size of duplication in code tokens (Default is 50)"
     )]
@@ -50,6 +54,8 @@ pub struct Cli {
         short = 'x',
         long = "max-lines",
         value_name = "number",
+        num_args = 0..=1,
+        default_missing_value = "18446744073709551615",
         value_parser = parse_js_usize,
         help = "max size of source in lines (Default is 1000)"
     )]

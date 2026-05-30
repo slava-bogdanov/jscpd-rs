@@ -271,7 +271,8 @@ coverage-first compatibility matrix and is required before publication.
   decimal `kb` through `pb` values, `parseInt` fallback for non-matching
   suffixes such as `1k`, and zero-file behavior for invalid limits.
 - CLI `--min-lines`, `--min-tokens`, and `--max-lines` accept upstream-style
-  `parseInt` numeric prefixes, so values such as `20.9` are treated as `20`.
+  `parseInt` numeric prefixes, so values such as `20.9` are treated as `20`;
+  missing optional values are accepted like Commander `[number]` options.
 - If discovery, size, or line filters leave no files to detect, reporters are
   not run, matching upstream's `InFilesDetector` early return. Silent mode
   stays quiet; non-silent mode only prints the terminal footer.
