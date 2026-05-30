@@ -48,7 +48,7 @@ Known MVP gaps:
 - The upstream format registry is synchronized, but most long-tail formats still
   use generic tokenization rather than Prism-compatible tokenization.
 - `strict/mild/weak` are only approximated.
-- Default console output is still MVP-level.
+- Terminal timing/tips/progress polish is still approximate.
 - No blame, persistent stores, custom format mappings, or embedded block
   tokenization yet.
 
@@ -62,7 +62,7 @@ Known MVP gaps:
 3. Tokenizer backend: replace the MVP tokenizer with maintained crates and
    language-aware token streams. Prefer existing parsers/tokenizers over custom
    grammars.
-4. Reporters: finish full default console output and polish report details.
+4. Reporters: polish remaining report details and terminal UX.
 5. Advanced sources: shebang detection, Vue/Svelte/Astro/Markdown block splitting,
    ignore blocks, ignore regex patterns, and weak-mode comment stripping.
 6. Performance work: parallel file reads/tokenization, compact hash storage,

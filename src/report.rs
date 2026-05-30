@@ -6,6 +6,7 @@ use crate::detector::DetectionResult;
 mod ai;
 mod badge;
 mod console;
+mod console_common;
 mod console_full;
 mod csv;
 mod html;
@@ -23,7 +24,7 @@ mod xml;
 
 pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> {
     if should_write_report("console", options) && !options.silent {
-        console::write(result);
+        console::write(result, options);
     }
     if should_write_report("consoleFull", options) {
         console_full::write(result, options);

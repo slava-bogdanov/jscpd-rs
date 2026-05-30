@@ -1,11 +1,7 @@
-use super::source::{clone_fragment, source_location};
+use super::console_common::{GREY, RESET_COLOR, clone_header};
+use super::source::clone_fragment;
 use crate::cli::Options;
 use crate::detector::{CloneMatch, DetectionResult};
-
-const BOLD_GREEN: &str = "\x1b[1m\x1b[32m";
-const GREY: &str = "\x1b[90m";
-const RESET_COLOR: &str = "\x1b[39m";
-const RESET_BOLD: &str = "\x1b[22m";
 
 pub(super) fn write(result: &DetectionResult, options: &Options) {
     print!("{}", console_full_report(result, options));
@@ -24,29 +20,6 @@ fn console_full_report(result: &DetectionResult, options: &Options) -> String {
         result.clones.len()
     ));
     output
-}
-
-fn clone_header(clone: &CloneMatch, _options: &Options) -> String {
-    let path_a = colored_path(&clone.duplication_a.source_id);
-    let path_b = colored_path(&clone.duplication_b.source_id);
-    format!(
-        "Clone found ({}):\n - {} [{}] ({} lines, {} tokens)\n   {} [{}]\n",
-        clone.format,
-        path_a,
-        source_location(&clone.duplication_a.start, &clone.duplication_a.end),
-        clone
-            .duplication_a
-            .end
-            .line
-            .saturating_sub(clone.duplication_a.start.line),
-        clone
-            .duplication_a
-            .end
-            .position
-            .saturating_sub(clone.duplication_a.start.position),
-        path_b,
-        source_location(&clone.duplication_b.start, &clone.duplication_b.end),
-    )
 }
 
 fn fragment_table(result: &DetectionResult, clone: &CloneMatch) -> String {
@@ -73,13 +46,10 @@ fn fragment_table(result: &DetectionResult, clone: &CloneMatch) -> String {
     output
 }
 
-fn colored_path(path: &str) -> String {
-    format!("{BOLD_GREEN}{path}{RESET_COLOR}{RESET_BOLD}")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::report::console_common::clone_header;
     use crate::report::test_support::make_test_result_with_clone;
 
     #[test]
