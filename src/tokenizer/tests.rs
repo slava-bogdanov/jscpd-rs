@@ -287,6 +287,48 @@ fn markup_emits_embedded_script_and_style_maps() {
 }
 
 #[test]
+fn markup_emits_inline_style_attr_css_map() {
+    let content = "<h4  style=\"visibility: hidden\">Order Search</h4>\n";
+    let maps = tokenize_maps_for_detection(content, "markup", &Options::default());
+
+    let css = maps
+        .iter()
+        .find(|map| map.format == "css")
+        .expect("inline style css map");
+    let values = css
+        .tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        values,
+        vec!["  ", "style", "=\"", "visibility", ":", " hidden", "\""]
+    );
+    assert_eq!(css.tokens[0].start.line, 1);
+    assert_eq!(css.tokens[0].start.column, 4);
+
+    let markup = maps
+        .iter()
+        .find(|map| map.format == "markup")
+        .expect("markup map");
+    assert!(
+        !markup
+            .tokens
+            .iter()
+            .any(|token| &content[token.range[0]..token.range[1]] == "style")
+    );
+}
+
+#[test]
+fn markup_inline_style_attr_respects_ignore_regions() {
+    let content = "<!-- jscpd:ignore-start -->\n<h4 style=\"visibility: hidden\">Order Search</h4>\n<!-- jscpd:ignore-end -->\n";
+    let maps = tokenize_maps_for_detection(content, "markup", &Options::default());
+
+    assert!(maps.iter().all(|map| map.format != "css"));
+}
+
+#[test]
 fn vue_sfc_emits_template_script_and_style_maps() {
     let content = "<template>\n  <section>{{ title }}</section>\n</template>\n<style lang=\"scss\">\n.panel { color: red; }\n</style>\n<script setup lang=\"ts\">\nconst title: string = 'Demo';\n</script>\n";
     let maps = tokenize_maps_for_detection(content, "vue", &Options::default());

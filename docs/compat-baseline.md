@@ -171,7 +171,7 @@ Latest public benchmark measurements:
 | `jscpd/fixtures/javascript` | `json` | pass | exact clone and line summary parity |
 | `jscpd/fixtures` | auto, upstream CI defaults | pass | 422/422 upstream fragments line-covered; Rust reports a few extra generic/SFC ranges |
 | `jscpd/fixtures/custom` | auto + `--formats-exts c:ccc,cc1` | pass | exact clone and line summary parity |
-| `jscpd/fixtures/ignore` | auto | pass | clone-count gate; ignored blocks produce 0 clones |
+| `jscpd/fixtures/ignore` | auto | pass | clone-summary gate; inline `style` attributes produce upstream-compatible CSS source buckets; ignored blocks produce 0 clones |
 | `jscpd/fixtures/ignore-pattern` | auto + `--ignore-pattern` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/ignore-case` | auto | pass | clone-summary gate; no clones without `--ignoreCase` |
 | `jscpd/fixtures/ignore-case` | auto + `--ignoreCase` | pass | clone-summary gate; 1 clone with case folding |

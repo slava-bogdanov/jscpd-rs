@@ -44,7 +44,7 @@ run_case "fixtures json" "jscpd/fixtures/javascript" "json" 20 3
 run_case "fixtures custom formats-exts" "jscpd/fixtures/custom" "" 50 5 \
   "$DEFAULT_MAX_SIZE" "" "coverage" "" --formats-exts "c:ccc,cc1"
 run_case "fixtures ignore blocks" "jscpd/fixtures/ignore" "" 50 5 \
-  "$DEFAULT_MAX_SIZE" "" "clone-count"
+  "$DEFAULT_MAX_SIZE" "" "clone-summary"
 run_case "fixtures ignore-pattern" "jscpd/fixtures/ignore-pattern" "" 20 5 \
   "$DEFAULT_MAX_SIZE" "" "coverage" "" --ignore-pattern "import.*from\\s*'.*'"
 run_case "fixtures ignoreCase off" "jscpd/fixtures/ignore-case" "" 50 5 \
