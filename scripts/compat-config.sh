@@ -10,6 +10,8 @@ PACKAGE_RUST_PROJECT="$TMP_ROOT/rust-package"
 PACKAGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-package"
 INVALID_PACKAGE_RUST_PROJECT="$TMP_ROOT/rust-invalid-package"
 INVALID_PACKAGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-invalid-package"
+NAMES_RUST_PROJECT="$TMP_ROOT/rust-formats-names"
+NAMES_UPSTREAM_PROJECT="$TMP_ROOT/upstream-formats-names"
 
 cleanup() {
   if [[ "${KEEP:-0}" != "1" ]]; then
@@ -96,6 +98,34 @@ make_invalid_package_project() {
 JSON
 }
 
+make_formats_names_project() {
+  local project="$1"
+  mkdir -p "$project/src/a" "$project/src/b"
+  cat >"$project/src/a/CustomScript" <<'EOF_JS'
+function alpha() {
+  const one = 1;
+  const two = 2;
+  return one + two;
+}
+EOF_JS
+  cp "$project/src/a/CustomScript" "$project/src/b/CustomScript"
+  cat >"$project/.jscpd.json" <<'JSON'
+{
+  "path": ["src"],
+  "minTokens": 5,
+  "minLines": 2,
+  "maxSize": "1mb",
+  "reporters": ["json"],
+  "silent": true,
+  "noTips": true,
+  "output": "report",
+  "formatsNames": {
+    "javascript": ["CustomScript"]
+  }
+}
+JSON
+}
+
 check_typescript_mapping() {
   local rust_report="$1"
   local upstream_report="$2"
@@ -113,6 +143,29 @@ for (const [label, reportPath] of [['rust', rustPath], ['upstream', upstreamPath
   }
   if (report.duplicates?.some((duplicate) => duplicate.format !== 'typescript')) {
     console.error(`${label} duplicate used a non-typescript format`);
+    process.exit(1);
+  }
+}
+NODE
+}
+
+check_javascript_only() {
+  local rust_report="$1"
+  local upstream_report="$2"
+
+  node --input-type=module - "$rust_report" "$upstream_report" <<'NODE'
+import fs from 'node:fs';
+
+const [rustPath, upstreamPath] = process.argv.slice(2);
+for (const [label, reportPath] of [['rust', rustPath], ['upstream', upstreamPath]]) {
+  const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  const formats = Object.keys(report.statistics?.formats ?? {});
+  if (formats.length !== 1 || formats[0] !== 'javascript') {
+    console.error(`${label} config formatsNames did not map extensionless files to javascript: ${formats.join(', ')}`);
+    process.exit(1);
+  }
+  if (report.duplicates?.some((duplicate) => duplicate.format !== 'javascript')) {
+    console.error(`${label} duplicate used a non-javascript format`);
     process.exit(1);
   }
 }
@@ -181,6 +234,8 @@ make_package_project "$PACKAGE_RUST_PROJECT"
 make_package_project "$PACKAGE_UPSTREAM_PROJECT"
 make_invalid_package_project "$INVALID_PACKAGE_RUST_PROJECT"
 make_invalid_package_project "$INVALID_PACKAGE_UPSTREAM_PROJECT"
+make_formats_names_project "$NAMES_RUST_PROJECT"
+make_formats_names_project "$NAMES_UPSTREAM_PROJECT"
 
 printf 'fixture: %s\n' "$TARGET_FIXTURE"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -230,6 +285,25 @@ compare_reports \
   "$INVALID_PACKAGE_RUST_PROJECT/report/jscpd-report.json" \
   "$INVALID_PACKAGE_UPSTREAM_PROJECT/report/jscpd-report.json"
 
+printf '\nformatsNames config fixture\n\n'
+
+(
+  cd "$NAMES_RUST_PROJECT"
+  "$ROOT/target/release/jscpd-rs"
+)
+(
+  cd "$NAMES_UPSTREAM_PROJECT"
+  node "$ROOT/jscpd/apps/jscpd/bin/jscpd"
+)
+
+check_javascript_only \
+  "$NAMES_RUST_PROJECT/report/jscpd-report.json" \
+  "$NAMES_UPSTREAM_PROJECT/report/jscpd-report.json"
+
+compare_reports \
+  "$NAMES_RUST_PROJECT/report/jscpd-report.json" \
+  "$NAMES_UPSTREAM_PROJECT/report/jscpd-report.json"
+
 if [[ "${KEEP:-0}" == "1" ]]; then
   printf '\nrust project: %s\n' "$RUST_PROJECT"
   printf 'upstream project: %s\n' "$UPSTREAM_PROJECT"
@@ -237,4 +311,6 @@ if [[ "${KEEP:-0}" == "1" ]]; then
   printf 'upstream package project: %s\n' "$PACKAGE_UPSTREAM_PROJECT"
   printf 'rust invalid package project: %s\n' "$INVALID_PACKAGE_RUST_PROJECT"
   printf 'upstream invalid package project: %s\n' "$INVALID_PACKAGE_UPSTREAM_PROJECT"
+  printf 'rust formatsNames project: %s\n' "$NAMES_RUST_PROJECT"
+  printf 'upstream formatsNames project: %s\n' "$NAMES_UPSTREAM_PROJECT"
 fi
