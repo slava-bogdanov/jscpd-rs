@@ -3,6 +3,7 @@ use anyhow::Result;
 use crate::cli::Options;
 use crate::detector::DetectionResult;
 
+mod badge;
 mod console;
 mod csv;
 mod json;
@@ -26,6 +27,9 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
     }
     if should_write_report("csv", options) {
         csv::write(result, options)?;
+    }
+    if should_write_report("badge", options) {
+        badge::write(result, options)?;
     }
     if should_write_report("markdown", options) {
         markdown::write(result, options)?;
