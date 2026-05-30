@@ -154,6 +154,32 @@ require_not_contains() {
   fi
 }
 
+require_both_count() {
+  local stream="$1"
+  local needle="$2"
+  local expected="$3"
+  local rust_file="$LAST_CASE_DIR/rust.$stream.clean"
+  local upstream_file="$LAST_CASE_DIR/upstream.$stream.clean"
+
+  require_count "$rust_file" "$needle" "$expected" "rust $stream"
+  require_count "$upstream_file" "$needle" "$expected" "upstream $stream"
+}
+
+require_count() {
+  local file="$1"
+  local needle="$2"
+  local expected="$3"
+  local label="$4"
+  local actual
+  actual="$(grep -F -- "$needle" "$file" | wc -l | tr -d ' ')"
+
+  if [[ "$actual" != "$expected" ]]; then
+    printf '%s had %s occurrences of %s, expected %s\n' "$label" "$actual" "$needle" "$expected" >&2
+    print_case "$LAST_CASE_DIR"
+    return 1
+  fi
+}
+
 print_case() {
   local case_dir="$1"
   for tool in rust upstream; do
@@ -282,6 +308,9 @@ require_both_contain stderr "$STORE_WARNING"
 run_case "bare store warning" 0 "$TARGET_REL" --store --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
 require_both_contain stderr "$BARE_STORE_WARNING"
+
+run_case "duplicate silent reporter" 0 "$TARGET_REL" --reporters silent --silent --noTips "${COMMON_ARGS[@]}"
+require_both_count stdout "$SUMMARY" 2
 
 run_case "unknown reporter warning" 0 "$TARGET_REL" --reporters badgezz --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$UNKNOWN_REPORTER_WARNING"

@@ -183,6 +183,14 @@ fn normalizes_silent_reporter_like_upstream() {
     normalize_reporters(&mut options);
 
     assert_eq!(options.reporters, vec!["json", "silent"]);
+
+    let mut duplicate = Options {
+        silent: true,
+        reporters: vec!["silent".to_string()],
+        ..Options::default()
+    };
+    normalize_reporters(&mut duplicate);
+    assert_eq!(duplicate.reporters, vec!["silent", "silent"]);
 }
 
 #[test]
@@ -194,9 +202,16 @@ fn normalizes_threshold_reporter_like_upstream() {
     };
 
     normalize_reporters(&mut options);
-    normalize_reporters(&mut options);
 
     assert_eq!(options.reporters, vec!["json", "threshold"]);
+
+    let mut duplicate = Options {
+        threshold: Some(10.0),
+        reporters: vec!["threshold".to_string()],
+        ..Options::default()
+    };
+    normalize_reporters(&mut duplicate);
+    assert_eq!(duplicate.reporters, vec!["threshold", "threshold"]);
 }
 
 #[test]

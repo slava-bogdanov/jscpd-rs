@@ -305,6 +305,9 @@ coverage-first compatibility matrix and is required before publication.
 - Non-silent runs print clone progress for non-`ai` reporters, then reporter
   output, then a `time:` footer. Tips are printed by default and suppressed by
   `--noTips`, matching the upstream workflow shape.
+- Reporter normalization mirrors upstream append behavior: explicit `silent`
+  or `threshold` reporters are not deduplicated when `--silent` or
+  `--threshold` appends the same reporter.
 - `--verbose` prints upstream-style format-filter skip messages and detector
   events for `START_DETECTION`, `CLONE_FOUND`, and `CLONE_SKIPPED`.
 - Unknown reporter names emit the upstream-style install warning. Dynamic

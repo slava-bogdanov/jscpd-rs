@@ -506,15 +506,9 @@ fn normalize_reporters(options: &mut Options) {
         options
             .reporters
             .retain(|reporter| !reporter.contains("console"));
-        push_reporter_once(&mut options.reporters, "silent");
+        options.reporters.push("silent".to_string());
     }
     if options.threshold.is_some() {
-        push_reporter_once(&mut options.reporters, "threshold");
-    }
-}
-
-fn push_reporter_once(reporters: &mut Vec<String>, reporter: &str) {
-    if !reporters.iter().any(|candidate| candidate == reporter) {
-        reporters.push(reporter.to_string());
+        options.reporters.push("threshold".to_string());
     }
 }

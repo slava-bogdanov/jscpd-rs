@@ -27,44 +27,23 @@ pub use threshold::ThresholdExceeded;
 pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> {
     warn_unknown_reporters(options);
 
-    if should_write_report("console", options) && !options.silent {
-        console::write(result, options);
-    }
-    if should_write_report("consoleFull", options) {
-        console_full::write(result, options);
-    }
-    if should_write_report("ai", options) {
-        ai::write(result, options);
-    }
-    if should_write_report("json", options) {
-        json::write(result, options)?;
-    }
-    if should_write_report("csv", options) {
-        csv::write(result, options)?;
-    }
-    if should_write_report("badge", options) {
-        badge::write(result, options)?;
-    }
-    if should_write_report("html", options) {
-        html::write(result, options)?;
-    }
-    if should_write_report("markdown", options) {
-        markdown::write(result, options)?;
-    }
-    if should_write_report("xml", options) {
-        xml::write(result, options)?;
-    }
-    if should_write_report("sarif", options) {
-        sarif::write(result, options)?;
-    }
-    if should_write_report("xcode", options) {
-        xcode::write(result, options);
-    }
-    if should_write_report("silent", options) {
-        silent::write(result);
-    }
-    if should_write_report("threshold", options) {
-        threshold::write(result, options)?;
+    for reporter in &options.reporters {
+        match reporter.as_str() {
+            "console" if !options.silent => console::write(result, options),
+            "consoleFull" => console_full::write(result, options),
+            "ai" => ai::write(result, options),
+            "json" => json::write(result, options)?,
+            "csv" => csv::write(result, options)?,
+            "badge" => badge::write(result, options)?,
+            "html" => html::write(result, options)?,
+            "markdown" => markdown::write(result, options)?,
+            "xml" => xml::write(result, options)?,
+            "sarif" => sarif::write(result, options)?,
+            "xcode" => xcode::write(result, options),
+            "silent" => silent::write(result),
+            "threshold" => threshold::write(result, options)?,
+            _ => {}
+        }
     }
     Ok(())
 }
@@ -87,10 +66,6 @@ fn progress_output(result: &DetectionResult, options: &Options) -> String {
         output.push('\n');
     }
     output
-}
-
-fn should_write_report(name: &str, options: &Options) -> bool {
-    options.reporters.iter().any(|reporter| reporter == name)
 }
 
 fn warn_unknown_reporters(options: &Options) {
