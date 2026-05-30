@@ -311,6 +311,80 @@ fn reporter_uses_report_paths_when_silent() {
 }
 
 #[test]
+fn relative_ignore_pattern_matches_absolute_scan_root_like_upstream() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-relative-ignore-{}-{nonce}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(dir.join("patches")).unwrap();
+    std::fs::create_dir_all(dir.join("src")).unwrap();
+    std::fs::write(dir.join("patches").join("patch.js"), "const patch = 1;\n").unwrap();
+    std::fs::write(dir.join("src").join("main.js"), "const main = 1;\n").unwrap();
+
+    let options = Options {
+        paths: vec![dir.clone()],
+        ignore: vec!["patches/**".to_string()],
+        formats: Some(HashSet::from(["javascript".to_string()])),
+        min_lines: 1,
+        reporters: vec!["json".to_string()],
+        silent: true,
+        gitignore: false,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    let paths = files
+        .iter()
+        .map(|file| file.source_id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths.len(), 1);
+    assert!(paths[0].ends_with("src/main.js"));
+}
+
+#[test]
+fn dot_relative_ignore_pattern_matches_absolute_scan_root_like_upstream() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-dot-relative-ignore-{}-{nonce}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(dir.join("patches")).unwrap();
+    std::fs::create_dir_all(dir.join("src")).unwrap();
+    std::fs::write(dir.join("patches").join("patch.js"), "const patch = 1;\n").unwrap();
+    std::fs::write(dir.join("src").join("main.js"), "const main = 1;\n").unwrap();
+
+    let options = Options {
+        paths: vec![dir.clone()],
+        ignore: vec!["./patches/**".to_string()],
+        formats: Some(HashSet::from(["javascript".to_string()])),
+        min_lines: 1,
+        reporters: vec!["json".to_string()],
+        silent: true,
+        gitignore: false,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    let paths = files
+        .iter()
+        .map(|file| file.source_id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths.len(), 1);
+    assert!(paths[0].ends_with("src/main.js"));
+}
+
+#[test]
 fn empty_file_counts_as_one_line_like_upstream() {
     let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

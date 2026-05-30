@@ -174,6 +174,14 @@ UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named
 STORE_WARNING="store name leveldb not installed."
 XCODE_ABSOLUTE_WARNING="$TARGET_FILE_ABS:18:3: warning: Found 10 lines (18-28) duplicated on file $TARGET_FILE_ABS (8-18)"
 XCODE_RELATIVE_WARNING="$TARGET_FILE_ABS:18:3: warning: Found 10 lines (18-28) duplicated on file $TARGET_REL (8-18)"
+IGNORE_ABS_DIR="$TMP_ROOT/relative-ignore-absolute"
+mkdir -p "$IGNORE_ABS_DIR/patches" "$IGNORE_ABS_DIR/src"
+cat >"$IGNORE_ABS_DIR/patches/patch.js" <<'EOF_JS'
+const alpha = 1;
+const beta = 2;
+const gamma = 3;
+EOF_JS
+cp "$IGNORE_ABS_DIR/patches/patch.js" "$IGNORE_ABS_DIR/src/main.js"
 
 printf 'target: %s\n' "$TARGET_REL"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -195,6 +203,10 @@ require_both_contain stdout "path: ["
 require_both_contain stdout "mode: [Function: mild]"
 require_both_contain stdout "maxSize: '1mb'"
 require_both_contain stdout "Found 1 files to detect."
+
+run_case "relative ignore absolute path" 0 "$IGNORE_ABS_DIR" --debug --noTips --format javascript --ignore "patches/**" --min-tokens 1 --min-lines 1 --max-size 1mb
+require_both_contain stdout "Found 1 files to detect."
+require_both_not_contain stdout "patches/patch.js"
 
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"

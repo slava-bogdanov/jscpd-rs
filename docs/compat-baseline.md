@@ -259,6 +259,9 @@ coverage-first compatibility matrix and is required before publication.
   `--formats-names`, matching upstream behavior.
 - Custom extension and filename mappings are supported through
   `--formats-exts`/`formatsExts` and `--formats-names`/`formatsNames`.
+- Relative `ignore`/`--ignore` patterns are normalized against each configured
+  scan root and the current working directory, matching upstream behavior for
+  absolute scan paths outside `cwd`.
 - File discovery respects `.gitignore`, `.git/info/exclude`, and the global
   Git excludes file from `git config --global core.excludesFile`.
 - `--max-size`/`maxSize` follows upstream `bytes.parse` semantics, including

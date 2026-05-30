@@ -29,14 +29,14 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
         .iter()
         .any(|reporter| reporter_needs_report_paths(reporter))
         || !options.silent;
-    let mut ignore_patterns = options.ignore.clone();
+    let cwd = std::env::current_dir().context("failed to resolve current directory")?;
+    let mut ignore_patterns = normalize_ignore_patterns(&options.ignore, &options.paths, &cwd);
     if options.gitignore && needs_compat_discovery {
         ignore_patterns.extend(collect_gitignore_patterns(&options.paths));
     }
     let ignore_set =
         Arc::new(build_ignore_matcher(&ignore_patterns).context("invalid ignore pattern")?);
     let mut candidates = Vec::new();
-    let cwd = std::env::current_dir().context("failed to resolve current directory")?;
 
     for root in &options.paths {
         let metadata = fs::metadata(root)
@@ -208,6 +208,73 @@ fn read_candidate(
 
 fn reporter_needs_report_paths(reporter: &str) -> bool {
     matches!(reporter, "json" | "xml" | "html" | "sarif" | "xcode")
+}
+
+fn normalize_ignore_patterns(patterns: &[String], roots: &[PathBuf], cwd: &Path) -> Vec<String> {
+    let scan_dirs = roots
+        .iter()
+        .map(|root| scan_dir_for_root(root))
+        .collect::<Vec<_>>();
+    let mut normalized = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    for pattern in patterns {
+        let path = Path::new(pattern);
+        if path.is_absolute() || pattern.starts_with("**/") {
+            push_pattern_once(&mut normalized, &mut seen, pattern.clone());
+            continue;
+        }
+
+        push_pattern_once(&mut normalized, &mut seen, pattern.clone());
+        for scan_dir in scan_dirs.iter().chain(std::iter::once(&PathBuf::from("."))) {
+            push_pattern_once(
+                &mut normalized,
+                &mut seen,
+                normalize_glob_path(scan_dir.join(pattern)),
+            );
+            push_pattern_once(
+                &mut normalized,
+                &mut seen,
+                normalize_glob_path(cwd.join(scan_dir).join(pattern)),
+            );
+        }
+    }
+
+    normalized
+}
+
+fn scan_dir_for_root(root: &Path) -> PathBuf {
+    match fs::canonicalize(root) {
+        Ok(real_path) if real_path.is_file() => root
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf(),
+        _ => root.to_path_buf(),
+    }
+}
+
+fn push_pattern_once(
+    patterns: &mut Vec<String>,
+    seen: &mut std::collections::HashSet<String>,
+    pattern: String,
+) {
+    if seen.insert(pattern.clone()) {
+        patterns.push(pattern);
+    }
+}
+
+fn normalize_glob_path(path: PathBuf) -> String {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                normalized.pop();
+            }
+            _ => normalized.push(component.as_os_str()),
+        }
+    }
+    normalized.display().to_string()
 }
 
 pub(super) fn format_filter_skip_message(path: &Path, format: &str, cwd: &Path) -> String {
