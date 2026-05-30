@@ -28,6 +28,13 @@ range while compatibility is converging.
 | `jscpd/fixtures` | `vue` | pass | 18/18 upstream fragments line-covered; exact starts differ for wider markup/scss ranges |
 | `jscpd/fixtures` | `svelte` | pass | 6/6 upstream fragments line-covered; exact start differs for wider css range |
 | `jscpd/fixtures` | `astro` | pass | 8/8 upstream fragments line-covered; exact starts differ for wider markup/css ranges |
+| `jscpd/fixtures/python` | `python` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/go` | `go` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/ruby` | `ruby` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/php` | `php` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/yaml` | `yaml` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/sql` | `sql` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/toml` | `toml` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
