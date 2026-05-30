@@ -3,12 +3,12 @@
 Baseline date: 2026-05-30.
 
 Latest full release gate:
-`FULL=1 PUBLIC=1 PUBLIC_CASES=react,next,prometheus PUBLIC_RUNS=1 PUBLIC_CHECK_COMPAT=1 PUBLIC_MIN_SPEEDUP=10 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `99d650a`.
+`FULL=1 PUBLIC=1 PUBLIC_CASES=react,next,prometheus PUBLIC_RUNS=3 PUBLIC_CHECK_COMPAT=1 PUBLIC_MIN_SPEEDUP=10 scripts/release-gate.sh`
+passed on 2026-05-30 at commit `0b5b5e7`.
 
 Latest public release gate:
-`FULL=1 PUBLIC=1 PUBLIC_CASES=react,next,prometheus PUBLIC_RUNS=1 PUBLIC_CHECK_COMPAT=1 PUBLIC_MIN_SPEEDUP=10 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `99d650a`.
+`FULL=1 PUBLIC=1 PUBLIC_CASES=react,next,prometheus PUBLIC_RUNS=3 PUBLIC_CHECK_COMPAT=1 PUBLIC_MIN_SPEEDUP=10 scripts/release-gate.sh`
+passed on 2026-05-30 at commit `0b5b5e7`.
 
 Default gate:
 
@@ -105,9 +105,9 @@ Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.312571s | 9.704938s | 31.05x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.637318s | 14.121367s | 22.16x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.117405s | 4.510580s | 38.42x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.201130s | 9.810778s | 48.78x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.542690s | 14.182219s | 26.13x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.078821s | 4.471017s | 56.72x | pass |
 
 ## Current Matrix
 
