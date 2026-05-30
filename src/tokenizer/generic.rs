@@ -35,6 +35,22 @@ pub(super) fn tokenize_generic(
                     },
                     &line_index,
                 );
+            } else if format == "twig"
+                && twig_keeps_mild_whitespace(content, start_byte, whitespace_end)
+            {
+                // Prism's Twig grammar labels these spans as `default`, so
+                // upstream mild mode keeps them while filtering empty/new_line.
+                push_token(
+                    &mut tokens,
+                    &context,
+                    TokenKind::Default,
+                    ByteSpan {
+                        start: start_byte,
+                        end: whitespace_end,
+                    },
+                    line_index.location(start_byte),
+                    line_index.location(whitespace_end),
+                );
             }
             start_byte = whitespace_end.max(start_byte + ch.len_utf8());
             continue;
@@ -253,6 +269,39 @@ pub(super) fn scan_whitespace(content: &str, start: usize) -> usize {
         end += ch.len_utf8();
     }
     end
+}
+
+fn twig_keeps_mild_whitespace(content: &str, start: usize, end: usize) -> bool {
+    if start >= end {
+        return false;
+    }
+
+    let has_newline = content[start..end].bytes().any(|byte| byte == b'\n');
+    if !has_newline {
+        return previous_non_whitespace(content, start).is_some()
+            && next_non_whitespace(content, end).is_some();
+    }
+
+    matches!(
+        (
+            previous_non_whitespace(content, start),
+            next_non_whitespace(content, end)
+        ),
+        (Some(b'>'), Some(b'<'))
+    )
+}
+
+fn previous_non_whitespace(content: &str, end: usize) -> Option<u8> {
+    content[..end]
+        .bytes()
+        .rev()
+        .find(|byte| !byte.is_ascii_whitespace())
+}
+
+fn next_non_whitespace(content: &str, start: usize) -> Option<u8> {
+    content[start..]
+        .bytes()
+        .find(|byte| !byte.is_ascii_whitespace())
 }
 
 pub(super) fn generic_comment_span_end(

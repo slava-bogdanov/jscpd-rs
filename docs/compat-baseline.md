@@ -264,7 +264,7 @@ Latest public benchmark measurements:
 | `jscpd/fixtures/zig` | `zig` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/tcl` | `tcl` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/turtle` | `turtle` | pass | 4/4 upstream fragments line-covered |
-| `jscpd/fixtures/twig` | `twig` | pass | 6/6 upstream fragments line-covered |
+| `jscpd/fixtures/twig` | `twig` | pass | exact upstream fragment/start and line summary parity; token totals differ slightly |
 | `jscpd/fixtures/properties` | `properties` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/properties` | `ini` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/xml` | `markup` | pass | 6/6 upstream fragments line-covered; Rust skips empty XML/XSD inputs |

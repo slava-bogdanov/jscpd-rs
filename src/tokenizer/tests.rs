@@ -752,6 +752,20 @@ fn long_tail_code_like_formats_split_punctuation_and_operators() {
 }
 
 #[test]
+fn twig_mild_mode_keeps_prism_default_whitespace() {
+    let content = "<p>a</p>\n <p>b</p>\n{% include \"helper.html\" %}\n";
+    let tokens = tokenize_for_detection(content, "twig", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(values.contains(&"\n "));
+    assert!(values.contains(&" "));
+    assert!(!values.contains(&"\n"));
+}
+
+#[test]
 fn weak_mode_skips_js_comments() {
     let options = Options {
         mode: crate::cli::Mode::Weak,
