@@ -269,6 +269,9 @@ UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named
 UNKNOWN_REPORTER_MODULE_ERROR="Cannot find module 'jscpd-badgezz-reporter'"
 STORE_WARNING="store name leveldb not installed."
 BARE_STORE_WARNING="store name true not installed."
+TIP_AI="Auto-refactor with AI"
+TIP_GANGSTA="Gangsta Agents"
+TIP_SUPPORT="Support jscpd project"
 XCODE_ABSOLUTE_WARNING="$TARGET_FILE_ABS:18:3: warning: Found 10 lines (18-28) duplicated on file $TARGET_FILE_ABS (8-18)"
 XCODE_RELATIVE_WARNING="$TARGET_FILE_ABS:18:3: warning: Found 10 lines (18-28) duplicated on file $TARGET_REL (8-18)"
 IGNORE_ABS_DIR="$TMP_ROOT/relative-ignore-absolute"
@@ -409,6 +412,18 @@ run_case "unknown reporter warning" 0 "$TARGET_REL" --reporters badgezz --silent
 require_both_contain stdout "$UNKNOWN_REPORTER_WARNING"
 require_both_contain stdout "$UNKNOWN_REPORTER_MODULE_ERROR"
 require_both_contain stdout "$SUMMARY"
+
+run_case "terminal footer tips" 0 "$TARGET_REL" --reporters silent "${COMMON_ARGS[@]}"
+require_both_contain stdout "time:"
+require_both_contain stdout "$TIP_AI"
+require_both_contain stdout "$TIP_GANGSTA"
+require_both_contain stdout "$TIP_SUPPORT"
+
+run_case "terminal footer no tips" 0 "$TARGET_REL" --reporters silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "time:"
+require_both_not_contain stdout "$TIP_AI"
+require_both_not_contain stdout "$TIP_GANGSTA"
+require_both_not_contain stdout "$TIP_SUPPORT"
 
 run_case "bare threshold" 1 "$TARGET_REL" --threshold --noTips "${COMMON_ARGS[@]}"
 require_both_contain stderr "ERROR: jscpd found too many duplicates (35.71%) over threshold (1%)"

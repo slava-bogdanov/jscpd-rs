@@ -79,3 +79,24 @@ choice insufficient.
   repeated before publication with pinned commits and recorded speedups.
 - The aspirational target is 50x on representative cases, but release gating
   should use measured thresholds from the selected public benchmark suite.
+
+## Approved Complex Feature Choices
+
+These are the current choices for features that are expensive to clone exactly:
+
+- Dynamic npm reporters, stores, listeners, and plugins: do not implement for
+  the first release. Keep option-surface compatibility, native built-ins, and
+  upstream-style missing-package warnings.
+- Long-tail Prism tokenizer parity: do not port all grammars eagerly. Keep the
+  upstream-synchronized format registry plus generic tokenization, then promote
+  formats only when fixtures or public-repo gates show missed upstream coverage.
+- Extra Rust findings: acceptable while compatibility converges. The release
+  blocker is missing upstream duplicated line coverage, not 1:1 pair identity.
+- Node/Commander quirks: mirror visible behavior only when covered by gates.
+  Document crash-only or incidental quirks in `docs/upstream-bugs.md`.
+- HTML reporter: keep self-contained and practically compatible. Pixel-perfect
+  parity is not a first-release blocker.
+- Persistent cache/store backends: postpone until benchmark data shows the
+  in-memory detector is insufficient on release-scale repositories.
+- Blame failures: prefer native per-file isolation instead of inheriting
+  upstream failure modes around nested or unusual Git repositories.
