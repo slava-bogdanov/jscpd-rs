@@ -14,6 +14,8 @@ NAMES_RUST_PROJECT="$TMP_ROOT/rust-formats-names"
 NAMES_UPSTREAM_PROJECT="$TMP_ROOT/upstream-formats-names"
 EXPLICIT_RUST_PROJECT="$TMP_ROOT/rust-explicit-config"
 EXPLICIT_UPSTREAM_PROJECT="$TMP_ROOT/upstream-explicit-config"
+BADGE_RUST_PROJECT="$TMP_ROOT/rust-badge-options"
+BADGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-badge-options"
 
 cleanup() {
   if [[ "${KEEP:-0}" != "1" ]]; then
@@ -150,6 +152,36 @@ EOF_JS
 JSON
 }
 
+make_badge_options_project() {
+  local project="$1"
+  mkdir -p "$project/src"
+  cp "$TARGET_FIXTURE" "$project/src/one.dup"
+  cat >"$project/.jscpd.json" <<'JSON'
+{
+  "path": ["src"],
+  "minTokens": 50,
+  "minLines": 5,
+  "maxSize": "1mb",
+  "reporters": ["json", "badge"],
+  "silent": true,
+  "noTips": true,
+  "output": "report",
+  "formatsExts": {
+    "typescript": ["dup"],
+    "javascript": ["dup"]
+  },
+  "reportersOptions": {
+    "badge": {
+      "subject": "Duplicates",
+      "status": "blocked",
+      "color": "purple",
+      "path": "custom-badge.svg"
+    }
+  }
+}
+JSON
+}
+
 check_typescript_mapping() {
   local rust_report="$1"
   local upstream_report="$2"
@@ -190,6 +222,43 @@ for (const [label, reportPath] of [['rust', rustPath], ['upstream', upstreamPath
   }
   if (report.duplicates?.some((duplicate) => duplicate.format !== 'javascript')) {
     console.error(`${label} duplicate used a non-javascript format`);
+    process.exit(1);
+  }
+}
+NODE
+}
+
+check_badge_options() {
+  local rust_project="$1"
+  local upstream_project="$2"
+
+  node --input-type=module - "$rust_project" "$upstream_project" <<'NODE'
+import fs from 'node:fs';
+import path from 'node:path';
+
+const [rustProject, upstreamProject] = process.argv.slice(2);
+for (const [label, project] of [['rust', rustProject], ['upstream', upstreamProject]]) {
+  const customBadge = path.join(project, 'custom-badge.svg');
+  const defaultBadge = path.join(project, 'report', 'jscpd-badge.svg');
+  if (!fs.existsSync(customBadge)) {
+    console.error(`${label} did not write reportersOptions.badge.path`);
+    process.exit(1);
+  }
+  if (fs.existsSync(defaultBadge)) {
+    console.error(`${label} wrote default badge path despite reportersOptions.badge.path`);
+    process.exit(1);
+  }
+  const svg = fs.readFileSync(customBadge, 'utf8');
+  if (!svg.includes('<title>Duplicates: blocked</title>')) {
+    console.error(`${label} badge title did not use subject/status options`);
+    process.exit(1);
+  }
+  if (!svg.includes('aria-label="Duplicates: blocked"')) {
+    console.error(`${label} badge aria label did not use subject/status options`);
+    process.exit(1);
+  }
+  if (!svg.includes('fill="#94E"')) {
+    console.error(`${label} badge did not use color option`);
     process.exit(1);
   }
 }
@@ -262,6 +331,8 @@ make_invalid_package_project "$INVALID_PACKAGE_RUST_PROJECT"
 make_invalid_package_project "$INVALID_PACKAGE_UPSTREAM_PROJECT"
 make_formats_names_project "$NAMES_RUST_PROJECT"
 make_formats_names_project "$NAMES_UPSTREAM_PROJECT"
+make_badge_options_project "$BADGE_RUST_PROJECT"
+make_badge_options_project "$BADGE_UPSTREAM_PROJECT"
 
 printf 'fixture: %s\n' "$TARGET_FIXTURE"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -349,6 +420,29 @@ compare_reports \
   "$NAMES_RUST_PROJECT/report/jscpd-report.json" \
   "$NAMES_UPSTREAM_PROJECT/report/jscpd-report.json"
 
+printf '\nbadge reportersOptions config fixture\n\n'
+
+(
+  cd "$BADGE_RUST_PROJECT"
+  "$ROOT/target/release/jscpd-rs"
+)
+(
+  cd "$BADGE_UPSTREAM_PROJECT"
+  node "$ROOT/jscpd/apps/jscpd/bin/jscpd"
+)
+
+check_badge_options \
+  "$BADGE_RUST_PROJECT" \
+  "$BADGE_UPSTREAM_PROJECT"
+
+check_typescript_mapping \
+  "$BADGE_RUST_PROJECT/report/jscpd-report.json" \
+  "$BADGE_UPSTREAM_PROJECT/report/jscpd-report.json"
+
+compare_reports \
+  "$BADGE_RUST_PROJECT/report/jscpd-report.json" \
+  "$BADGE_UPSTREAM_PROJECT/report/jscpd-report.json"
+
 if [[ "${KEEP:-0}" == "1" ]]; then
   printf '\nrust project: %s\n' "$RUST_PROJECT"
   printf 'upstream project: %s\n' "$UPSTREAM_PROJECT"
@@ -360,4 +454,6 @@ if [[ "${KEEP:-0}" == "1" ]]; then
   printf 'upstream invalid package project: %s\n' "$INVALID_PACKAGE_UPSTREAM_PROJECT"
   printf 'rust formatsNames project: %s\n' "$NAMES_RUST_PROJECT"
   printf 'upstream formatsNames project: %s\n' "$NAMES_UPSTREAM_PROJECT"
+  printf 'rust badge options project: %s\n' "$BADGE_RUST_PROJECT"
+  printf 'upstream badge options project: %s\n' "$BADGE_UPSTREAM_PROJECT"
 fi

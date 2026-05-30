@@ -33,8 +33,7 @@ impl BadgeReport {
             status: badge_option_str(badge_options, "status")
                 .map(str::to_string)
                 .unwrap_or_else(|| format!("{}%", result.statistics.total.percentage)),
-            color: badge_option_str(badge_options, "color")
-                .map(str::to_string)
+            color: badge_option_color(badge_options)
                 .unwrap_or_else(|| badge_color(result, options).to_string()),
         }
     }
@@ -82,6 +81,26 @@ fn badge_option_str<'a>(
     key: &str,
 ) -> Option<&'a str> {
     badge_options?.get(key)?.as_str()
+}
+
+fn badge_option_color(badge_options: Option<&Map<String, Value>>) -> Option<String> {
+    let color = badge_option_str(badge_options, "color")?;
+    Some(
+        match color {
+            "green" => "#3C1",
+            "blue" => "#08C",
+            "red" => "#E43",
+            "yellow" => "#DB1",
+            "orange" => "#F73",
+            "purple" => "#94E",
+            "pink" => "#E5B",
+            "grey" | "gray" => "#999",
+            "cyan" => "#1BC",
+            "black" => "#2A2A2A",
+            _ => return Some(format!("#{color}")),
+        }
+        .to_string(),
+    )
 }
 
 fn badge_color(result: &DetectionResult, options: &Options) -> &'static str {
@@ -187,7 +206,7 @@ mod tests {
         let badge = BadgeReport::from_detection(&result, &options).to_string();
 
         assert!(badge.contains(r#"aria-label="Duplicates: blocked""#));
-        assert!(badge.contains(r#"fill="purple""#));
+        assert!(badge.contains(r##"fill="#94E""##));
         assert!(badge.contains(">Duplicates</text>"));
         assert!(badge.contains(">blocked</text>"));
     }

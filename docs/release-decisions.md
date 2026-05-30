@@ -83,6 +83,7 @@ choice insufficient.
 ## Approved Complex Feature Choices
 
 These are the current choices for features that are expensive to clone exactly:
+the user explicitly approved these tradeoffs on 2026-05-30.
 
 - Dynamic npm reporters, stores, listeners, and plugins: do not implement for
   the first release. Keep option-surface compatibility, native built-ins, and
