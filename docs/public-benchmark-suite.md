@@ -1,7 +1,13 @@
 # Public Benchmark Suite
 
 The release benchmark suite uses popular public repositories cloned under
-`.bench/repos`. These clones are generated local state and are ignored by git.
+`${XDG_CACHE_HOME:-$HOME/.cache}/jscpd-rs/public-bench/repos` by default. These
+clones are generated local state outside this git repo.
+
+Keep benchmark repositories outside this project tree unless you intentionally
+disable parent `.gitignore` effects. Upstream `jscpd` respects parent ignore
+files and can silently skip repo-internal benchmark directories that are
+gitignored.
 
 Upstream `jscpd` does not currently ship a public-repository performance suite.
 Its monorepo scripts expose `pnpm test`, CI runs build/lint/test plus
@@ -16,7 +22,7 @@ Configured cases:
 | `react` | `https://github.com/facebook/react.git` | `main` | `javascript` |
 | `next` | `https://github.com/vercel/next.js.git` | `canary` | `typescript` |
 | `vscode` | `https://github.com/microsoft/vscode.git` | `main` | `typescript` |
-| `kubernetes` | `https://github.com/kubernetes/kubernetes.git` | `master` | `go` |
+| `prometheus` | `https://github.com/prometheus/prometheus.git` | `main` | `go` |
 | `rust` | `https://github.com/rust-lang/rust.git` | `main` | `rust` |
 
 Usage:
@@ -29,7 +35,19 @@ CHECK_COMPAT=1 CASES=react scripts/public-bench-suite.sh
 
 Default behavior clones missing repositories with `--depth=1`, runs Rust and
 upstream `jscpd` through `scripts/bench.sh`, and writes raw benchmark output to
-`.bench/results`. Set `UPDATE=1` to refresh existing clones.
+`$BENCH_ROOT/results`. Set `UPDATE=1` to refresh existing clones.
 
-Before publication, run the suite on the selected cases and copy the measured
+Initial measurements on May 30, 2026:
+
+| Case | Commit | Format | Rust avg | Upstream avg | Speedup |
+| --- | --- | --- | ---: | ---: | ---: |
+| `react` | `f0dfee3` | `javascript` | 0.191875s | 10.227470s | 53.3x |
+| `next` | `2bbb67b9` | `typescript` | 0.624001s | 14.595568s | 23.4x |
+| `prometheus` | `a0524ee` | `go` | 0.082080s | 4.585403s | 55.9x |
+
+`kubernetes` was also checked as a Go stress case, but upstream `jscpd` ran out
+of memory with the default Node heap, so it is intentionally not part of the
+default release suite.
+
+Before publication, rerun the suite on the selected cases and copy the measured
 averages into `docs/compat-baseline.md` or release notes with commit hashes.

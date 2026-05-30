@@ -2,8 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPOS_DIR="${REPOS_DIR:-$ROOT/.bench/repos}"
-RESULTS_DIR="${RESULTS_DIR:-$ROOT/.bench/results}"
+BENCH_ROOT="${BENCH_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/jscpd-rs/public-bench}"
+REPOS_DIR="${REPOS_DIR:-$BENCH_ROOT/repos}"
+RESULTS_DIR="${RESULTS_DIR:-$BENCH_ROOT/results}"
 RUNS="${RUNS:-3}"
 MIN_TOKENS="${MIN_TOKENS:-50}"
 MIN_LINES="${MIN_LINES:-5}"
@@ -18,7 +19,7 @@ SUITE_CASES=(
   "react|https://github.com/facebook/react.git|main|javascript|."
   "next|https://github.com/vercel/next.js.git|canary|typescript|."
   "vscode|https://github.com/microsoft/vscode.git|main|typescript|."
-  "kubernetes|https://github.com/kubernetes/kubernetes.git|master|go|."
+  "prometheus|https://github.com/prometheus/prometheus.git|main|go|."
   "rust|https://github.com/rust-lang/rust.git|main|rust|."
 )
 
@@ -33,8 +34,9 @@ Environment:
   UPDATE       Fetch/reset existing repositories, default 0.
   CHECK_COMPAT Run coverage compat after each benchmark, default 0.
   LIST         Print configured cases and exit, default 0.
-  REPOS_DIR    Clone directory, default .bench/repos.
-  RESULTS_DIR  Benchmark output directory, default .bench/results.
+  BENCH_ROOT   Root for generated clones/results, default ~/.cache/jscpd-rs/public-bench.
+  REPOS_DIR    Clone directory, default $BENCH_ROOT/repos.
+  RESULTS_DIR  Benchmark output directory, default $BENCH_ROOT/results.
 
 Examples:
   LIST=1 scripts/public-bench-suite.sh
