@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use regex::Regex;
-use serde::Deserialize;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
@@ -110,7 +109,7 @@ pub struct Cli {
         value_name = "string",
         help = "mode of quality of search, can be \"strict\", \"mild\" and \"weak\""
     )]
-    pub mode: Option<Mode>,
+    pub mode: Option<String>,
 
     #[arg(
         short = 'f',
@@ -246,8 +245,7 @@ pub struct Cli {
     pub formats_names: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, clap::ValueEnum)]
-#[serde(rename_all = "lowercase")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
     Strict,
     Mild,
@@ -419,8 +417,8 @@ impl Options {
         if let Some(threshold) = cli.threshold {
             options.threshold = Some(threshold);
         }
-        if let Some(mode) = cli.mode {
-            options.mode = mode;
+        if let Some(mode) = cli.mode.as_deref() {
+            options.mode = parse_mode(mode)?;
         }
         if cli.skip_comments && cli.mode.is_none() {
             options.mode = Mode::Weak;
@@ -470,6 +468,15 @@ impl Options {
         normalize_reporters(&mut options);
 
         Ok(options)
+    }
+}
+
+pub(super) fn parse_mode(value: &str) -> Result<Mode> {
+    match value {
+        "strict" => Ok(Mode::Strict),
+        "mild" => Ok(Mode::Mild),
+        "weak" => Ok(Mode::Weak),
+        _ => bail!("Mode {value} does not supported yet."),
     }
 }
 

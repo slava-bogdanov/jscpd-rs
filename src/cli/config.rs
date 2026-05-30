@@ -28,7 +28,7 @@ pub(super) struct FileConfig {
     max_lines: Option<usize>,
     max_size: Option<String>,
     threshold: Option<f64>,
-    mode: Option<super::Mode>,
+    mode: Option<String>,
     store: Option<String>,
     store_path: Option<PathBuf>,
     blame: Option<bool>,
@@ -233,7 +233,7 @@ pub(super) fn apply_config(
         options.threshold = Some(threshold);
     }
     if let Some(mode) = config.mode {
-        options.mode = mode;
+        options.mode = super::parse_mode(&mode)?;
     }
     if let Some(store) = config.store {
         options.store = Some(store);

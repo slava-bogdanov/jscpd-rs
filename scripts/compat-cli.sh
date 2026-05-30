@@ -257,6 +257,8 @@ require_both_not_contain stdout "Duplications detection:"
 run_case "invalid max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size nope
 require_both_not_contain stdout "Duplications detection:"
 
+run_case "unknown mode" 1 "$TARGET_REL" --mode zzz --noTips
+
 run_case "line filter no files" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines 999999 --max-size "$MAX_SIZE"
 require_both_not_contain stdout "Duplications detection:"
 

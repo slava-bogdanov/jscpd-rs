@@ -52,6 +52,7 @@ fn help_output_keeps_upstream_cli_contract_text() {
     assert!(help.contains("min size of duplication in code lines (Default is 5)"));
     assert!(help.contains("reporters or list of reporters separated with comma"));
     assert!(help.contains("ignore comments during detection (alias for --mode weak)"));
+    assert!(!help.contains("[possible values: strict, mild, weak]"));
 }
 
 #[test]
@@ -241,4 +242,12 @@ fn skip_comments_does_not_override_explicit_mode() {
     let cli = Cli::parse_from(&["jscpd-rs", "--mode", "mild", "--skipComments", "."]);
     let options = Options::from_cli(cli).unwrap();
     assert_eq!(options.mode, Mode::Mild);
+}
+
+#[test]
+fn invalid_mode_reports_upstream_error_after_cli_parsing() {
+    let cli = Cli::parse_from(&["jscpd-rs", "--mode", "zzz", "."]);
+    let error = Options::from_cli(cli).unwrap_err();
+
+    assert_eq!(error.to_string(), "Mode zzz does not supported yet.");
 }
