@@ -1,6 +1,6 @@
 use axum::Json;
+use axum::body::Bytes;
 use axum::extract::State;
-use axum::extract::rejection::JsonRejection;
 use axum::http::header::ALLOW;
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
@@ -15,23 +15,39 @@ const PROTOCOL_VERSION: &str = "2024-11-05";
 pub(super) async fn post_mcp(
     State(service): State<ServerService>,
     headers: HeaderMap,
-    payload: std::result::Result<Json<Value>, JsonRejection>,
+    body: Bytes,
 ) -> Response {
-    let payload = match payload {
-        Ok(Json(payload)) => payload,
+    if !accepts_mcp_response(&headers) {
+        return jsonrpc_error(
+            StatusCode::NOT_ACCEPTABLE,
+            Value::Null,
+            -32000,
+            "Not Acceptable: Client must accept both application/json and text/event-stream",
+        );
+    }
+
+    let payload = match serde_json::from_slice::<Value>(&body) {
+        Ok(payload) => payload,
         Err(error) => {
-            return jsonrpc_error(
-                StatusCode::BAD_REQUEST,
-                Value::Null,
-                -32700,
-                format!("Parse error: {}", error.body_text()),
-            );
+            return syntax_error_response(super::json_syntax_error_message(&body, &error));
         }
     };
     let session_id = headers
         .get(MCP_SESSION_ID)
-        .and_then(|value| value.to_str().ok());
-    handle_mcp_request(service, session_id, payload).await
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_string);
+    let has_valid_session = session_id
+        .as_deref()
+        .is_some_and(|session_id| service.has_mcp_session(session_id));
+    let mut response = handle_mcp_request(service, session_id.as_deref(), payload).await;
+    if has_valid_session {
+        let value = HeaderValue::from_str(session_id.as_deref().expect("session id exists"))
+            .expect("valid MCP session id");
+        response
+            .headers_mut()
+            .insert(HeaderName::from_static(MCP_SESSION_ID), value);
+    }
+    response
 }
 
 pub(super) async fn method_not_allowed() -> Response {
@@ -55,9 +71,9 @@ async fn handle_mcp_request(
     let Some(method) = payload.get("method").and_then(Value::as_str) else {
         return jsonrpc_error(
             StatusCode::BAD_REQUEST,
-            request_id,
-            -32600,
-            "Invalid Request: method must be a string",
+            Value::Null,
+            -32700,
+            "Parse error: Invalid JSON-RPC message",
         );
     };
 
@@ -76,12 +92,7 @@ async fn handle_mcp_request(
         "tools/call" => call_tool(service, request_id, payload),
         "resources/list" => jsonrpc_result(request_id, resources_list_result()),
         "resources/read" => read_resource(service, request_id, payload),
-        _ => jsonrpc_error(
-            StatusCode::OK,
-            request_id,
-            -32601,
-            format!("Method not found: {method}"),
-        ),
+        _ => jsonrpc_error(StatusCode::OK, request_id, -32601, "Method not found"),
     }
 }
 
@@ -139,7 +150,7 @@ fn call_tool(service: ServerService, request_id: Value, payload: Value) -> Respo
         "check_duplication" => check_duplication_tool(service, arguments),
         "get_statistics" => get_statistics_tool(service),
         "check_current_directory" => check_current_directory_tool(service),
-        _ => Err(format!("Unknown tool: {name}")),
+        _ => Err(format!("MCP error -32602: Tool {name} not found")),
     };
 
     match result {
@@ -152,13 +163,9 @@ fn check_duplication_tool(
     service: ServerService,
     arguments: Map<String, Value>,
 ) -> Result<Value, String> {
-    let code = string_argument(&arguments, "code")
-        .map_err(|message| format!("Error checking duplication: {message}"))?;
-    let format = string_argument(&arguments, "format")
-        .map_err(|message| format!("Error checking duplication: {message}"))?;
-    let recheck = bool_argument(&arguments, "recheck")
-        .map_err(|message| format!("Error checking duplication: {message}"))?
-        .unwrap_or(false);
+    let code = string_argument(&arguments, "code", "check_duplication")?;
+    let format = string_argument(&arguments, "format", "check_duplication")?;
+    let recheck = bool_argument(&arguments, "recheck", "check_duplication")?.unwrap_or(false);
 
     if recheck {
         service
@@ -224,7 +231,7 @@ fn read_resource(service: ServerService, request_id: Value, payload: Value) -> R
             StatusCode::OK,
             request_id,
             -32602,
-            format!("Unknown resource: {uri}"),
+            format!("MCP error -32602: Resource {uri} not found"),
         ),
         None => jsonrpc_error(
             StatusCode::OK,
@@ -291,27 +298,78 @@ fn resources_list_result() -> Value {
     })
 }
 
-fn string_argument(arguments: &Map<String, Value>, name: &str) -> Result<String, String> {
+fn accepts_mcp_response(headers: &HeaderMap) -> bool {
+    let Some(accept) = headers.get("accept").and_then(|value| value.to_str().ok()) else {
+        return false;
+    };
+    accept.contains("application/json") && accept.contains("text/event-stream")
+}
+
+fn syntax_error_response(message: String) -> Response {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({
+            "error": "SyntaxError",
+            "message": message,
+            "statusCode": 400,
+        })),
+    )
+        .into_response()
+}
+
+fn string_argument(
+    arguments: &Map<String, Value>,
+    name: &str,
+    tool_name: &str,
+) -> Result<String, String> {
     let Some(value) = arguments.get(name) else {
-        return Err(format!("Missing required field: {name}"));
+        return Err(input_validation_error(
+            tool_name,
+            "string",
+            name,
+            "undefined",
+        ));
     };
     let Some(value) = value.as_str() else {
-        return Err(format!("Field \"{name}\" must be a string"));
+        return Err(input_validation_error(
+            tool_name,
+            "string",
+            name,
+            received_type(value),
+        ));
     };
-    if value.trim().is_empty() {
-        return Err(format!("Field \"{name}\" cannot be empty"));
-    }
     Ok(value.to_string())
 }
 
-fn bool_argument(arguments: &Map<String, Value>, name: &str) -> Result<Option<bool>, String> {
+fn bool_argument(
+    arguments: &Map<String, Value>,
+    name: &str,
+    tool_name: &str,
+) -> Result<Option<bool>, String> {
     let Some(value) = arguments.get(name) else {
         return Ok(None);
     };
     value
         .as_bool()
         .map(Some)
-        .ok_or_else(|| format!("Field \"{name}\" must be a boolean"))
+        .ok_or_else(|| input_validation_error(tool_name, "boolean", name, received_type(value)))
+}
+
+fn input_validation_error(tool_name: &str, expected: &str, field: &str, received: &str) -> String {
+    format!(
+        "MCP error -32602: Input validation error: Invalid arguments for tool {tool_name}: [\n  {{\n    \"expected\": \"{expected}\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"{field}\"\n    ],\n    \"message\": \"Invalid input: expected {expected}, received {received}\"\n  }}\n]"
+    )
+}
+
+fn received_type(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "boolean",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+    }
 }
 
 fn request_id(payload: &Value) -> Value {

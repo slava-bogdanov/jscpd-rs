@@ -265,12 +265,21 @@ check_server_http() {
     sed -n '1,80p' "$mcp_headers" >&2
     return 1
   fi
+  local mcp_tools_headers="$dir/mcp-tools-headers.txt"
   http_json "$dir/mcp-tools.json" 200 \
+    -D "$mcp_tools_headers" \
     -H 'Accept: application/json, text/event-stream' \
     -H 'Content-Type: application/json' \
     -H "mcp-session-id: $session_id" \
     -d '{"jsonrpc":"2.0","method":"tools/list","id":2}' \
     "http://127.0.0.1:$port/mcp"
+  local tools_session_id
+  tools_session_id="$(awk 'tolower($1)=="mcp-session-id:" {print $2}' "$mcp_tools_headers" | tr -d '\r' | tail -n 1)"
+  if [[ "$tools_session_id" != "$session_id" ]]; then
+    printf '%s MCP tools/list did not echo mcp-session-id\n' "$label" >&2
+    sed -n '1,80p' "$mcp_tools_headers" >&2
+    return 1
+  fi
   http_json "$dir/mcp-stats-tool.json" 200 \
     -H 'Accept: application/json, text/event-stream' \
     -H 'Content-Type: application/json' \
@@ -282,6 +291,47 @@ check_server_http() {
     -H 'Content-Type: application/json' \
     -H "mcp-session-id: $session_id" \
     -d '{"jsonrpc":"2.0","method":"resources/read","params":{"uri":"jscpd://statistics"},"id":4}' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-no-accept.json" 406 \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"tools/list","id":5}' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-invalid-json.json" 400 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d 'invalid-json' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-missing-method.json" 400 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","id":6}' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-unknown-method.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"unknown/method","id":7}' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-unknown-resource.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"resources/read","params":{"uri":"jscpd://missing"},"id":8}' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-unknown-tool.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"missing","arguments":{}},"id":9}' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-missing-code.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"check_duplication","arguments":{"format":"javascript"}},"id":10}' \
     "http://127.0.0.1:$port/mcp"
   http_json "$dir/mcp-get.json" 405 "http://127.0.0.1:$port/mcp"
 
@@ -359,6 +409,37 @@ const statsTool = read('mcp-stats-tool.json');
 assert(statsTool.result?.content?.[0]?.text?.includes('statistics'), `${label} mcp stats tool`);
 const resource = read('mcp-resource.json');
 assert(resource.result?.contents?.[0]?.uri === 'jscpd://statistics', `${label} mcp resource`);
+
+const noAccept = read('mcp-no-accept.json');
+assert(noAccept.error?.code === -32000, `${label} mcp no accept code`);
+assert(noAccept.error?.message === 'Not Acceptable: Client must accept both application/json and text/event-stream', `${label} mcp no accept message`);
+
+const mcpInvalidJson = read('mcp-invalid-json.json');
+assert(mcpInvalidJson.error === 'SyntaxError', `${label} mcp invalid JSON error`);
+assert(mcpInvalidJson.statusCode === 400, `${label} mcp invalid JSON statusCode`);
+assert(mcpInvalidJson.message === 'Unexpected token \'i\', "invalid-json" is not valid JSON', `${label} mcp invalid JSON message`);
+
+const missingMethod = read('mcp-missing-method.json');
+assert(missingMethod.error?.code === -32700, `${label} mcp missing method code`);
+assert(missingMethod.error?.message === 'Parse error: Invalid JSON-RPC message', `${label} mcp missing method message`);
+assert(missingMethod.id === null, `${label} mcp missing method id`);
+
+const unknownMethod = read('mcp-unknown-method.json');
+assert(unknownMethod.error?.code === -32601, `${label} mcp unknown method code`);
+assert(unknownMethod.error?.message === 'Method not found', `${label} mcp unknown method message`);
+
+const unknownResource = read('mcp-unknown-resource.json');
+assert(unknownResource.error?.code === -32602, `${label} mcp unknown resource code`);
+assert(unknownResource.error?.message === 'MCP error -32602: Resource jscpd://missing not found', `${label} mcp unknown resource message`);
+
+const unknownTool = read('mcp-unknown-tool.json');
+assert(unknownTool.result?.isError === true, `${label} mcp unknown tool isError`);
+assert(unknownTool.result?.content?.[0]?.text === 'MCP error -32602: Tool missing not found', `${label} mcp unknown tool text`);
+
+const missingCodeTool = read('mcp-missing-code.json');
+assert(missingCodeTool.result?.isError === true, `${label} mcp missing code isError`);
+assert(missingCodeTool.result?.content?.[0]?.text?.includes('Invalid arguments for tool check_duplication'), `${label} mcp missing code text`);
+assert(missingCodeTool.result?.content?.[0]?.text?.includes('Invalid input: expected string, received undefined'), `${label} mcp missing code validation`);
 
 function assert(condition, message) {
   if (!condition) {
