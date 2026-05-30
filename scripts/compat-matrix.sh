@@ -14,6 +14,7 @@ run_case() {
   local max_size="${6:-$DEFAULT_MAX_SIZE}"
   local detect_mode="${7:-}"
   local strict_mode="${8:-$STRICT_MODE}"
+  local allowed_missing_coverage="${9:-}"
 
   if [[ ! -e "$target" ]]; then
     printf 'skip %-28s missing target: %s\n' "$name" "$target"
@@ -22,6 +23,7 @@ run_case() {
 
   printf '\n== %s ==\n' "$name"
   STRICT="$strict_mode" \
+    ALLOW_MISSING_COVERAGE="$allowed_missing_coverage" \
     FORMAT="$format" \
     DETECTION_MODE="$detect_mode" \
     MIN_TOKENS="$min_tokens" \
@@ -114,6 +116,8 @@ run_case "fixtures twig" "jscpd/fixtures/twig" "twig" 20 3
 run_case "fixtures properties" "jscpd/fixtures/properties" "properties" 20 3
 run_case "fixtures markup" "jscpd/fixtures/xml" "markup" 20 3
 run_case "fixtures htmlmixed markup" "jscpd/fixtures/htmlmixed" "markup" 20 3
+run_case "fixtures aspnet" "jscpd/fixtures/htmlembedded" "aspnet" 20 3 \
+  "$DEFAULT_MAX_SIZE" "" "coverage" "aspnet:jscpd/fixtures/htmlembedded/file2.aspx:18-43"
 run_case "fixtures vbnet" "jscpd/fixtures/vb" "vbnet" 20 3
 run_case "fixtures txt" "jscpd/fixtures/text" "txt" 20 3
 run_case "fixtures robotframework" "jscpd/fixtures/robotframework" "robotframework" 20 3

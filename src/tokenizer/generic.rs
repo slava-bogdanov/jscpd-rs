@@ -232,6 +232,7 @@ fn code_like_format(format: &str) -> bool {
         format,
         "ada"
             | "apex"
+            | "aspnet"
             | "c"
             | "c-header"
             | "clike"

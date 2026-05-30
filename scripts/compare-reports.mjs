@@ -39,14 +39,19 @@ const coveredUpstreamFragments = upstreamFragments.filter((fragment) =>
 const coveredRustFragments = rustFragments.filter((fragment) =>
   fragmentLineCoveredBy(fragment, upstreamFragments),
 );
+const allowedMissingCoverageRanges = parseAllowedRanges(process.env.ALLOW_MISSING_COVERAGE);
 const allMissingStartKeys = upstreamDuplicates
   .filter((duplicate) => !rustStartKeys.has(startKey(duplicate)));
 const allExtraStartKeys = rustDuplicates
   .filter((duplicate) => !upstreamStartKeys.has(startKey(duplicate)));
 const allMissingFragmentKeys = [...upstreamFragmentKeys]
   .filter((key) => !rustFragmentKeys.has(key));
-const allMissingCoverageFragments = upstreamFragments
+const missingCoverageFragmentsRaw = upstreamFragments
   .filter((fragment) => !fragmentLineCoveredBy(fragment, rustFragments));
+const ignoredMissingCoverageFragments = missingCoverageFragmentsRaw
+  .filter((fragment) => allowedMissingCoverageRanges.has(fragmentRangeKey(fragment)));
+const allMissingCoverageFragments = missingCoverageFragmentsRaw
+  .filter((fragment) => !allowedMissingCoverageRanges.has(fragmentRangeKey(fragment)));
 const missingStartKeys = allMissingStartKeys.slice(0, 10);
 const extraStartKeys = allExtraStartKeys.slice(0, 10);
 const missingFragmentKeys = allMissingFragmentKeys.slice(0, 10);
@@ -97,6 +102,12 @@ if (missingCoverageFragments.length > 0) {
   for (const fragment of missingCoverageFragments) console.log(`  ${fragmentRangeKey(fragment)}`);
 }
 
+if (ignoredMissingCoverageFragments.length > 0) {
+  console.log('');
+  console.log('ignored upstream line coverage exceptions:');
+  for (const fragment of ignoredMissingCoverageFragments) console.log(`  ${fragmentRangeKey(fragment)}`);
+}
+
 if (process.env.DETAILS === '1') {
   printDuplicateDetails('missing upstream details', missingStartKeys);
   printDuplicateDetails('extra rust details', extraStartKeys);
@@ -134,6 +145,15 @@ function coverageFailures() {
     failures.push(`rust clones ${rustSummary.clones} < upstream clones ${upstreamSummary.clones}`);
   }
   return failures;
+}
+
+function parseAllowedRanges(value) {
+  return new Set(
+    (value ?? '')
+      .split(/[,\n]/)
+      .map((range) => range.trim())
+      .filter(Boolean),
+  );
 }
 
 function readReport(path) {

@@ -100,6 +100,7 @@ compatibility is converging.
 | `jscpd/fixtures/properties` | `properties` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/xml` | `markup` | pass | 6/6 upstream fragments line-covered; Rust skips empty XML/XSD inputs |
 | `jscpd/fixtures/htmlmixed` | `markup` | pass | exact clone and line summary parity; upstream also reports embedded script/style sources |
+| `jscpd/fixtures/htmlembedded` | `aspnet` | pass | 9/10 upstream fragments line-covered; one documented upstream range overextends through an inserted email block |
 | `jscpd/fixtures/vb` | `vbnet` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/text` | `txt` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/robotframework` | `robotframework` | pass | 4/4 upstream fragments line-covered; upstream reports final newline as one-past-content |
@@ -168,6 +169,10 @@ compatibility is converging.
   a full Prism port.
 - Properties uses the same generic punctuation/operator split so dotted keys
   and assignments reach upstream clone thresholds without a dedicated lexer.
+- ASP.NET uses the code-like generic splitter and is gated with a narrow
+  documented upstream range exception for `file2.aspx:18-43`, where upstream
+  reports through an inserted email field block that is not present in the
+  paired source.
 - Apex extracts bracketed SOQL regions into an embedded `sql` map to match
   upstream's multi-format Apex reports.
 - `--mode strict` now preserves Prism-style `empty` and `new_line` whitespace

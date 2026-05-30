@@ -179,6 +179,41 @@ commented block, or the tokenizer/report range logic should document that HAML
 silent comments are ignored and may extend clone ranges through non-matching
 source text.
 
+## ASP.NET report overextends a clone through an inserted email form group
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+Repro target:
+
+```sh
+FORMAT=aspnet MIN_TOKENS=20 MIN_LINES=3 MAX_SIZE=1mb KEEP=1 scripts/compat.sh jscpd/fixtures/htmlembedded
+```
+
+Observed upstream clone:
+
+- `jscpd/fixtures/htmlembedded/file1.aspx:18-36`
+- `jscpd/fixtures/htmlembedded/file2.aspx:18-43`
+
+The `file2.aspx` range includes an inserted email field group on lines 36-42:
+
+```aspx
+<div class="form-group">
+<asp:Label ID="lblEmail" runat="server" AssociatedControlID="txtEmail" Text="Email:" />
+<asp:TextBox ID="txtEmail" runat="server" CssClass="form-control" MaxLength="255" />
+<asp:RequiredFieldValidator ID="rfvEmail" runat="server"
+    ControlToValidate="txtEmail" ErrorMessage="Email is required"
+    CssClass="text-danger" Display="Dynamic" />
+</div>
+```
+
+Those controls are not present in the paired `file1.aspx` range. The upstream
+Prism tokens also keep distinct values such as `lblEmail`, `txtEmail`,
+`Email:`, `rfvEmail`, and `Email is required`, so this does not look like a
+normal token normalization difference.
+
+Expected behavior: the reported clone should stop before the inserted email
+group, split around it, or report only the structurally duplicated subranges.
+
 ## Option fields are exposed but unused at runtime
 
 Status: observed on the `jscpd` submodule during compatibility work.

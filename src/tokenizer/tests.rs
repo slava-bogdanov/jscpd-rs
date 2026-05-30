@@ -384,6 +384,7 @@ fn code_like_tokenizer_splits_punctuation_and_operators() {
 fn long_tail_code_like_formats_split_punctuation_and_operators() {
     let content = "value = call(item, 1);";
     for format in [
+        "aspnet",
         "cfml",
         "cfscript",
         "eiffel",
