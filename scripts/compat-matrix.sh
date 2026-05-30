@@ -113,6 +113,32 @@ run_case "fixtures txt" "jscpd/fixtures/text" "txt" 20 3
 run_case "fixtures robotframework" "jscpd/fixtures/robotframework" "robotframework" 20 3
 run_case "fixtures tap" "jscpd/fixtures/tap" "tap" 20 3
 run_case "fixtures textile" "jscpd/fixtures/textile" "textile" 20 3
+run_case "fixtures antlr4" "jscpd/fixtures/antlr4" "antlr4" 20 3
+run_case "fixtures apl" "jscpd/fixtures/apl" "apl" 20 3
+run_case "fixtures bicep" "jscpd/fixtures/bicep" "bicep" 20 3
+run_case "fixtures brainfuck" "jscpd/fixtures/brainfuck" "brainfuck" 20 3
+run_case "fixtures dot" "jscpd/fixtures/dot" "dot" 20 3
+run_case "fixtures gettext" "jscpd/fixtures/gettext" "gettext" 20 3
+run_case "fixtures gherkin" "jscpd/fixtures/gherkin" "gherkin" 20 3
+run_case "fixtures handlebars" "jscpd/fixtures/handlebars" "handlebars" 20 3
+run_case "fixtures idris" "jscpd/fixtures/idris" "idris" 20 3
+run_case "fixtures lilypond" "jscpd/fixtures/lilypond" "lilypond" 20 3
+run_case "fixtures livescript" "jscpd/fixtures/livescript" "livescript" 20 3
+run_case "fixtures llvm" "jscpd/fixtures/llvm" "llvm" 20 3
+run_case "fixtures log" "jscpd/fixtures/log" "log" 20 3
+run_case "fixtures nsis" "jscpd/fixtures/nsis" "nsis" 20 3
+run_case "fixtures openqasm" "jscpd/fixtures/openqasm" "openqasm" 20 3
+run_case "fixtures oz" "jscpd/fixtures/oz" "oz" 20 3
+run_case "fixtures pascal" "jscpd/fixtures/pascal" "pascal" 20 3
+run_case "fixtures plant-uml" "jscpd/fixtures/plant-uml" "plant-uml" 20 3
+run_case "fixtures powerquery" "jscpd/fixtures/powerquery" "powerquery" 20 3
+run_case "fixtures q" "jscpd/fixtures/q" "q" 20 3
+run_case "fixtures smalltalk" "jscpd/fixtures/smalltalk" "smalltalk" 20 3
+run_case "fixtures smarty" "jscpd/fixtures/smarty" "smarty" 20 3
+run_case "fixtures soy" "jscpd/fixtures/soy" "soy" 20 3
+run_case "fixtures sparql" "jscpd/fixtures/sparql" "sparql" 20 3
+run_case "fixtures unrealscript" "jscpd/fixtures/unrealscript" "unrealscript" 20 3
+run_case "fixtures velocity" "jscpd/fixtures/velocity" "velocity" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5

@@ -99,6 +99,32 @@ compatibility is converging.
 | `jscpd/fixtures/robotframework` | `robotframework` | pass | 4/4 upstream fragments line-covered; upstream reports final newline as one-past-content |
 | `jscpd/fixtures/tap` | `tap` | pass | upstream YAML embedded block is covered by a wider TAP clone |
 | `jscpd/fixtures/textile` | `textile` | pass | exact clone summary parity |
+| `jscpd/fixtures/antlr4` | `antlr4` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/apl` | `apl` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/bicep` | `bicep` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/brainfuck` | `brainfuck` | pass | 8/8 upstream fragments line-covered |
+| `jscpd/fixtures/dot` | `dot` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/gettext` | `gettext` | pass | 2/2 upstream fragments line-covered; Rust reports extra covered ranges |
+| `jscpd/fixtures/gherkin` | `gherkin` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/handlebars` | `handlebars` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/idris` | `idris` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/lilypond` | `lilypond` | pass | 6/6 upstream fragments line-covered |
+| `jscpd/fixtures/livescript` | `livescript` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/llvm` | `llvm` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/log` | `log` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/nsis` | `nsis` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/openqasm` | `openqasm` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/oz` | `oz` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/pascal` | `pascal` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/plant-uml` | `plant-uml` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/powerquery` | `powerquery` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/q` | `q` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/smalltalk` | `smalltalk` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/smarty` | `smarty` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/soy` | `soy` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/sparql` | `sparql` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/unrealscript` | `unrealscript` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/velocity` | `velocity` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
