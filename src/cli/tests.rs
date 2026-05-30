@@ -1,6 +1,7 @@
 use super::{
-    Cli, FileConfig, Mode, Options, apply_config, normalize_reporters, parse_format_mappings,
-    parse_js_number, parse_js_usize, parse_node_exit_code, parse_size, resolve_config_ignore,
+    Cli, ExitCode, FileConfig, Mode, Options, apply_config, normalize_reporters,
+    parse_format_mappings, parse_js_number, parse_js_usize, parse_size, resolve_config_ignore,
+    resolve_node_exit_code,
 };
 use clap::{CommandFactory, Parser};
 
@@ -53,12 +54,42 @@ fn parses_threshold_like_upstream_number() {
 
 #[test]
 fn parses_exit_code_values_like_node_process_exit() {
-    assert_eq!(parse_node_exit_code("7").unwrap(), 7);
-    assert_eq!(parse_node_exit_code("007").unwrap(), 7);
-    assert_eq!(parse_node_exit_code("0x10").unwrap(), 16);
-    assert_eq!(parse_node_exit_code("0b10").unwrap(), 2);
-    assert!(parse_node_exit_code("7.5").is_err());
-    assert!(parse_node_exit_code("nope").is_err());
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::String("7".to_string())).unwrap(),
+        7
+    );
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::String("007".to_string())).unwrap(),
+        7
+    );
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::String("0x10".to_string())).unwrap(),
+        16
+    );
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::String("0b10".to_string())).unwrap(),
+        2
+    );
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::String("-1".to_string())).unwrap(),
+        -1
+    );
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::Boolean(false)).unwrap(),
+        0
+    );
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::String("7.5".to_string())).unwrap_err(),
+        "RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is out of range. It must be an integer. Received 7.5"
+    );
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::String("nope".to_string())).unwrap_err(),
+        "TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type string ('nope')"
+    );
+    assert_eq!(
+        resolve_node_exit_code(&ExitCode::Boolean(true)).unwrap_err(),
+        "TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type boolean (true)"
+    );
 }
 
 #[test]
@@ -87,6 +118,7 @@ fn accepts_bare_optional_cli_values_that_upstream_continues_with() {
         "--pattern",
         "--store",
         "--store-path",
+        "--exitCode",
     ]);
     let options = Options::from_cli(cli).unwrap();
 
@@ -98,6 +130,7 @@ fn accepts_bare_optional_cli_values_that_upstream_continues_with() {
         options.store_path.as_deref(),
         Some(std::path::Path::new("true"))
     );
+    assert_eq!(options.exit_code, ExitCode::Boolean(true));
 }
 
 #[test]
@@ -246,6 +279,7 @@ fn parses_upstream_workflow_options() {
             "noTips": true,
             "listeners": ["console"],
             "tokensToSkip": ["comment", "block-comment"],
+            "exitCode": "0x10",
             "reportersOptions": {
                 "badge": {
                     "subject": "Duplication"
@@ -266,6 +300,7 @@ fn parses_upstream_workflow_options() {
     assert!(options.blame);
     assert!(!options.cache);
     assert!(options.no_tips);
+    assert_eq!(options.exit_code, ExitCode::String("0x10".to_string()));
     assert_eq!(options.listeners, vec!["console"]);
     assert_eq!(options.tokens_to_skip, vec!["comment", "block-comment"]);
     assert_eq!(

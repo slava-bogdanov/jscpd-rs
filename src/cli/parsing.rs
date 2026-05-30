@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use regex::Regex;
 
-use super::FormatMappings;
+use super::{ExitCode, FormatMappings};
 
 pub(super) fn split_csv(value: &str) -> Vec<String> {
     value
@@ -108,12 +108,82 @@ pub(super) fn parse_js_number(value: &str) -> std::result::Result<f64, String> {
     Ok(trimmed.parse::<f64>().unwrap_or(f64::NAN))
 }
 
-pub(super) fn parse_node_exit_code(value: &str) -> std::result::Result<i32, String> {
-    let number = parse_js_number(value)?;
-    if !number.is_finite() || number.fract() != 0.0 || number < 0.0 || number > i32::MAX as f64 {
-        return Err(format!("invalid exit code `{value}`"));
+pub(super) fn node_exit_code(value: &ExitCode) -> std::result::Result<i32, NodeExitCodeError> {
+    match value {
+        ExitCode::Boolean(false) => Ok(0),
+        ExitCode::Boolean(true) => Err(NodeExitCodeError::InvalidType {
+            type_name: "boolean",
+            received: "true".to_string(),
+        }),
+        ExitCode::Number(number) if number.is_nan() || *number == 0.0 => Ok(0),
+        ExitCode::Number(number) => validate_node_exit_number(*number, format_js_number(*number)),
+        ExitCode::String(value) if value.is_empty() => Ok(0),
+        ExitCode::String(value) => {
+            let number = parse_js_number(value).unwrap_or(f64::NAN);
+            if number.is_nan() {
+                return Err(NodeExitCodeError::InvalidType {
+                    type_name: "string",
+                    received: format!("'{value}'"),
+                });
+            }
+            validate_node_exit_number(number, value.to_string())
+        }
+    }
+}
+
+fn validate_node_exit_number(
+    number: f64,
+    received: String,
+) -> std::result::Result<i32, NodeExitCodeError> {
+    if !number.is_finite()
+        || number.fract() != 0.0
+        || number < i32::MIN as f64
+        || number > i32::MAX as f64
+    {
+        return Err(NodeExitCodeError::OutOfRange { received });
     }
     Ok(number as i32)
+}
+
+fn format_js_number(number: f64) -> String {
+    if number.is_nan() {
+        "NaN".to_string()
+    } else if number == f64::INFINITY {
+        "Infinity".to_string()
+    } else if number == f64::NEG_INFINITY {
+        "-Infinity".to_string()
+    } else if number.fract() == 0.0 {
+        format!("{number:.0}")
+    } else {
+        number.to_string()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) enum NodeExitCodeError {
+    InvalidType {
+        type_name: &'static str,
+        received: String,
+    },
+    OutOfRange {
+        received: String,
+    },
+}
+
+impl NodeExitCodeError {
+    pub(super) fn message(&self) -> String {
+        match self {
+            Self::InvalidType {
+                type_name,
+                received,
+            } => format!(
+                "TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type {type_name} ({received})"
+            ),
+            Self::OutOfRange { received } => format!(
+                "RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is out of range. It must be an integer. Received {received}"
+            ),
+        }
+    }
 }
 
 pub(super) fn parse_size(value: &str) -> Result<u64> {

@@ -6,7 +6,7 @@ use serde::Deserialize;
 use serde::de::{MapAccess, Visitor};
 
 use super::parsing::{compile_patterns, parse_format_mappings, parse_size, split_csv};
-use super::{FormatMappings, Options};
+use super::{ExitCode, FormatMappings, Options};
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,7 +41,7 @@ pub(super) struct FileConfig {
     debug: Option<bool>,
     verbose: Option<bool>,
     skip_local: Option<bool>,
-    exit_code: Option<i32>,
+    exit_code: Option<ExitCodeConfig>,
     no_tips: Option<bool>,
     tokens_to_skip: Option<OneOrMany>,
 }
@@ -58,6 +58,24 @@ impl OneOrMany {
         match self {
             Self::One(value) => split_csv(&value),
             Self::Many(values) => values,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum ExitCodeConfig {
+    Boolean(bool),
+    Number(f64),
+    String(String),
+}
+
+impl From<ExitCodeConfig> for ExitCode {
+    fn from(value: ExitCodeConfig) -> Self {
+        match value {
+            ExitCodeConfig::Boolean(value) => Self::Boolean(value),
+            ExitCodeConfig::Number(value) => Self::Number(value),
+            ExitCodeConfig::String(value) => Self::String(value),
         }
     }
 }
@@ -272,7 +290,7 @@ pub(super) fn apply_config(
         options.skip_local = skip_local;
     }
     if let Some(exit_code) = config.exit_code {
-        options.exit_code = exit_code;
+        options.exit_code = exit_code.into();
     }
     if let Some(no_tips) = config.no_tips {
         options.no_tips = no_tips;

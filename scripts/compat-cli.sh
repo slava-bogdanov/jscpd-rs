@@ -196,6 +196,9 @@ print_case() {
 COMMON_ARGS=(--min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size "$MAX_SIZE")
 SUMMARY="Duplications detection: Found 1 exact clones with 10(35.71%) duplicated lines in 1 (1 formats) files."
 THRESHOLD_ERROR="ERROR: jscpd found too many duplicates (35.71%) over threshold (10%)"
+EXIT_CODE_TYPE_ERROR_STRING="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type string ('nope')"
+EXIT_CODE_RANGE_ERROR="RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is out of range. It must be an integer. Received 7.5"
+EXIT_CODE_TYPE_ERROR_BOOLEAN="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type boolean (true)"
 UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
 STORE_WARNING="store name leveldb not installed."
 BARE_STORE_WARNING="store name true not installed."
@@ -274,6 +277,18 @@ require_both_contain stdout "$SUMMARY"
 
 run_case "hex exit code on clones" 16 "$TARGET_REL" --exitCode 0x10 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
+
+run_case "invalid exit code string" 1 "$TARGET_REL" --exitCode nope --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$SUMMARY"
+require_both_contain stdout "$EXIT_CODE_TYPE_ERROR_STRING"
+
+run_case "fractional exit code" 1 "$TARGET_REL" --exitCode 7.5 --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$SUMMARY"
+require_both_contain stdout "$EXIT_CODE_RANGE_ERROR"
+
+run_case "bare exit code" 1 "$TARGET_REL" --exitCode --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$SUMMARY"
+require_both_contain stdout "$EXIT_CODE_TYPE_ERROR_BOOLEAN"
 
 run_case "decimal max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1.5kb
 require_both_contain stdout "$SUMMARY"

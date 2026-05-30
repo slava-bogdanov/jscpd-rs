@@ -149,6 +149,30 @@ Tokenizer strategy remains hybrid:
 - no embedded JavaScript runtime fallback. Formats that need real compatibility
   should get native Rust tokenizers and focused compat tests.
 
+## Accepted Hard-Feature Decisions
+
+These choices are part of the current cloning direction until a compatibility
+gate proves they are insufficient:
+
+- Dynamic npm reporters, stores, and plugins are post-MVP. The first release
+  should implement popular built-in reporters and stores natively instead of
+  embedding or casually spawning JavaScript from Rust.
+- Reporter compatibility should be strict for machine-readable contracts such as
+  JSON, XML, SARIF, CSV, and Markdown. HTML should stay practically compatible,
+  but pixel-perfect parity is not a release blocker.
+- Tokenizer compatibility stays hybrid. Use maintained Rust crates or Oxc for
+  hot formats where they materially help; keep long-tail formats on generic
+  tokenization until a fixture or public-repo gate shows missed upstream
+  coverage.
+- Node/Commander quirks are mirrored only when they are user-visible and covered
+  by compatibility tests. The project should not import a JavaScript runtime to
+  reproduce every incidental JS behavior.
+- Blame should stay native (`git blame`/git library based) and fail per file
+  where possible instead of inheriting upstream nested-repo failure modes.
+- Store/cache work should stay native and demand-driven. Custom external stores
+  remain documented gaps unless a real large-repo benchmark proves they are
+  needed for release viability.
+
 ## Larger Local Repo Benchmarks
 
 All commands below used TypeScript-only scanning to keep the comparison focused:

@@ -276,6 +276,6 @@ Observed behavior:
 Expected behavior: require a numeric value, or explicitly document and normalize
 the default value for bare flags.
 
-Rust clone handling: bare `--threshold` is mirrored for CLI compatibility. Bare
-`--exitCode` remains treated as an upstream bug rather than a behavior to
-preserve.
+Rust clone handling: bare `--threshold` and bare `--exitCode` are mirrored for
+CLI compatibility. The `--exitCode` behavior remains an upstream bug candidate,
+but preserving it is cheaper than leaving a visible CLI parity gap.

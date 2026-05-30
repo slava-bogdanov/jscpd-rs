@@ -16,9 +16,10 @@ mod tests;
 use config::{FileConfig, resolve_config_ignore};
 use config::{apply_config, read_config, read_package_json_config};
 use parsing::{
-    compile_patterns, parse_format_mappings, parse_js_number, parse_js_usize, parse_node_exit_code,
-    parse_size, split_csv,
+    compile_patterns, parse_format_mappings, parse_js_number, parse_js_usize, parse_size, split_csv,
 };
+
+const BARE_EXIT_CODE_VALUE: &str = "__jscpd_rs_bare_exit_code_true__";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -227,10 +228,11 @@ pub struct Cli {
     #[arg(
         long = "exitCode",
         value_name = "number",
-        value_parser = parse_node_exit_code,
+        num_args = 0..=1,
+        default_missing_value = "__jscpd_rs_bare_exit_code_true__",
         help = "exit code to use when code duplications are detected"
     )]
-    pub exit_code: Option<i32>,
+    pub exit_code: Option<String>,
 
     #[arg(
         long = "noTips",
@@ -273,6 +275,23 @@ pub enum Mode {
     Weak,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum ExitCode {
+    Number(f64),
+    String(String),
+    Boolean(bool),
+}
+
+impl ExitCode {
+    fn from_cli(value: String) -> Self {
+        if value == BARE_EXIT_CODE_VALUE {
+            Self::Boolean(true)
+        } else {
+            Self::String(value)
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Options {
     pub execution_id: Option<String>,
@@ -305,7 +324,7 @@ pub struct Options {
     pub debug: bool,
     pub verbose: bool,
     pub skip_local: bool,
-    pub exit_code: i32,
+    pub exit_code: ExitCode,
     pub no_tips: bool,
     pub tokens_to_skip: Vec<String>,
 }
@@ -370,7 +389,7 @@ impl Default for Options {
             debug: false,
             verbose: false,
             skip_local: false,
-            exit_code: 0,
+            exit_code: ExitCode::Number(0.0),
             no_tips: std::env::var_os("CI").is_some(),
             tokens_to_skip: Vec::new(),
         }
@@ -480,7 +499,7 @@ impl Options {
             options.skip_local = true;
         }
         if let Some(exit_code) = cli.exit_code {
-            options.exit_code = exit_code;
+            options.exit_code = ExitCode::from_cli(exit_code);
         }
         if cli.no_tips {
             options.no_tips = true;
@@ -490,6 +509,10 @@ impl Options {
 
         Ok(options)
     }
+}
+
+pub fn resolve_node_exit_code(exit_code: &ExitCode) -> std::result::Result<i32, String> {
+    parsing::node_exit_code(exit_code).map_err(|error| error.message())
 }
 
 pub(super) fn parse_mode(value: &str) -> Result<Mode> {

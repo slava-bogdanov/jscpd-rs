@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use clap::Parser;
 
-use crate::cli::{Cli, Options};
+use crate::cli::{Cli, ExitCode, Options};
 use crate::files::SourceFile;
 
 fn main() {
@@ -60,8 +60,15 @@ fn run() -> Result<()> {
     report::write_reports(&result, &options)?;
     print_terminal_footer(&options, started.elapsed());
 
-    if !result.clones.is_empty() && options.exit_code != 0 {
-        std::process::exit(options.exit_code);
+    if !result.clones.is_empty() {
+        match cli::resolve_node_exit_code(&options.exit_code) {
+            Ok(code) if code != 0 => std::process::exit(code),
+            Ok(_) => {}
+            Err(message) => {
+                println!("{message}");
+                std::process::exit(1);
+            }
+        }
     }
 
     Ok(())
@@ -157,7 +164,7 @@ fn debug_options_output(options: &Options) -> String {
         format!("  ignoreCase: {}", options.ignore_case),
         format!("  gitignore: {}", options.gitignore),
         debug_reporter_options_field(options),
-        format!("  exitCode: {}", options.exit_code),
+        debug_exit_code_field(&options.exit_code),
         format!("  noTips: {}", options.no_tips),
         debug_array_field("listeners", &options.listeners),
         debug_array_field("format", &debug_formats(options)),
@@ -202,6 +209,28 @@ fn debug_optional_number_field(name: &str, value: Option<f64>) -> String {
     match value {
         Some(value) => format!("  {name}: {value}"),
         None => format!("  {name}: undefined"),
+    }
+}
+
+fn debug_exit_code_field(exit_code: &ExitCode) -> String {
+    match exit_code {
+        ExitCode::Number(value) => format!("  exitCode: {}", debug_js_number(*value)),
+        ExitCode::String(value) => debug_string_field("exitCode", value),
+        ExitCode::Boolean(value) => format!("  exitCode: {value}"),
+    }
+}
+
+fn debug_js_number(value: f64) -> String {
+    if value.is_nan() {
+        "NaN".to_string()
+    } else if value == f64::INFINITY {
+        "Infinity".to_string()
+    } else if value == f64::NEG_INFINITY {
+        "-Infinity".to_string()
+    } else if value.fract() == 0.0 {
+        format!("{value:.0}")
+    } else {
+        value.to_string()
     }
 }
 

@@ -287,12 +287,15 @@ coverage-first compatibility matrix and is required before publication.
 - CLI `--min-lines`, `--min-tokens`, and `--max-lines` accept upstream-style
   `parseInt` numeric prefixes, so values such as `20.9` are treated as `20`;
   missing optional values are accepted like Commander `[number]` options.
-- Bare optional values for `--threshold`, `--max-size`, `--pattern`, `--store`,
-  and `--store-path` follow the local upstream runtime behavior where upstream
-  continues instead of failing during CLI parsing.
+- Bare optional values for `--threshold`, `--exitCode`, `--max-size`,
+  `--pattern`, `--store`, and `--store-path` follow the local upstream runtime
+  behavior where upstream continues instead of failing during CLI parsing.
 - CLI `--threshold` follows JavaScript `Number(...)` parsing for values such as
   `0x10` and `nope`, matching upstream threshold reporter behavior.
-- CLI `--exitCode` accepts Node-compatible integer strings such as `0x10`.
+- CLI/config `exitCode` keeps the raw Node-like value until clones are found.
+  Integer strings such as `0x10` exit with the matching code, while invalid,
+  fractional, or bare boolean values emit the same Node-style error after
+  reports are written.
 - If discovery, size, or line filters leave no files to detect, reporters are
   not run, matching upstream's `InFilesDetector` early return. Silent mode
   stays quiet; non-silent mode only prints the terminal footer.
