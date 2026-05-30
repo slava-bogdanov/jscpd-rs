@@ -1,0 +1,60 @@
+name: release-gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Run the full compatibility matrix"
+        required: false
+        default: false
+        type: boolean
+      public:
+        description: "Run public benchmark and coverage suite"
+        required: false
+        default: false
+        type: boolean
+      public_runs:
+        description: "Number of public benchmark timing runs"
+        required: false
+        default: "3"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release-gate:
+    name: release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI: "1"
+      FULL: ${{ github.event_name == 'workflow_dispatch' && inputs.full && '1' || '0' }}
+      PUBLIC: ${{ github.event_name == 'workflow_dispatch' && inputs.public && '1' || '0' }}
+      PUBLIC_RUNS: ${{ github.event_name == 'workflow_dispatch' && inputs.public_runs || '1' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.93.0 --profile minimal
+          rustup component add rustfmt --toolchain 1.93.0
+          rustup default 1.93.0
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable pnpm through corepack
+        run: corepack enable
+
+      - name: Release gate
+        run: scripts/release-gate.sh

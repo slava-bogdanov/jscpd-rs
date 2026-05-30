@@ -113,6 +113,17 @@ project-owned public benchmark suite with coverage compatibility enabled, using
 to override its defaults. `FULL=1 PUBLIC=1 scripts/release-gate.sh` is required
 before publication.
 
+CI gate:
+
+```bash
+.github/workflows/release-gate.yml
+```
+
+The GitHub Actions workflow checks out the upstream submodule, installs Rust
+and Node, and runs the default release gate on pushes and pull requests. Manual
+workflow dispatch exposes `full`, `public`, and `public_runs` inputs for the
+pre-release full matrix and public benchmark gates.
+
 Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
