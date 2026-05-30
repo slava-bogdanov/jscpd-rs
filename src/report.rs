@@ -3,6 +3,7 @@ use anyhow::Result;
 use crate::cli::Options;
 use crate::detector::DetectionResult;
 
+mod ai;
 mod badge;
 mod console;
 mod console_full;
@@ -25,6 +26,9 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
     }
     if should_write_report("consoleFull", options) {
         console_full::write(result, options);
+    }
+    if should_write_report("ai", options) {
+        ai::write(result, options);
     }
     if should_write_report("json", options) {
         json::write(result, options)?;
