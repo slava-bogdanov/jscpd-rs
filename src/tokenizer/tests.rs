@@ -632,6 +632,35 @@ fn merges_adjacent_generic_closing_angles_like_prism() {
 }
 
 #[test]
+fn js_regex_after_recoverable_parse_error_stays_single_token() {
+    let content = "export type Flags = {enabled: boolean};\n\
+export function normalize(str) {\n\
+  return str.replace(/Check your code at .+?:\\d+/g, 'Check your code at **');\n\
+}\n";
+    let tokens = tokenize_for_detection(content, "javascript", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(values.contains(&"/Check your code at .+?:\\d+/g"));
+    assert!(!values.windows(2).any(|window| window == ["/", "Check"]));
+}
+
+#[test]
+fn js_division_after_identifier_is_not_recovered_as_regex() {
+    let content = "const ratio = total / count / scale;\n";
+    let tokens = tokenize_for_detection(content, "javascript", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(values.contains(&"/"));
+    assert!(!values.contains(&"/ count /"));
+}
+
+#[test]
 fn weak_mode_skips_generic_markup_comments() {
     let content = "<!-- comment -->\nalpha beta\n<!-- another -->\ngamma\n";
     let weak_options = Options {

@@ -37,6 +37,55 @@ fn fast_glob_like_order_places_parent_files_before_child_files() {
 }
 
 #[test]
+fn explicit_file_paths_preserve_cli_order_like_upstream() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-explicit-order-{}-{nonce}",
+        std::process::id()
+    ));
+    let setup = dir.join("fixtures").join("setupTests.js");
+    let utils = dir
+        .join("packages")
+        .join("react-devtools-shared")
+        .join("utils.js");
+    let console_mock = dir
+        .join("packages")
+        .join("internal-test-utils")
+        .join("consoleMock.js");
+    std::fs::create_dir_all(setup.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(utils.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(console_mock.parent().unwrap()).unwrap();
+    std::fs::write(&setup, "const setup = 1;\n").unwrap();
+    std::fs::write(&utils, "const utils = 1;\n").unwrap();
+    std::fs::write(&console_mock, "const consoleMock = 1;\n").unwrap();
+
+    let options = Options {
+        paths: vec![setup.clone(), utils.clone(), console_mock.clone()],
+        formats: Some(HashSet::from(["javascript".to_string()])),
+        min_lines: 1,
+        reporters: vec!["json".to_string()],
+        silent: true,
+        gitignore: false,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    let paths = files
+        .iter()
+        .map(|file| file.source_id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths.len(), 3);
+    assert!(paths[0].ends_with("fixtures/setupTests.js"));
+    assert!(paths[1].ends_with("packages/react-devtools-shared/utils.js"));
+    assert!(paths[2].ends_with("packages/internal-test-utils/consoleMock.js"));
+}
+
+#[test]
 fn relative_path_formats_sibling_paths_like_upstream() {
     assert_eq!(
         relative_path(

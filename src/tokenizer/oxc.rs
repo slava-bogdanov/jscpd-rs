@@ -85,16 +85,33 @@ pub(super) fn tokenize_oxc_maps(
                 end_byte = next.span.end;
             }
         }
-        push_oxc_token(
-            &mut tokens,
-            &context,
-            token.kind,
-            ByteSpan {
-                start: start_byte,
-                end: end_byte,
-            },
-            &line_index,
-        );
+        let span = ByteSpan {
+            start: start_byte,
+            end: end_byte,
+        };
+        if token.kind == Kind::Slash
+            && context.slice(span) == "/"
+            && let Some(regex_end) = scan_regex_literal_end(content, start_byte, content.len())
+        {
+            push_token_part(
+                &mut tokens,
+                &context,
+                TokenKind::String,
+                ByteSpan {
+                    start: start_byte,
+                    end: regex_end,
+                },
+                &line_index,
+            );
+            previous_end = previous_end.max(regex_end);
+            idx += 1;
+            while idx < parser_tokens.len() && parser_tokens[idx].span.start < regex_end {
+                previous_end = previous_end.max(parser_tokens[idx].span.end);
+                idx += 1;
+            }
+            continue;
+        }
+        push_oxc_token(&mut tokens, &context, token.kind, span, &line_index);
         previous_end = previous_end.max(end_byte);
         idx += 1;
     }
@@ -234,6 +251,121 @@ fn push_oxc_token(
         end: line_index.location(span.end),
         range: [span.start, span.end],
     });
+}
+
+pub(super) fn scan_regex_literal_end(
+    content: &str,
+    slash_start: usize,
+    limit: usize,
+) -> Option<usize> {
+    if !regex_literal_allowed_at(content, slash_start) {
+        return None;
+    }
+    let bytes = content.as_bytes();
+    if bytes.get(slash_start) != Some(&b'/')
+        || matches!(bytes.get(slash_start + 1), Some(b'/' | b'*'))
+    {
+        return None;
+    }
+
+    let mut idx = slash_start + 1;
+    let mut escaped = false;
+    let mut in_class = false;
+    let mut saw_body = false;
+    while idx < bytes.len().min(limit) {
+        let byte = bytes[idx];
+        if byte == b'\n' || byte == b'\r' {
+            return None;
+        }
+        if escaped {
+            escaped = false;
+            saw_body = true;
+            idx += 1;
+            continue;
+        }
+        match byte {
+            b'\\' => {
+                escaped = true;
+                saw_body = true;
+            }
+            b'[' => {
+                in_class = true;
+                saw_body = true;
+            }
+            b']' => {
+                in_class = false;
+                saw_body = true;
+            }
+            b'/' if !in_class => {
+                if !saw_body {
+                    return None;
+                }
+                idx += 1;
+                while idx < bytes.len().min(limit) && bytes[idx].is_ascii_alphabetic() {
+                    idx += 1;
+                }
+                return Some(idx);
+            }
+            _ => {
+                saw_body = true;
+            }
+        }
+        idx += 1;
+    }
+    None
+}
+
+fn regex_literal_allowed_at(content: &str, slash_start: usize) -> bool {
+    let Some((idx, previous)) = content[..slash_start]
+        .char_indices()
+        .rev()
+        .find(|(_, ch)| !ch.is_whitespace())
+    else {
+        return true;
+    };
+    if previous == '!' && content[..idx].chars().rev().find(|ch| !ch.is_whitespace()) == Some('#') {
+        return false;
+    }
+
+    if matches!(
+        previous,
+        '(' | '['
+            | '{'
+            | '='
+            | ':'
+            | ','
+            | ';'
+            | '!'
+            | '?'
+            | '&'
+            | '|'
+            | '+'
+            | '-'
+            | '*'
+            | '~'
+            | '^'
+            | '<'
+            | '>'
+    ) {
+        return true;
+    }
+
+    let word_end = idx + previous.len_utf8();
+    let mut word_start = idx;
+    while word_start > 0 {
+        let Some((prev_idx, ch)) = content[..word_start].char_indices().next_back() else {
+            break;
+        };
+        if ch.is_ascii_alphanumeric() || ch == '_' || ch == '$' {
+            word_start = prev_idx;
+        } else {
+            break;
+        }
+    }
+    matches!(
+        &content[word_start..word_end],
+        "return" | "throw" | "case" | "delete" | "typeof" | "void" | "new" | "yield" | "await"
+    )
 }
 
 fn push_template_token_parts(

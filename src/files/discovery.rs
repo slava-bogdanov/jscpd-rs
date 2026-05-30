@@ -19,6 +19,7 @@ use super::shebang::shebang_format_for_path;
 struct CandidateFile {
     path: PathBuf,
     format: String,
+    root_index: usize,
 }
 
 pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
@@ -42,14 +43,21 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
         Arc::new(build_ignore_matcher(&ignore_patterns).context("invalid ignore pattern")?);
     let mut candidates = Vec::new();
 
-    for root in &options.paths {
+    for (root_index, root) in options.paths.iter().enumerate() {
         if options.no_symlinks && is_symlink(root) {
             continue;
         }
         let metadata = fs::metadata(root)
             .with_context(|| format!("failed to inspect path `{}`", root.display()))?;
         if metadata.is_file() {
-            collect_candidate(root, options, &ignore_set, &cwd, &mut candidates)?;
+            collect_candidate(
+                root,
+                root_index,
+                options,
+                &ignore_set,
+                &cwd,
+                &mut candidates,
+            )?;
             continue;
         }
 
@@ -91,11 +99,22 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
             if !pattern_set.is_match(relative) {
                 continue;
             }
-            collect_candidate(path, options, &ignore_set, &cwd, &mut candidates)?;
+            collect_candidate(
+                path,
+                root_index,
+                options,
+                &ignore_set,
+                &cwd,
+                &mut candidates,
+            )?;
         }
     }
 
-    candidates.sort_by(|left, right| fast_glob_like_path_cmp(&left.path, &right.path));
+    candidates.sort_by(|left, right| {
+        left.root_index
+            .cmp(&right.root_index)
+            .then_with(|| fast_glob_like_path_cmp(&left.path, &right.path))
+    });
 
     let mut files = candidates
         .into_par_iter()
@@ -117,6 +136,7 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
 
 fn collect_candidate(
     path: &Path,
+    root_index: usize,
     options: &Options,
     ignore_set: &IgnoreMatcher,
     cwd: &Path,
@@ -168,6 +188,7 @@ fn collect_candidate(
     candidates.push(CandidateFile {
         path: path.to_path_buf(),
         format,
+        root_index,
     });
 
     Ok(())

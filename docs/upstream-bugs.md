@@ -216,6 +216,40 @@ normal token normalization difference.
 Expected behavior: the reported clone should stop before the inserted email
 group, split around it, or report only the structurally duplicated subranges.
 
+## React public benchmark reports overextended JavaScript clone ranges
+
+Status: observed on the `jscpd` submodule during React public benchmark
+compatibility work.
+
+Repro target:
+
+```sh
+FORMAT=javascript MIN_TOKENS=50 MIN_LINES=5 MAX_SIZE=1mb KEEP=1 \
+  scripts/compat.sh /home/dev/.cache/jscpd-rs/public-bench/repos/react/.
+```
+
+After the Rust clone covers the real duplicated subranges, three upstream
+fragments still look overextended rather than genuinely missed:
+
+- `SyntheticMouseEvent-test.js:21-38`: upstream pairs
+  `SyntheticClipboardEvent-test.js:20-34` with
+  `SyntheticMouseEvent-test.js:21-38`. Lines 21-35 are duplicated setup code,
+  but lines 36-38 already enter the `onMouseMove` test body and do not match
+  the clipboard test's nested `describe`/`it` block.
+- `ReactDOMFizzServerNode.js:179-229`: one upstream clone reports the Node
+  fragment as `229-179` against `ReactDOMFizzServerEdge.js:92-165`, producing a
+  reversed range. The Rust clone covers the surrounding real duplicated
+  subranges, but not the reversed overextension gap.
+- `ReactDOMViewTransition-test.js:39-135`: upstream pairs
+  `ReactDOMSuspensePlaceholder-test.js:37-109` with
+  `ReactDOMViewTransition-test.js:39-135`. Lines 39-111 cover the shared test
+  helpers; lines 112-135 enter a ViewTransition-specific SuspenseList test and
+  do not correspond to the SuspensePlaceholder range.
+
+Expected behavior: clone fragments should stop at the last matching token range,
+or the detector should split separate duplicated subranges instead of extending
+through neighboring non-matching test code.
+
 ## Option fields are exposed but unused at runtime
 
 Status: observed on the `jscpd` submodule during compatibility work.

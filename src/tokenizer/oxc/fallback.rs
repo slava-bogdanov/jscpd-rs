@@ -5,6 +5,7 @@ use super::super::{
 };
 use super::lexical::{is_js_constant, is_js_keyword};
 use super::push_line_comment_tokens;
+use super::scan_regex_literal_end;
 
 pub(super) fn tokenize_js_like_range(
     tokens: &mut Vec<DetectionToken>,
@@ -47,6 +48,12 @@ pub(super) fn tokenize_js_like_range(
                 scan_block_comment(bytes, idx, range_end),
                 TokenKind::Comment,
             )
+        } else if bytes[idx] == b'/' {
+            if let Some(end) = scan_regex_literal_end(context.content, idx, range_end) {
+                (end, TokenKind::String)
+            } else {
+                scan_operator_or_punctuation(bytes, idx, range_end)
+            }
         } else if bytes[idx] == b'`' {
             (
                 scan_template_literal(bytes, idx, range_end).unwrap_or(range_end),
