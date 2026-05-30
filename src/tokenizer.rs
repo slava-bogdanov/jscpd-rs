@@ -81,7 +81,7 @@ fn assign_token_positions(
 ) {
     let needs_report_positions =
         options.reporters.iter().any(|reporter| reporter == "json") || !options.silent;
-    if !needs_report_positions || !matches!(format, "typescript" | "tsx") {
+    if !needs_report_positions || !matches!(format, "javascript" | "typescript" | "jsx" | "tsx") {
         for (position, token) in tokens.iter_mut().enumerate() {
             token.start.position = position;
             token.end.position = position;
@@ -1058,16 +1058,17 @@ mod tests {
     }
 
     #[test]
-    fn typescript_json_positions_count_prism_whitespace_tokens() {
+    fn js_like_json_report_positions_count_prism_whitespace_tokens() {
         let options = Options {
             reporters: vec!["json".to_string()],
             ..Options::default()
         };
-        let tokens =
-            super::tokenize_for_detection("let a = 1;\nlet b = 2;", "typescript", &options);
-        assert_eq!(tokens[0].start.position, 0);
-        assert_eq!(tokens[1].start.position, 2);
-        assert_eq!(tokens[5].start.position, 9);
+        for format in ["javascript", "typescript"] {
+            let tokens = super::tokenize_for_detection("let a = 1;\nlet b = 2;", format, &options);
+            assert_eq!(tokens[0].start.position, 0);
+            assert_eq!(tokens[1].start.position, 2);
+            assert_eq!(tokens[5].start.position, 9);
+        }
     }
 
     #[test]
