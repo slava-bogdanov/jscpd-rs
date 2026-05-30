@@ -5,6 +5,11 @@ These drafts are prepared from `docs/upstream-bugs.md` for filing issues in
 posting. Drafts that use public repositories include pinned commits; the other
 drafts use upstream fixtures or minimal inline reproductions.
 
+Verification snapshot: the quick repros for Drafts 1, 2, 3, 5, 6, and 7 were
+checked on 2026-05-31 against upstream submodule `50290cf`. Draft 4 is covered
+by the public benchmark compatibility gate recorded in
+`docs/compat-baseline.md`.
+
 ## Draft 1: JavaScript tokenizer treats `//` inside a template literal as a comment
 
 Suggested title:
@@ -100,11 +105,11 @@ node jscpd/apps/jscpd/bin/jscpd jscpd/fixtures/javascript \
   --exitCode 0
 ```
 
-Observed first error:
+Observed first error on the current submodule:
 
 ```text
-Error: Command failed with exit code 128: /usr/bin/git blame -w jscpd/fixtures/javascript/file_4.js
-fatal: no such path 'jscpd/fixtures/javascript/file_4.js' in HEAD
+Error: Command failed with exit code 128: /usr/bin/git blame -w jscpd/fixtures/javascript/file_2.mjs
+fatal: no such path 'jscpd/fixtures/javascript/file_2.mjs' in HEAD
 ```
 
 Expected behavior:
@@ -247,6 +252,29 @@ without the CLI numeric parser. Numeric-looking strings for some fields continue
 through JavaScript coercion, but `minTokens` is later used in token-window
 indexing with `+` before numeric subtraction. A value such as `"5"` can produce
 string-concatenated indices and eventually an undefined token frame.
+
+Minimal repro:
+
+Run this from the upstream `jscpd` repository root:
+
+```bash
+tmp=$(mktemp -d)
+JSCPD_REPO=$(pwd)
+mkdir -p "$tmp/src"
+printf 'function alpha(){\n  return [1,2,3,4,5,6,7,8,9,10].map((x)=>x+1).join(",");\n}\nfunction beta(){\n  return alpha();\n}\n' > "$tmp/src/a.js"
+cp "$tmp/src/a.js" "$tmp/src/b.js"
+printf '{"path":["src"],"format":["javascript"],"reporters":["json"],"silent":true,"minTokens":"5","minLines":1,"maxSize":"1mb","exitCode":0}\n' > "$tmp/.jscpd.json"
+
+cd "$tmp"
+node "$JSCPD_REPO/apps/jscpd/bin/jscpd" --config .jscpd.json --noTips
+```
+
+Observed first error:
+
+```text
+TypeError: Cannot read properties of undefined (reading 'range')
+    at _RabinKarp.enlargeClone (.../packages/core/dist/index.js:100:49)
+```
 
 Expected behavior:
 
