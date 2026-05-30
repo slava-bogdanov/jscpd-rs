@@ -1,19 +1,11 @@
-mod blame;
-mod cli;
-mod detector;
-mod files;
-mod formats;
-mod report;
-mod tokenizer;
-mod verbose;
-
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use clap::Parser;
 
-use crate::cli::{Cli, ExitCode, Options};
-use crate::files::SourceFile;
+use jscpd_rs::cli::{Cli, ExitCode, Options};
+use jscpd_rs::files::SourceFile;
+use jscpd_rs::{cli, files, formats, report, verbose};
 
 fn main() {
     if let Err(error) = run() {
@@ -73,10 +65,7 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    let mut result = detector::detect(files, &options);
-    if options.blame {
-        blame::apply_blame(&mut result);
-    }
+    let result = jscpd_rs::detect_source_files(files, &options);
 
     if options.verbose {
         verbose::write_detection_events(&result);

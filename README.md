@@ -19,7 +19,9 @@ compatible CLI replacement for common `jscpd` workflows:
   `badge`;
 - upstream-synchronized format registry with native JS/TS/JSX/TSX tokenization
   and generic native tokenization for long-tail formats;
-- native blame support through Git.
+- native blame support through Git;
+- initial native Rust library API for running detection from paths or prepared
+  in-memory sources.
 
 Dynamic npm reporters, stores, listeners, and plugins are intentionally out of
 scope for the first release. Unknown external reporters/stores keep
@@ -54,6 +56,19 @@ The CLI intentionally uses the upstream command name and help shape:
 jscpd --help
 jscpd --list
 ```
+
+## Library API
+
+The crate exposes the detector core for native integrations:
+
+```rust
+let options = jscpd_rs::cli::Options::default();
+let result = jscpd_rs::detect_clones_and_statistics(&options)?;
+let clones = result.clones;
+```
+
+`detect_source_files` accepts in-memory `SourceFile` values, which is the
+foundation for the upstream-style snippet/server workflow.
 
 ## Compatibility Gates
 

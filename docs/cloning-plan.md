@@ -62,6 +62,9 @@ Known MVP gaps:
 - Blame data is populated from native `git blame -w`. Store options currently
   match the local upstream missing-store fallback. Dynamic external stores are
   not implemented yet.
+- A native Rust API now exposes detection from configured paths and prepared
+  in-memory sources. Exact upstream JavaScript package API compatibility and
+  the standalone `jscpd-server` application remain follow-up work.
 - `cache`, config `listeners`, and `tokensToSkip` are parsed for option-surface
   compatibility, but upstream currently does not consume them in runtime code.
 - No full parity for non-native syntax-specific token streams yet.
@@ -78,8 +81,9 @@ Known MVP gaps:
    language-aware token streams. Prefer existing parsers/tokenizers over custom
    grammars.
 4. Reporters: polish remaining report details and terminal UX.
-5. Advanced sources: full non-native tokenizer parity, dynamic external stores,
-   dynamic external reporters, and stricter `strict`/`mild`/`weak` parity.
+5. Advanced surfaces: full non-native tokenizer parity, dynamic external
+   stores, dynamic external reporters, programmatic API/server parity, and
+   stricter `strict`/`mild`/`weak` parity.
 6. Performance work: parallel file reads/tokenization, compact hash storage,
    faster hashers where compatible, memory profiling, and optional external
    store backends.
