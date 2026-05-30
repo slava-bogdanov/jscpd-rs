@@ -48,6 +48,17 @@ This smoke check runs both implementations from a real `.jscpd.json`, including
 relative `path`, config `output`, `silent`, JSON reporter setup, and
 order-sensitive `formatsExts` object mappings.
 
+Upstream CI fixture gate:
+
+```bash
+scripts/compat-upstream-ci.sh
+```
+
+This mirrors upstream's CI smoke command, `jscpd ./fixtures`, with the upstream
+defaults that matter for detection (`minTokens=50`, `minLines=5`,
+`maxSize=100kb`). It uses the coverage-first comparison, so Rust may report
+additional clones but must cover every upstream duplicated line.
+
 Aggregate gate:
 
 ```bash
@@ -66,6 +77,7 @@ coverage-first compatibility matrix and is required before publication.
 | `jscpd/fixtures` | `javascript` | pass | exact summary parity |
 | `jscpd/fixtures` | `typescript` | pass | exact summary parity |
 | `jscpd/fixtures/javascript` | `json` | pass | exact clone and line summary parity |
+| `jscpd/fixtures` | auto, upstream CI defaults | pass | 422/422 upstream fragments line-covered; Rust reports a few extra generic/SFC ranges |
 | `jscpd/fixtures/custom` | auto + `--formats-exts c:ccc,cc1` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/ignore` | auto | pass | clone-count gate; ignored blocks produce 0 clones |
 | `jscpd/fixtures/ignore-pattern` | auto + `--ignore-pattern` | pass | exact clone and line summary parity |
@@ -238,9 +250,11 @@ coverage-first compatibility matrix and is required before publication.
   prefixes are comments in the upstream Prism grammar.
 - CSS-like generic formats split common punctuation so practical stylesheet
   clones meet upstream token thresholds without carrying a full Prism port.
-- Code-like generic formats split common punctuation and operator runs so
-  practical language fixtures meet upstream token thresholds without carrying
-  a full Prism port.
+- Code-like and Prism-like generic formats split common punctuation and
+  operator runs so practical language fixtures meet upstream default token
+  thresholds without carrying a full Prism port. This includes long-tail
+  fixture formats such as YAML, INI, markup, HAML, DOT, CSV, CMake, Clojure,
+  CoffeeScript, Q#, SPARQL, and Robot Framework.
 - Properties uses the same generic punctuation/operator split so dotted keys
   and assignments reach upstream clone thresholds without a dedicated lexer.
 - Several upstream fixture directories are gated through upstream aliases:

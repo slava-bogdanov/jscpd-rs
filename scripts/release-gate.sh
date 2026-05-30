@@ -23,6 +23,9 @@ scripts/compat-config.sh
 printf '\n== reporter compatibility ==\n'
 scripts/compat-reporters.sh
 
+printf '\n== upstream CI fixture compatibility ==\n'
+scripts/compat-upstream-ci.sh
+
 if [[ "${FULL:-0}" == "1" ]]; then
   printf '\n== full compatibility matrix ==\n'
   STRICT="${STRICT:-coverage}" scripts/compat-matrix.sh

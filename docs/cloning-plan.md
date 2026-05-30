@@ -14,6 +14,13 @@ The reference implementation is a TypeScript monorepo:
   supported languages. Current upstream supports 223 formats and special
   block-aware tokenization for Vue, Svelte, Astro, and Markdown.
 
+Upstream testing is conventional package-level Vitest behind `pnpm test`,
+orchestrated by Turbo. The public CI workflow builds, lints, runs tests, and
+then smoke-runs `./apps/jscpd/bin/jscpd ./fixtures`. Upstream does not keep a
+separate public benchmark suite or a pinned set of large repositories; the
+README only documents small fixture-based output-size timing/token examples and
+a note about tokenizer speed on unspecified real projects.
+
 The core flow is:
 
 1. Parse CLI/config into options.

@@ -392,8 +392,11 @@ fn weak_mode_skips_generic_semicolon_comments() {
         .map(|token| &content[token.range[0]..token.range[1]])
         .collect::<Vec<_>>();
 
-    assert_eq!(strong.len(), 5);
-    assert_eq!(token_values, vec!["[main]", "key=value", "other=value"]);
+    assert_eq!(strong.len(), 11);
+    assert_eq!(
+        token_values,
+        vec!["[", "main", "]", "key", "=", "value", "other", "=", "value"]
+    );
 }
 
 #[test]
@@ -449,13 +452,25 @@ fn long_tail_code_like_formats_split_punctuation_and_operators() {
         "aspnet",
         "cfml",
         "cfscript",
+        "clojure",
+        "cmake",
+        "coffeescript",
+        "csv",
+        "dot",
         "eiffel",
+        "haml",
+        "ini",
+        "markup",
         "ocaml",
         "plsql",
         "purescript",
         "python",
+        "qsharp",
         "rescript",
+        "robotframework",
+        "sparql",
         "tt2",
+        "yaml",
     ] {
         let tokens = tokenize_for_detection(content, format, &Options::default());
         let token_values = tokens
