@@ -8,8 +8,8 @@ use super::embedded::{
     tokenize_generic_with_whitespace,
 };
 use super::{
-    DetectionToken, LineIndex, TokenKind, TokenMap, find_ignore_regions, hash_token, is_oxc_format,
-    tokenize_generic, tokenize_oxc_maps,
+    DetectionToken, LineIndex, TokenMap, find_ignore_regions, is_oxc_format, tokenize_generic,
+    tokenize_oxc_maps,
 };
 
 pub(super) fn tokenize_maps(
@@ -33,7 +33,6 @@ pub(super) fn tokenize_maps(
     let mut maps = Vec::new();
     let line_index = LineIndex::new(content);
     let mut markdown_tokens = tokenize_generic(&sanitized, "markdown", options, ignore_regions);
-    push_markdown_fence_markers(content, &fences, &mut markdown_tokens, &line_index);
     if !markdown_tokens.is_empty() {
         markdown_tokens.sort_by_key(|token| (token.range[0], token.range[1]));
         maps.push(TokenMap {
@@ -81,28 +80,6 @@ pub(super) fn tokenize_maps(
     }
 
     maps
-}
-
-fn push_markdown_fence_markers(
-    content: &str,
-    fences: &[MarkdownFence],
-    tokens: &mut Vec<DetectionToken>,
-    line_index: &LineIndex,
-) {
-    for fence in fences {
-        let start = line_index.location(fence.block_start);
-        let end = line_index.location(fence.block_end);
-        tokens.push(DetectionToken {
-            hash: hash_token(
-                TokenKind::Default,
-                &content[fence.block_start..fence.block_end],
-                false,
-            ),
-            start,
-            end,
-            range: [fence.block_start, fence.block_start],
-        });
-    }
 }
 
 #[derive(Debug)]
