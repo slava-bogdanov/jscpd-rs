@@ -52,6 +52,17 @@ This smoke check runs both implementations from real `.jscpd.json` and
 `silent`, JSON reporter setup, `exitCode`, and order-sensitive `formatsExts`
 object mappings.
 
+Blame gate:
+
+```bash
+scripts/compat-blame.sh
+```
+
+This smoke check creates a temporary Git repository, commits a duplicated pair,
+runs both implementations with `--blame --reporters json`, verifies that both
+JSON reports include matching blame data on both duplicate fragments, and then
+compares the reports with the default coverage rule.
+
 Upstream CI fixture gate:
 
 ```bash
