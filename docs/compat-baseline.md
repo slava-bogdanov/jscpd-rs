@@ -137,16 +137,22 @@ CI gate:
 
 The GitHub Actions workflow checks out the upstream submodule, installs Rust
 and Node, and runs the default release gate on pushes and pull requests. Manual
-workflow dispatch exposes `full`, `public`, and `public_runs` inputs for the
-pre-release full matrix and public benchmark gates.
+workflow dispatch exposes `full`, `public`, `release_candidate`, and
+`public_runs` inputs for the pre-release full matrix, public benchmark, and
+release-candidate gates.
+
+Latest local release-candidate check: `scripts/release-candidate.sh` passed on
+2026-05-30 at `ccdf5dc`, covering
+`cargo clippy --all-targets -- -D warnings`, the default release gate, the full
+coverage matrix, and the public benchmark/coverage suite.
 
 Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.184628s | 10.059620s | 54.49x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.241178s | 14.238566s | 59.04x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.075945s | 4.508015s | 59.36x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.183395s | 9.873147s | 53.84x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.242307s | 14.270050s | 58.89x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.073140s | 4.488724s | 61.37x | pass |
 
 ## Current Matrix
 
@@ -425,9 +431,9 @@ project tree:
 
 | Target | Commit | Format | Rust avg | Upstream avg | Approx speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `facebook/react` | `f0dfee3` | `javascript` | `0.181628s` | `9.956166s` | `55x` |
-| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.240113s` | `14.080903s` | `59x` |
-| `prometheus/prometheus` | `a0524ee` | `go` | `0.078047s` | `4.490761s` | `58x` |
+| `facebook/react` | `f0dfee3` | `javascript` | `0.183395s` | `9.873147s` | `54x` |
+| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.242307s` | `14.270050s` | `59x` |
+| `prometheus/prometheus` | `a0524ee` | `go` | `0.073140s` | `4.488724s` | `61x` |
 
 ## Additional Mode Checks
 
