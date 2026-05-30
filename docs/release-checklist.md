@@ -46,6 +46,7 @@ Before publishing, all of these must be true:
   we plan to file.
 - `docs/upstream-issue-drafts.md` contains reviewed issue drafts ready to
   verify against current upstream and post.
+- `CHANGELOG.md` contains the exact release notes for the version being tagged.
 
 ## First-Release Scope
 

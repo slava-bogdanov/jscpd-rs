@@ -131,8 +131,9 @@ Latest recorded public benchmark baseline:
 See [docs/compat-baseline.md](docs/compat-baseline.md) for the current gate
 baseline, [docs/release-readiness.md](docs/release-readiness.md) for component
 status, [docs/release-checklist.md](docs/release-checklist.md) for the
-publication checklist, and [docs/release-decisions.md](docs/release-decisions.md)
-for approved first-release compatibility decisions.
+publication checklist, [CHANGELOG.md](CHANGELOG.md) for release notes, and
+[docs/release-decisions.md](docs/release-decisions.md) for approved
+first-release compatibility decisions.
 
 ## Known First-Release Deviations
 

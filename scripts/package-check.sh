@@ -16,6 +16,7 @@ PACKAGE_LIST="$TMP_ROOT/package-list.txt"
 cargo package --allow-dirty --no-verify --list >"$PACKAGE_LIST"
 
 required_files=(
+  "CHANGELOG.md"
   "Cargo.lock"
   "Cargo.toml"
   "LICENSE"
