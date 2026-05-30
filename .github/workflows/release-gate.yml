@@ -17,6 +17,11 @@ on:
         required: false
         default: false
         type: boolean
+      release_candidate:
+        description: "Run release-candidate gate"
+        required: false
+        default: false
+        type: boolean
       public_runs:
         description: "Number of public benchmark timing runs"
         required: false
@@ -36,6 +41,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       FULL: ${{ github.event_name == 'workflow_dispatch' && inputs.full && '1' || '0' }}
       PUBLIC: ${{ github.event_name == 'workflow_dispatch' && inputs.public && '1' || '0' }}
+      RELEASE_CANDIDATE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_candidate && '1' || '0' }}
       PUBLIC_RUNS: ${{ github.event_name == 'workflow_dispatch' && inputs.public_runs || '1' }}
     steps:
       - name: Checkout
@@ -47,6 +53,7 @@ jobs:
         run: |
           rustup toolchain install 1.93.0 --profile minimal
           rustup component add rustfmt --toolchain 1.93.0
+          rustup component add clippy --toolchain 1.93.0
           rustup default 1.93.0
 
       - name: Install Node
@@ -58,4 +65,9 @@ jobs:
         run: corepack enable
 
       - name: Release gate
-        run: scripts/release-gate.sh
+        run: |
+          if [[ "$RELEASE_CANDIDATE" == "1" ]]; then
+            FULL=1 PUBLIC=1 PUBLIC_RUNS="$PUBLIC_RUNS" scripts/release-candidate.sh
+          else
+            scripts/release-gate.sh
+          fi

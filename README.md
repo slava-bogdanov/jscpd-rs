@@ -89,7 +89,8 @@ scripts/release-candidate.sh
 
 The GitHub Actions workflow runs the fast gate on pushes and pull requests.
 Manual workflow runs can enable the full compatibility matrix and public
-benchmark suite before a release.
+benchmark suite before a release, or set `release_candidate=true` to run the
+full release-candidate gate in CI.
 
 Latest recorded public benchmark baseline:
 

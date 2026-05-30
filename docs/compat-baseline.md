@@ -126,6 +126,8 @@ This is the pre-publication gate: it runs
 `cargo clippy --all-targets -- -D warnings`, the default release gate, the full
 compatibility matrix with `STRICT=coverage`, and the public benchmark/coverage
 suite with three timing runs on the default public cases.
+The GitHub Actions workflow exposes the same path through the
+`release_candidate` manual dispatch input.
 
 CI gate:
 
