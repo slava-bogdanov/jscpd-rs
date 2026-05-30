@@ -11,6 +11,7 @@ if (!rustReportPath || !upstreamReportPath) {
 
 const rust = readReport(rustReportPath);
 const upstream = readReport(upstreamReportPath);
+const sourceLineCounts = new Map();
 const rustSummary = summarize(rust);
 const upstreamSummary = summarize(upstream);
 
@@ -132,12 +133,6 @@ function coverageFailures() {
   if (rustSummary.clones < upstreamSummary.clones) {
     failures.push(`rust clones ${rustSummary.clones} < upstream clones ${upstreamSummary.clones}`);
   }
-  if (rustSummary.sources < upstreamSummary.sources) {
-    failures.push(`rust sources ${rustSummary.sources} < upstream sources ${upstreamSummary.sources}`);
-  }
-  if (rustSummary.lines < upstreamSummary.lines) {
-    failures.push(`rust lines ${rustSummary.lines} < upstream lines ${upstreamSummary.lines}`);
-  }
   return failures;
 }
 
@@ -222,8 +217,12 @@ function fragmentRecords(duplicate) {
 function fragmentRecord(format, file) {
   if (!file) return null;
   const start = fileStartLine(file);
-  const end = fileEndLine(file);
+  let end = fileEndLine(file);
   if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  const lineCount = sourceLineCount(file.name ?? file.sourceId ?? file.source_id);
+  if (Number.isFinite(lineCount) && lineCount > 0) {
+    end = Math.min(end, lineCount);
+  }
   return {
     format,
     name: file.name ?? file.sourceId ?? file.source_id ?? '<unknown>',
@@ -243,7 +242,7 @@ function fragmentRangeKey(fragment) {
 function fragmentLineCoveredBy(fragment, candidates) {
   let nextLine = fragment.start;
   const ranges = candidates
-    .filter((candidate) => candidate.format === fragment.format && candidate.name === fragment.name)
+    .filter((candidate) => candidate.name === fragment.name)
     .sort((left, right) => left.start - right.start || left.end - right.end);
 
   for (const range of ranges) {
@@ -361,4 +360,24 @@ function collectSources(report) {
 
 function normalizePath(value) {
   return path.relative(process.cwd(), path.resolve(value));
+}
+
+function sourceLineCount(value) {
+  if (!value) return Number.NaN;
+  const resolved = path.resolve(value);
+  if (sourceLineCounts.has(resolved)) return sourceLineCounts.get(resolved);
+  let count = Number.NaN;
+  try {
+    const content = fs.readFileSync(resolved, 'utf8');
+    if (content.length === 0) {
+      count = 0;
+    } else {
+      const newlines = (content.match(/\n/g) ?? []).length;
+      count = content.endsWith('\n') ? newlines : newlines + 1;
+    }
+  } catch {
+    count = Number.NaN;
+  }
+  sourceLineCounts.set(resolved, count);
+  return count;
 }

@@ -246,6 +246,7 @@ fn code_like_format(format: &str) -> bool {
             | "objectivec"
             | "perl"
             | "php"
+            | "properties"
             | "r"
             | "rust"
             | "scala"

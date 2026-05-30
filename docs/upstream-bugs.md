@@ -110,6 +110,37 @@ path as a regular file, so `git blame` exits with 128.
 Expected behavior: blame should run from the file's own repository/worktree, or
 fail per file without aborting the entire detection run.
 
+## Pug report overextends a clone into a non-matching `style.` block
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+Repro target:
+
+```sh
+FORMAT=pug MIN_TOKENS=20 MIN_LINES=3 MAX_SIZE=1mb KEEP=1 scripts/compat.sh jscpd/fixtures/pug
+```
+
+Observed upstream clone:
+
+- `jscpd/fixtures/pug/file1.pug:1-274`
+- `jscpd/fixtures/pug/file2.pug:1-266`
+
+Those ranges include the `style.` multiline plain-text block. The upstream
+tokenizer emits that block as one `multiline-plain-text` token:
+
+```text
+file1.pug: token 391, lines 49-274, length 5278, md5 prefix 8a231
+file2.pug: token 391, lines 49-266, length 5115, md5 prefix 9eaf8
+```
+
+The token values differ: `file1.pug` contains extra `.clones-excellent` and
+`.clones-fine` CSS blocks before `.clones-danger`, while `file2.pug` jumps
+directly from `.stats` to `.clones-danger`.
+
+Expected behavior: the reported clone range should stop before the non-matching
+multiline token, or the tokenizer should split the `style.` content so only
+matching CSS ranges are reported.
+
 ## Option fields are exposed but unused at runtime
 
 Status: observed on the `jscpd` submodule during compatibility work.

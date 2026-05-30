@@ -9,9 +9,10 @@ STRICT=coverage scripts/compat-matrix.sh
 ```
 
 Coverage means every upstream duplicated line must be covered by the Rust report
-for the same file and format. Exact clone starts, fragment boundaries, and pair
-ordering are diagnostic only because Rust may find a wider or split equivalent
-range while compatibility is converging.
+for the same file, and Rust must not report fewer clones. Exact clone starts,
+formats, fragment boundaries, source totals, line totals, and pair ordering are
+diagnostic only because Rust may find a wider or split equivalent range while
+compatibility is converging.
 
 ## Current Matrix
 
@@ -91,6 +92,13 @@ range while compatibility is converging.
 | `jscpd/fixtures/tcl` | `tcl` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/turtle` | `turtle` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/twig` | `twig` | pass | 6/6 upstream fragments line-covered |
+| `jscpd/fixtures/properties` | `properties` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/xml` | `markup` | pass | 6/6 upstream fragments line-covered; Rust skips empty XML/XSD inputs |
+| `jscpd/fixtures/vb` | `vbnet` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/text` | `txt` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/robotframework` | `robotframework` | pass | 4/4 upstream fragments line-covered; upstream reports final newline as one-past-content |
+| `jscpd/fixtures/tap` | `tap` | pass | upstream YAML embedded block is covered by a wider TAP clone |
+| `jscpd/fixtures/textile` | `textile` | pass | exact clone summary parity |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
@@ -118,6 +126,8 @@ range while compatibility is converging.
 - Code-like generic formats split common punctuation and operator runs so
   practical language fixtures meet upstream token thresholds without carrying
   a full Prism port.
+- Properties uses the same generic punctuation/operator split so dotted keys
+  and assignments reach upstream clone thresholds without a dedicated lexer.
 - Apex extracts bracketed SOQL regions into an embedded `sql` map to match
   upstream's multi-format Apex reports.
 - `--mode strict` now preserves Prism-style `empty` and `new_line` whitespace

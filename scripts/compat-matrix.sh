@@ -106,6 +106,13 @@ run_case "fixtures zig" "jscpd/fixtures/zig" "zig" 20 3
 run_case "fixtures tcl" "jscpd/fixtures/tcl" "tcl" 20 3
 run_case "fixtures turtle" "jscpd/fixtures/turtle" "turtle" 20 3
 run_case "fixtures twig" "jscpd/fixtures/twig" "twig" 20 3
+run_case "fixtures properties" "jscpd/fixtures/properties" "properties" 20 3
+run_case "fixtures markup" "jscpd/fixtures/xml" "markup" 20 3
+run_case "fixtures vbnet" "jscpd/fixtures/vb" "vbnet" 20 3
+run_case "fixtures txt" "jscpd/fixtures/text" "txt" 20 3
+run_case "fixtures robotframework" "jscpd/fixtures/robotframework" "robotframework" 20 3
+run_case "fixtures tap" "jscpd/fixtures/tap" "tap" 20 3
+run_case "fixtures textile" "jscpd/fixtures/textile" "textile" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5
