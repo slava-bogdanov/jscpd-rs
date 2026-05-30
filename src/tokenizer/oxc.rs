@@ -187,6 +187,10 @@ fn push_oxc_token(
         tokenize_js_like_range(tokens, context, span.start, span.end, line_index);
         return;
     }
+    if kind == Kind::Ident && value.contains('-') {
+        tokenize_js_like_range(tokens, context, span.start, span.end, line_index);
+        return;
+    }
     if matches!(
         kind,
         Kind::TemplateHead | Kind::TemplateMiddle | Kind::TemplateTail

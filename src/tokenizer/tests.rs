@@ -107,6 +107,21 @@ fn jsx_text_unclosed_quote_stops_at_line_end() {
 }
 
 #[test]
+fn jsx_dashed_identifiers_are_split_like_prism() {
+    let content = r#"expect(root).toMatchRenderedOutput(<suspensey-thing src="A" />);"#;
+    let tokens = tokenize_for_detection(content, "javascript", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(values.contains(&"suspensey"));
+    assert!(values.contains(&"-"));
+    assert!(values.contains(&"thing"));
+    assert!(!values.contains(&"suspensey-thing"));
+}
+
+#[test]
 fn js_spread_token_is_operator_like_prism() {
     let content = "const next = [...items];";
     let tokens = tokenize_for_detection(content, "javascript", &Options::default());
