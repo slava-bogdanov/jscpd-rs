@@ -8,8 +8,8 @@ use super::embedded::{
     tokenize_generic_with_whitespace,
 };
 use super::{
-    DetectionToken, LineIndex, TokenMap, find_ignore_regions, is_oxc_format, tokenize_generic,
-    tokenize_oxc_maps,
+    ByteSpan, DetectionToken, LineIndex, TokenContext, TokenKind, TokenMap, find_ignore_regions,
+    is_oxc_format, push_token, tokenize_generic, tokenize_oxc_maps,
 };
 
 pub(super) fn tokenize_maps(
@@ -33,6 +33,14 @@ pub(super) fn tokenize_maps(
     let mut maps = Vec::new();
     let line_index = LineIndex::new(content);
     let mut markdown_tokens = tokenize_generic(&sanitized, "markdown", options, ignore_regions);
+    push_markdown_fence_gap_tokens(
+        &mut markdown_tokens,
+        &sanitized,
+        &fences,
+        options,
+        ignore_regions,
+        &line_index,
+    );
     if !markdown_tokens.is_empty() {
         markdown_tokens.sort_by_key(|token| (token.range[0], token.range[1]));
         maps.push(TokenMap {
@@ -91,6 +99,7 @@ pub(super) fn tokenize_maps(
 #[derive(Debug)]
 struct MarkdownFence {
     format: String,
+    front_matter: bool,
     block_start: usize,
     inner_start: usize,
     inner_end: usize,
@@ -129,6 +138,7 @@ fn markdown_fenced_code_blocks(content: &str, options: &Options) -> Vec<Markdown
             .unwrap_or(lines[close_idx].start);
         fences.push(MarkdownFence {
             format,
+            front_matter: false,
             block_start: lines[idx].start,
             inner_start,
             inner_end: inner_end.max(inner_start),
@@ -160,11 +170,69 @@ fn markdown_front_matter_block(content: &str) -> Option<MarkdownFence> {
         .unwrap_or(lines[close_idx].start);
     Some(MarkdownFence {
         format: "yaml".to_string(),
+        front_matter: true,
         block_start: 0,
         inner_start,
         inner_end: inner_end.max(inner_start),
         block_end: lines[close_idx].next_start.min(content.len()),
     })
+}
+
+fn push_markdown_fence_gap_tokens(
+    tokens: &mut Vec<DetectionToken>,
+    sanitized: &str,
+    fences: &[MarkdownFence],
+    options: &Options,
+    ignore_regions: &[[usize; 2]],
+    line_index: &LineIndex,
+) {
+    let context = TokenContext {
+        content: sanitized,
+        options,
+        ignore_regions,
+    };
+    for fence in fences.iter().filter(|fence| !fence.front_matter) {
+        let mut start = fence.block_start;
+        while start < fence.block_end {
+            let ch = sanitized[start..].chars().next().unwrap_or('\0');
+            if !ch.is_whitespace() {
+                start += ch.len_utf8();
+                continue;
+            }
+            let (end, kind) = scan_markdown_gap_whitespace(sanitized, start, fence.block_end);
+            // Upstream Prism keeps same-line whitespace spans inside blanked
+            // fences, but starting clones on newline tokens shifts report
+            // starts to the previous line.
+            if kind == TokenKind::NewLine {
+                start = end.max(start + ch.len_utf8());
+                continue;
+            }
+            push_token(
+                tokens,
+                &context,
+                kind,
+                ByteSpan { start, end },
+                line_index.location(start),
+                line_index.location(end),
+            );
+            start = end.max(start + ch.len_utf8());
+        }
+    }
+}
+
+fn scan_markdown_gap_whitespace(content: &str, start: usize, limit: usize) -> (usize, TokenKind) {
+    if content.as_bytes()[start] == b'\n' {
+        return (start + 1, TokenKind::NewLine);
+    }
+    let mut end = start;
+    while end < limit {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        if ch == '\n' || !ch.is_whitespace() {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+    (end, TokenKind::Empty)
 }
 
 #[derive(Clone, Copy)]

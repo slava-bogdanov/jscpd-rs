@@ -247,6 +247,28 @@ fn markdown_fenced_code_is_removed_from_markdown_map() {
 }
 
 #[test]
+fn markdown_fenced_gap_tokens_stay_on_their_lines() {
+    let content = "before\n```ts\nconst hidden = true;\n```\nafter\n";
+    let maps = tokenize_maps_for_detection(content, "markdown", &Options::default());
+    let markdown = maps
+        .iter()
+        .find(|map| map.format == "markdown")
+        .expect("markdown map");
+    let gap_tokens = markdown
+        .tokens
+        .iter()
+        .filter(|token| (2..=4).contains(&token.start.line))
+        .collect::<Vec<_>>();
+
+    assert!(gap_tokens.iter().any(|token| token.start.line == 3));
+    assert!(
+        gap_tokens
+            .iter()
+            .all(|token| token.start.line == token.end.line)
+    );
+}
+
+#[test]
 fn markdown_fenced_typescript_uses_language_name() {
     let content = "```typescript\ntype Answer = number;\n```\n";
     let maps = tokenize_maps_for_detection(content, "markdown", &Options::default());
