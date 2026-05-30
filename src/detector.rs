@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::cli::Options;
 use crate::files::SourceFile;
-use crate::tokenizer::{DetectionToken, Location, tokenize_for_detection};
+use crate::tokenizer::{DetectionToken, Location, tokenize_maps_for_detection};
 
 const WINDOW_HASH_BASE: u64 = 0x9e37_79b9_7f4a_7c15;
 
@@ -119,12 +119,34 @@ struct PreparedSource {
     stream: TokenStream,
 }
 
+#[derive(Debug)]
+struct PreparedSourceDraft {
+    meta: SourceMeta,
+    hashes: Vec<u64>,
+    spans: Vec<TokenSpan>,
+}
+
 pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
-    let (format_ids, format_names) = assign_formats(&files);
-    let prepared_files = files
+    let prepared_drafts = files
         .into_par_iter()
+        .map(|file| prepare_file_maps(file, options))
+        .collect::<Vec<_>>()
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    let (format_ids, format_names) = assign_formats(&prepared_drafts);
+    let prepared_files = prepared_drafts
+        .into_iter()
         .enumerate()
-        .map(|(idx, file)| prepare_file(idx, file, format_ids[idx], options))
+        .map(|(idx, draft)| PreparedSource {
+            meta: draft.meta,
+            stream: TokenStream {
+                source_id: SourceId(idx),
+                format_id: format_ids[idx],
+                hashes: draft.hashes,
+                spans: draft.spans,
+            },
+        })
         .collect::<Vec<_>>();
 
     let mut statistics = Statistics::default();
@@ -188,18 +210,18 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
     }
 }
 
-fn assign_formats(files: &[SourceFile]) -> (Vec<FormatId>, Vec<String>) {
+fn assign_formats(files: &[PreparedSourceDraft]) -> (Vec<FormatId>, Vec<String>) {
     let mut by_name = FxHashMap::default();
     let mut names = Vec::new();
     let ids = files
         .iter()
         .map(|file| {
-            if let Some(id) = by_name.get(&file.format) {
+            if let Some(id) = by_name.get(&file.meta.format) {
                 *id
             } else {
                 let id = FormatId(names.len());
-                by_name.insert(file.format.clone(), id);
-                names.push(file.format.clone());
+                by_name.insert(file.meta.format.clone(), id);
+                names.push(file.meta.format.clone());
                 id
             }
         })
@@ -207,31 +229,25 @@ fn assign_formats(files: &[SourceFile]) -> (Vec<FormatId>, Vec<String>) {
     (ids, names)
 }
 
-fn prepare_file(
-    idx: usize,
-    file: SourceFile,
-    format_id: FormatId,
-    options: &Options,
-) -> PreparedSource {
-    let tokens = tokenize_for_detection(&file.content, &file.format, options);
-    let (hashes, spans) = split_tokens(tokens);
-    let (stat_lines, stat_tokens) = token_stream_statistics(&spans);
-
-    PreparedSource {
-        meta: SourceMeta {
-            source_id: file.source_id,
-            format: file.format,
-            content: file.content,
-            lines: stat_lines,
-            tokens: stat_tokens,
-        },
-        stream: TokenStream {
-            source_id: SourceId(idx),
-            format_id,
-            hashes,
-            spans,
-        },
-    }
+fn prepare_file_maps(file: SourceFile, options: &Options) -> Vec<PreparedSourceDraft> {
+    tokenize_maps_for_detection(&file.content, &file.format, options)
+        .into_iter()
+        .map(|map| {
+            let (hashes, spans) = split_tokens(map.tokens);
+            let (stat_lines, stat_tokens) = token_stream_statistics(&spans);
+            PreparedSourceDraft {
+                meta: SourceMeta {
+                    source_id: file.source_id.clone(),
+                    format: map.format,
+                    content: file.content.clone(),
+                    lines: stat_lines,
+                    tokens: stat_tokens,
+                },
+                hashes,
+                spans,
+            }
+        })
+        .collect()
 }
 
 fn split_tokens(tokens: Vec<DetectionToken>) -> (Vec<u64>, Vec<TokenSpan>) {

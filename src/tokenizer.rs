@@ -23,6 +23,13 @@ pub struct DetectionToken {
     pub range: [usize; 2],
 }
 
+#[derive(Clone, Debug)]
+pub struct TokenMap {
+    pub format: String,
+    pub tokens: Vec<DetectionToken>,
+    positions_assigned: bool,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TokenKind {
     Comment,
@@ -38,6 +45,12 @@ enum TokenKind {
 struct ByteSpan {
     start: usize,
     end: usize,
+}
+
+#[derive(Clone, Copy)]
+struct RawOxcToken {
+    kind: Kind,
+    span: ByteSpan,
 }
 
 struct TokenContext<'a> {
@@ -58,19 +71,36 @@ impl TokenContext<'_> {
     }
 }
 
-pub fn tokenize_for_detection(
+#[cfg(test)]
+fn tokenize_for_detection(content: &str, format: &str, options: &Options) -> Vec<DetectionToken> {
+    tokenize_maps_for_detection(content, format, options)
+        .into_iter()
+        .next()
+        .map(|map| map.tokens)
+        .unwrap_or_default()
+}
+
+pub fn tokenize_maps_for_detection(
     content: &str,
     format: &str,
     options: &Options,
-) -> Vec<DetectionToken> {
+) -> Vec<TokenMap> {
     let ignore_regions = find_ignore_regions(content, options);
-    let mut tokens = if is_oxc_format(format) {
-        tokenize_oxc(content, format, options, &ignore_regions)
+    let mut maps = if is_oxc_format(format) {
+        tokenize_oxc_maps(content, format, options, &ignore_regions)
     } else {
-        tokenize_generic(content, options, &ignore_regions)
+        vec![TokenMap {
+            format: format.to_string(),
+            tokens: tokenize_generic(content, options, &ignore_regions),
+            positions_assigned: false,
+        }]
     };
-    assign_token_positions(content, format, options, &mut tokens);
-    tokens
+    for map in &mut maps {
+        if !map.positions_assigned {
+            assign_token_positions(content, &map.format, options, &mut map.tokens);
+        }
+    }
+    maps
 }
 
 fn assign_token_positions(
@@ -175,12 +205,12 @@ fn tokenize_generic(
     tokens
 }
 
-fn tokenize_oxc(
+fn tokenize_oxc_maps(
     content: &str,
     format: &str,
     options: &Options,
     ignore_regions: &[[usize; 2]],
-) -> Vec<DetectionToken> {
+) -> Vec<TokenMap> {
     let context = TokenContext {
         content,
         options,
@@ -194,31 +224,45 @@ fn tokenize_oxc(
     let line_index = LineIndex::new(content);
     let mut tokens = Vec::with_capacity(content.len().saturating_div(6));
     let mut previous_end = 0usize;
-    let parser_tokens = parser_return.tokens;
+    let parser_tokens = parser_return
+        .tokens
+        .iter()
+        .map(|token| RawOxcToken {
+            kind: token.kind(),
+            span: ByteSpan {
+                start: (token.start() as usize).min(content.len()),
+                end: (token.end() as usize).min(content.len()),
+            },
+        })
+        .collect::<Vec<_>>();
+    let jsx_script_groups = if matches!(format, "jsx" | "tsx") {
+        jsx_attribute_script_groups(&parser_tokens)
+    } else {
+        Vec::new()
+    };
     let mut idx = 0usize;
 
     while idx < parser_tokens.len() {
         let token = &parser_tokens[idx];
-        let start_byte = (token.start() as usize).min(content.len());
-        let mut end_byte = (token.end() as usize).min(content.len());
+        let start_byte = token.span.start;
+        let mut end_byte = token.span.end;
         if start_byte > previous_end {
             push_comments_in_gap(&mut tokens, &context, previous_end, start_byte, &line_index);
         }
-        if token.kind() == Kind::RAngle {
+        if token.kind == Kind::RAngle {
             while idx + 1 < parser_tokens.len() {
                 let next = &parser_tokens[idx + 1];
-                let next_start = (next.start() as usize).min(content.len());
-                if next.kind() != Kind::RAngle || next_start != end_byte {
+                if next.kind != Kind::RAngle || next.span.start != end_byte {
                     break;
                 }
                 idx += 1;
-                end_byte = (next.end() as usize).min(content.len());
+                end_byte = next.span.end;
             }
         }
         push_oxc_token(
             &mut tokens,
             &context,
-            token.kind(),
+            token.kind,
             ByteSpan {
                 start: start_byte,
                 end: end_byte,
@@ -249,7 +293,141 @@ fn tokenize_oxc(
         }
     }
 
+    let mut maps = vec![TokenMap {
+        format: format.to_string(),
+        tokens,
+        positions_assigned: false,
+    }];
+    if matches!(format, "jsx" | "tsx") {
+        let embedded = tokenize_jsx_attribute_scripts(
+            &parser_tokens,
+            &jsx_script_groups,
+            &context,
+            &line_index,
+        );
+        if !embedded.is_empty() {
+            maps.push(TokenMap {
+                format: "javascript".to_string(),
+                tokens: embedded,
+                positions_assigned: true,
+            });
+        }
+    }
+    maps
+}
+
+fn tokenize_jsx_attribute_scripts(
+    parser_tokens: &[RawOxcToken],
+    groups: &[(usize, usize)],
+    context: &TokenContext<'_>,
+    line_index: &LineIndex,
+) -> Vec<DetectionToken> {
+    let mut tokens = Vec::new();
+    let mut next_position = 0usize;
+    let mut previous_group_end = None;
+
+    for &(group_start_idx, group_end_idx) in groups {
+        let group_start = parser_tokens[group_start_idx].span.start;
+        if let Some(previous_end) = previous_group_end {
+            next_position += count_embedded_gap_positions(
+                context.content,
+                parser_tokens,
+                previous_end,
+                group_start,
+            );
+        }
+        for raw in &parser_tokens[group_start_idx..=group_end_idx] {
+            let before = tokens.len();
+            push_oxc_token(&mut tokens, context, raw.kind, raw.span, line_index);
+            for pushed in &mut tokens[before..] {
+                pushed.start.position = next_position;
+                pushed.end.position = next_position;
+                next_position += 1;
+            }
+        }
+        previous_group_end = Some(parser_tokens[group_end_idx].span.end);
+    }
+
     tokens
+}
+
+fn jsx_attribute_script_groups(parser_tokens: &[RawOxcToken]) -> Vec<(usize, usize)> {
+    let mut groups = Vec::new();
+    let mut in_jsx_tag = false;
+    let mut idx = 0usize;
+
+    while idx < parser_tokens.len() {
+        let token = parser_tokens[idx];
+        if !in_jsx_tag && token.kind == Kind::LAngle && looks_like_jsx_tag_start(parser_tokens, idx)
+        {
+            in_jsx_tag = true;
+            idx += 1;
+            continue;
+        }
+        if in_jsx_tag && token.kind == Kind::RAngle {
+            in_jsx_tag = false;
+            idx += 1;
+            continue;
+        }
+        if in_jsx_tag
+            && token.kind == Kind::Eq
+            && parser_tokens
+                .get(idx + 1)
+                .is_some_and(|next| next.kind == Kind::LCurly)
+            && let Some(group_end_idx) = jsx_attribute_expression_end(parser_tokens, idx + 1)
+        {
+            groups.push((idx, group_end_idx));
+            idx = group_end_idx + 1;
+            continue;
+        }
+        idx += 1;
+    }
+
+    groups
+}
+
+fn looks_like_jsx_tag_start(parser_tokens: &[RawOxcToken], idx: usize) -> bool {
+    matches!(
+        parser_tokens.get(idx + 1).map(|token| token.kind),
+        Some(Kind::Ident) | Some(Kind::This) | Some(Kind::PrivateIdentifier)
+    ) || matches!(
+        (
+            parser_tokens.get(idx + 1).map(|token| token.kind),
+            parser_tokens.get(idx + 2).map(|token| token.kind),
+        ),
+        (Some(Kind::Slash), Some(Kind::Ident))
+    )
+}
+
+fn jsx_attribute_expression_end(parser_tokens: &[RawOxcToken], lcurly_idx: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (idx, token) in parser_tokens.iter().enumerate().skip(lcurly_idx) {
+        match token.kind {
+            Kind::LCurly => depth += 1,
+            Kind::RCurly => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return Some(idx);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn count_embedded_gap_positions(
+    content: &str,
+    parser_tokens: &[RawOxcToken],
+    gap_start: usize,
+    gap_end: usize,
+) -> usize {
+    count_prism_whitespace_tokens(content, gap_start, gap_end)
+        + parser_tokens
+            .iter()
+            .filter(|token| token.span.start >= gap_start && token.span.end <= gap_end)
+            .filter(|token| token.kind != Kind::Skip)
+            .count()
 }
 
 fn source_type_for_format(format: &str) -> SourceType {
@@ -1069,6 +1247,25 @@ mod tests {
             assert_eq!(tokens[1].start.position, 2);
             assert_eq!(tokens[5].start.position, 9);
         }
+    }
+
+    #[test]
+    fn jsx_attribute_expression_emits_embedded_javascript_map() {
+        let maps = super::tokenize_maps_for_detection(
+            "const x = <div className={classNames(className, classes)} />;",
+            "jsx",
+            &Options::default(),
+        );
+        assert_eq!(maps.len(), 2);
+        assert_eq!(maps[0].format, "jsx");
+        assert_eq!(maps[1].format, "javascript");
+
+        let embedded = &maps[1].tokens;
+        assert_eq!(embedded.len(), 9);
+        assert_eq!(
+            embedded.last().unwrap().end.position - embedded.first().unwrap().start.position,
+            8
+        );
     }
 
     #[test]
