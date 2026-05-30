@@ -60,7 +60,9 @@ This smoke check runs both implementations from real `.jscpd.json` and
 `silent`, JSON reporter setup, `exitCode`, and order-sensitive `formatsExts`
 object mappings. It also verifies explicit `--config` files outside `cwd`,
 `formatsNames` mappings for extensionless filenames,
-`reportersOptions.badge` path/subject/status/color overrides, and checks that
+`reportersOptions.badge` path/subject/status/color overrides, debug
+option-surface preservation for `cache`, `listeners`, and `tokensToSkip`, and
+checks that
 malformed `package.json` files emit a warning and do not prevent detection from
 continuing.
 
