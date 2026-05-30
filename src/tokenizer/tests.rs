@@ -529,6 +529,18 @@ fn weak_mode_skips_generic_comments() {
 }
 
 #[test]
+fn yaml_quoted_scalars_are_single_string_tokens() {
+    let content = "email: \"jane@example.com\"\n";
+    let tokens = tokenize_for_detection(content, "yaml", &Options::default());
+    let values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(values, vec!["email", ":", "\"jane@example.com\""]);
+}
+
+#[test]
 fn strict_mode_keeps_generic_whitespace_tokens() {
     let content = "alpha beta\ngamma";
     let strict_options = Options {

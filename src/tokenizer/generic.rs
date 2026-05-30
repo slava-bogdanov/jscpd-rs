@@ -48,6 +48,8 @@ pub(super) fn tokenize_generic(
             generic_comment_span_end(content, format, start_byte, content.len())
         {
             (comment_end, TokenKind::Comment)
+        } else if format == "yaml" && matches!(ch, '"' | '\'') {
+            (scan_quoted_string(content, start_byte), TokenKind::String)
         } else if punctuation_split_format(format) {
             scan_punctuation_split_token(content, format, start_byte)
         } else {
@@ -117,6 +119,28 @@ fn scan_operator_token(content: &str, start: usize) -> usize {
             break;
         }
         end += ch.len_utf8();
+    }
+    end
+}
+
+fn scan_quoted_string(content: &str, start: usize) -> usize {
+    let quote = content[start..].chars().next().unwrap_or('\0');
+    let mut escaped = false;
+    let mut end = start + quote.len_utf8();
+    while end < content.len() {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        end += ch.len_utf8();
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if ch == '\\' {
+            escaped = true;
+            continue;
+        }
+        if ch == quote || matches!(ch, '\n' | '\r') {
+            break;
+        }
     }
     end
 }

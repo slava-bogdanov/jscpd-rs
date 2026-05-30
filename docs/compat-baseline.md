@@ -185,7 +185,7 @@ Latest public benchmark measurements:
 | `jscpd/fixtures/javascript` | `javascript` / `weak` | pass | clone and line summary parity; token totals differ slightly |
 | `jscpd/fixtures` | `jsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures` | `tsx` | pass | token totals differ slightly; fragments covered |
-| `jscpd/fixtures/markdown` | `markdown` | pass | 18/18 upstream fragments line-covered; Rust reports wider/split ranges |
+| `jscpd/fixtures/markdown` | `markdown` | pass | 18/18 upstream fragments line-covered; embedded YAML starts now align; Markdown prose still reports wider/split ranges |
 | `jscpd/fixtures` | `vue` | pass | 18/18 upstream fragments line-covered; template starts match upstream; one wider internal scss range remains |
 | `jscpd/fixtures` | `svelte` | pass | 6/6 upstream fragments line-covered; exact start differs for wider css range |
 | `jscpd/fixtures` | `astro` | pass | exact upstream fragment/start coverage; Rust still reports duplicate extra embedded clones |
@@ -324,8 +324,8 @@ Latest public benchmark measurements:
 - Long-tail formats are now discoverable through the upstream-synchronized
   registry, but most use generic tokenization and do not carry parity claims.
 - Markdown extracts YAML front matter and fenced code blocks into embedded
-  format maps. The upstream Markdown fixture is line-covered, though exact
-  starts still differ where Rust reports wider/split ranges.
+  format maps. YAML quoted scalars are kept whole so front matter starts align
+  with upstream; Markdown prose remains line-covered with wider/split ranges.
 - Vue, Svelte, and Astro now split embedded template/script/style/frontmatter
   regions into format maps. Embedded generic block maps split common
   punctuation while preserving internal whitespace, and SFC block-edge

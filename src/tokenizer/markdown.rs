@@ -48,6 +48,12 @@ pub(super) fn tokenize_maps(
         let inner_ignore_regions = find_ignore_regions(inner, options);
         let inner_maps = if is_oxc_format(&fence.format) {
             tokenize_oxc_maps(inner, &fence.format, options, &inner_ignore_regions)
+        } else if fence.format == "yaml" {
+            vec![TokenMap {
+                format: fence.format.clone(),
+                tokens: tokenize_generic(inner, &fence.format, options, &inner_ignore_regions),
+                positions_assigned: false,
+            }]
         } else {
             vec![TokenMap {
                 format: fence.format.clone(),
