@@ -168,6 +168,10 @@ require_both_contain stdout "Supported formats:"
 require_both_contain stdout "typescript"
 
 run_case "debug listing" 0 "$TARGET_REL" --debug --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "Options:"
+require_both_contain stdout "path: ["
+require_both_contain stdout "mode: [Function: mild]"
+require_both_contain stdout "maxSize: '1mb'"
 require_both_contain stdout "Found 1 files to detect."
 
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"

@@ -301,6 +301,10 @@ impl FormatMappings {
         self.0.is_empty()
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Vec<String>)> {
+        self.0.iter().map(|(format, values)| (format, values))
+    }
+
     pub fn find_format_for_value(&self, value: &str) -> Option<&str> {
         self.0.iter().find_map(|(format, values)| {
             values

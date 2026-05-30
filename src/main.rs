@@ -110,13 +110,155 @@ const TIPS: &[&str] = &[
 fn debug_output(options: &Options, files: &[SourceFile]) -> String {
     let mut output = String::new();
     output.push_str("Options:\n");
-    output.push_str(&format!("{options:#?}\n"));
+    output.push_str(&debug_options_output(options));
+    output.push('\n');
     for file in files {
         output.push_str(&file.source_id);
         output.push('\n');
     }
     output.push_str(&format!("Found {} files to detect.\n", files.len()));
     output
+}
+
+fn debug_options_output(options: &Options) -> String {
+    let mut fields = vec![
+        debug_string_field("executionId", options.execution_id.as_deref().unwrap_or("")),
+        debug_array_field(
+            "path",
+            &options
+                .paths
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>(),
+        ),
+        format!("  mode: [Function: {}]", mode_name(options.mode)),
+        format!("  minLines: {}", options.min_lines),
+        format!("  maxLines: {}", options.max_lines),
+        debug_string_field("maxSize", &debug_size(options.max_size_bytes)),
+        format!("  minTokens: {}", options.min_tokens),
+        debug_string_field("output", &options.output.display().to_string()),
+        debug_array_field("reporters", &options.reporters),
+        debug_array_field("ignore", &options.ignore),
+        debug_optional_number_field("threshold", options.threshold),
+        debug_format_mappings_field("formatsExts", &options.formats_exts),
+        debug_format_mappings_field("formatsNames", &options.formats_names),
+        format!("  debug: {}", options.debug),
+        format!("  silent: {}", options.silent),
+        format!("  blame: {}", options.blame),
+        format!("  cache: {}", options.cache),
+        format!("  absolute: {}", options.absolute),
+        format!("  noSymlinks: {}", options.no_symlinks),
+        format!("  skipLocal: {}", options.skip_local),
+        format!("  ignoreCase: {}", options.ignore_case),
+        format!("  gitignore: {}", options.gitignore),
+        debug_reporter_options_field(options),
+        format!("  exitCode: {}", options.exit_code),
+        format!("  noTips: {}", options.no_tips),
+        debug_array_field("listeners", &options.listeners),
+        debug_array_field("format", &debug_formats(options)),
+    ];
+
+    if options.pattern != "**/*" {
+        fields.push(debug_string_field("pattern", &options.pattern));
+    }
+    if let Some(store) = &options.store {
+        fields.push(debug_string_field("store", store));
+    }
+    if let Some(store_path) = &options.store_path {
+        fields.push(debug_string_field(
+            "storePath",
+            &store_path.display().to_string(),
+        ));
+    }
+    if !options.tokens_to_skip.is_empty() {
+        fields.push(debug_array_field("tokensToSkip", &options.tokens_to_skip));
+    }
+
+    format!("{{\n{}\n}}", fields.join(",\n"))
+}
+
+fn debug_string_field(name: &str, value: &str) -> String {
+    format!("  {name}: '{}'", js_quote(value))
+}
+
+fn debug_array_field(name: &str, values: &[String]) -> String {
+    if values.is_empty() {
+        return format!("  {name}: []");
+    }
+    let values = values
+        .iter()
+        .map(|value| format!("'{}'", js_quote(value)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("  {name}: [ {values} ]")
+}
+
+fn debug_optional_number_field(name: &str, value: Option<f64>) -> String {
+    match value {
+        Some(value) => format!("  {name}: {value}"),
+        None => format!("  {name}: undefined"),
+    }
+}
+
+fn debug_format_mappings_field(name: &str, mappings: &cli::FormatMappings) -> String {
+    if mappings.is_empty() {
+        return format!("  {name}: {{}}");
+    }
+    let entries = mappings
+        .iter()
+        .map(|(format, values)| {
+            let values = values
+                .iter()
+                .map(|value| format!("'{}'", js_quote(value)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{}: [ {values} ]", js_quote(format))
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("  {name}: {{ {entries} }}")
+}
+
+fn debug_reporter_options_field(options: &Options) -> String {
+    if options.reporters_options.is_empty() {
+        return "  reportersOptions: {}".to_string();
+    }
+    let json = serde_json::to_string(&options.reporters_options).unwrap_or_else(|_| "{}".into());
+    format!("  reportersOptions: {json}")
+}
+
+fn debug_formats(options: &Options) -> Vec<String> {
+    let supported = formats::supported_formats();
+    match &options.formats {
+        Some(selected) => supported
+            .into_iter()
+            .filter(|format| selected.contains(*format))
+            .map(str::to_string)
+            .collect(),
+        None => supported.into_iter().map(str::to_string).collect(),
+    }
+}
+
+fn debug_size(bytes: u64) -> String {
+    if bytes % (1024 * 1024) == 0 {
+        format!("{}mb", bytes / (1024 * 1024))
+    } else if bytes % 1024 == 0 {
+        format!("{}kb", bytes / 1024)
+    } else {
+        format!("{bytes}b")
+    }
+}
+
+fn mode_name(mode: cli::Mode) -> &'static str {
+    match mode {
+        cli::Mode::Strict => "strict",
+        cli::Mode::Mild => "mild",
+        cli::Mode::Weak => "weak",
+    }
+}
+
+fn js_quote(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
 fn list_output() -> String {
@@ -134,6 +276,7 @@ mod tests {
     fn debug_output_lists_options_and_files() {
         let options = Options {
             debug: true,
+            formats: Some(std::collections::HashSet::from(["typescript".to_string()])),
             ..Options::default()
         };
         let files = vec![
@@ -152,7 +295,13 @@ mod tests {
         let output = debug_output(&options, &files);
 
         assert!(output.starts_with("Options:\n"));
+        assert!(!output.contains("Options {"));
+        assert!(output.contains("executionId: '"));
+        assert!(output.contains("path: [ '"));
         assert!(output.contains("debug: true"));
+        assert!(output.contains("mode: [Function: mild]"));
+        assert!(output.contains("maxSize: '100kb'"));
+        assert!(output.contains("format: [ 'typescript' ]"));
         assert!(output.contains("src/a.ts\nsrc/b.ts"));
         assert!(output.ends_with("Found 2 files to detect.\n"));
         assert!(!output.contains("const a = 1"));

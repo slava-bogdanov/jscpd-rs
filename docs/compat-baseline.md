@@ -275,8 +275,8 @@ coverage-first compatibility matrix and is required before publication.
   it warns that the store package is not installed and continues with in-memory
   detection. Dynamic loading of external store packages remains an
   implementation gap.
-- `--debug` is a dry run like upstream: it prints options and discovered files,
-  then exits before clone detection and reporter execution.
+- `--debug` is a dry run like upstream: it prints JS-style option fields and
+  discovered files, then exits before clone detection and reporter execution.
 - `--list` follows the upstream output shape: a `Supported formats:` header
   followed by comma-separated formats.
 - Non-silent runs print clone progress for non-`ai` reporters, then reporter
