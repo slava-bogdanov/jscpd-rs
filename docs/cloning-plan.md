@@ -97,6 +97,22 @@ Result on this workspace:
 Initial signal: continuing makes sense, but the next milestone must measure
 speed while closing tokenization/report compatibility gaps.
 
+## Compatibility Gate
+
+The project now uses a coverage-first compatibility rule for ongoing cloning
+work:
+
+- Rust must not miss duplicates reported by upstream `jscpd` for the same input
+  and options.
+- Rust may report additional duplicates while compatibility is converging.
+- Missing upstream duplicates are blocking compatibility failures.
+- Extra Rust duplicates are tracked as diagnostics and fixed when they represent
+  likely false positives or user-visible report noise.
+- Exact 1:1 parity remains a useful quality metric, but it is not the default
+  gate for deciding whether the clone is viable.
+
+Use the compatibility harness with `STRICT=coverage` to enforce this rule.
+
 ## Larger Local Repo Benchmarks
 
 All commands below used TypeScript-only scanning to keep the comparison focused:

@@ -27,12 +27,12 @@ const upstreamDuplicates = getDuplicates(upstream);
 const rustStartKeys = new Set(rustDuplicates.map(startKey));
 const upstreamStartKeys = new Set(upstreamDuplicates.map(startKey));
 const commonStartKeys = [...rustStartKeys].filter((key) => upstreamStartKeys.has(key));
-const missingStartKeys = upstreamDuplicates
-  .filter((duplicate) => !rustStartKeys.has(startKey(duplicate)))
-  .slice(0, 10);
-const extraStartKeys = rustDuplicates
-  .filter((duplicate) => !upstreamStartKeys.has(startKey(duplicate)))
-  .slice(0, 10);
+const allMissingStartKeys = upstreamDuplicates
+  .filter((duplicate) => !rustStartKeys.has(startKey(duplicate)));
+const allExtraStartKeys = rustDuplicates
+  .filter((duplicate) => !upstreamStartKeys.has(startKey(duplicate)));
+const missingStartKeys = allMissingStartKeys.slice(0, 10);
+const extraStartKeys = allExtraStartKeys.slice(0, 10);
 
 console.log('');
 console.log(
@@ -71,6 +71,14 @@ if (process.env.SOURCE_DELTAS) {
   printSourceDeltas(rust, upstream, limit);
 }
 
+if (process.env.STRICT === 'coverage' || process.env.STRICT === 'coverage-first') {
+  const failures = coverageFailures();
+  if (failures.length > 0) {
+    console.error(`coverage comparison failed: ${failures.join(', ')}`);
+    process.exit(1);
+  }
+}
+
 if (process.env.STRICT === '1') {
   const mismatches = Object.entries(rustSummary)
     .filter(([key, value]) => Number(value) !== Number(upstreamSummary[key]))
@@ -79,6 +87,23 @@ if (process.env.STRICT === '1') {
     console.error(`strict comparison failed: ${mismatches.join(', ')}`);
     process.exit(1);
   }
+}
+
+function coverageFailures() {
+  const failures = [];
+  if (allMissingStartKeys.length > 0) {
+    failures.push(`missing upstream clone starts: ${allMissingStartKeys.length}`);
+  }
+  if (rustSummary.clones < upstreamSummary.clones) {
+    failures.push(`rust clones ${rustSummary.clones} < upstream clones ${upstreamSummary.clones}`);
+  }
+  if (rustSummary.sources < upstreamSummary.sources) {
+    failures.push(`rust sources ${rustSummary.sources} < upstream sources ${upstreamSummary.sources}`);
+  }
+  if (rustSummary.lines < upstreamSummary.lines) {
+    failures.push(`rust lines ${rustSummary.lines} < upstream lines ${upstreamSummary.lines}`);
+  }
+  return failures;
 }
 
 function readReport(path) {
@@ -139,7 +164,8 @@ function startKey(duplicate) {
   if (!duplicate) return '<none>';
   const first = duplicate.firstFile ?? duplicate.duplicationA;
   const second = duplicate.secondFile ?? duplicate.duplicationB;
-  return [formatStart(first), formatStart(second)].sort().join(' <> ');
+  const format = duplicate.format ?? 'unknown';
+  return `${format}:` + [formatStart(first), formatStart(second)].sort().join(' <> ');
 }
 
 function formatStart(file) {
@@ -220,9 +246,9 @@ function printSourceDeltas(rustReport, upstreamReport, limit) {
 
 function collectSources(report) {
   const rows = new Map();
-  for (const format of Object.values(report.statistics?.formats ?? {})) {
+  for (const [formatName, format] of Object.entries(report.statistics?.formats ?? {})) {
     for (const [source, stats] of Object.entries(format.sources ?? {})) {
-      rows.set(normalizePath(source), stats);
+      rows.set(`${formatName}:${normalizePath(source)}`, stats);
     }
   }
   return rows;

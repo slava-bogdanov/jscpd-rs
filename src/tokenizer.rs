@@ -33,6 +33,7 @@ pub struct TokenMap {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TokenKind {
     Comment,
+    Constant,
     Keyword,
     Number,
     Operator,
@@ -336,19 +337,68 @@ fn tokenize_jsx_attribute_scripts(
                 group_start,
             );
         }
+        let mut expression_depth = 0usize;
+        let mut previous_token_end = None;
         for raw in &parser_tokens[group_start_idx..=group_end_idx] {
             let before = tokens.len();
+            // Prism keeps default whitespace string tokens inside nested JSX
+            // script objects, and those tokens can decide minTokens windows.
+            if expression_depth >= 2
+                && let Some(gap_start) = previous_token_end
+            {
+                push_embedded_default_gap(
+                    &mut tokens,
+                    context,
+                    gap_start,
+                    raw.span.start,
+                    line_index,
+                );
+            }
             push_oxc_token(&mut tokens, context, raw.kind, raw.span, line_index);
             for pushed in &mut tokens[before..] {
                 pushed.start.position = next_position;
                 pushed.end.position = next_position;
                 next_position += 1;
             }
+            match raw.kind {
+                Kind::LCurly => expression_depth += 1,
+                Kind::RCurly => expression_depth = expression_depth.saturating_sub(1),
+                _ => {}
+            }
+            previous_token_end = Some(raw.span.end);
         }
         previous_group_end = Some(parser_tokens[group_end_idx].span.end);
     }
 
     tokens
+}
+
+fn push_embedded_default_gap(
+    tokens: &mut Vec<DetectionToken>,
+    context: &TokenContext<'_>,
+    gap_start: usize,
+    gap_end: usize,
+    line_index: &LineIndex,
+) {
+    if gap_start >= gap_end {
+        return;
+    }
+    if !context.content[gap_start..gap_end]
+        .chars()
+        .all(char::is_whitespace)
+    {
+        return;
+    }
+    push_token_part(
+        tokens,
+        context,
+        TokenKind::Default,
+        ByteSpan {
+            start: gap_start,
+            end: gap_end,
+        },
+        line_index,
+    );
 }
 
 fn jsx_attribute_script_groups(parser_tokens: &[RawOxcToken]) -> Vec<(usize, usize)> {
@@ -485,7 +535,7 @@ fn push_oxc_token(
     }
     tokens.push(DetectionToken {
         hash: hash_token(
-            token_kind_for_oxc(kind),
+            oxc_token_kind(kind, context.slice(span)),
             context.slice(span),
             context.options.ignore_case,
         ),
@@ -637,7 +687,9 @@ fn tokenize_js_like_range(
         } else if is_identifier_start(ch) {
             let end = scan_identifier(context.content, idx, range_end);
             let value = &context.content[idx..end];
-            let kind = if is_js_keyword(value) {
+            let kind = if is_js_constant(value) {
+                TokenKind::Constant
+            } else if is_js_keyword(value) {
                 TokenKind::Keyword
             } else {
                 TokenKind::Default
@@ -798,6 +850,7 @@ fn is_commentish(value: &str) -> bool {
 fn hash_token(kind: TokenKind, value: &str, ignore_case: bool) -> u64 {
     let kind_hash = match kind {
         TokenKind::Comment => 0x01_u64,
+        TokenKind::Constant => 0x08_u64,
         TokenKind::Keyword => 0x02_u64,
         TokenKind::Number => 0x03_u64,
         TokenKind::Operator => 0x04_u64,
@@ -841,6 +894,14 @@ fn token_kind_for_oxc(kind: Kind) -> TokenKind {
         return TokenKind::Operator;
     }
     TokenKind::Default
+}
+
+fn oxc_token_kind(kind: Kind, value: &str) -> TokenKind {
+    if kind == Kind::Ident && is_js_constant(value) {
+        TokenKind::Constant
+    } else {
+        token_kind_for_oxc(kind)
+    }
 }
 
 fn is_oxc_keyword(kind: Kind) -> bool {
@@ -1201,6 +1262,15 @@ fn is_js_keyword(value: &str) -> bool {
     )
 }
 
+fn is_js_constant(value: &str) -> bool {
+    let mut chars = value.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    first.is_ascii_uppercase()
+        && chars.all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '_')
+}
+
 #[cfg(test)]
 mod tests {
     use crate::cli::Options;
@@ -1265,6 +1335,23 @@ mod tests {
         assert_eq!(
             embedded.last().unwrap().end.position - embedded.first().unwrap().start.position,
             8
+        );
+    }
+
+    #[test]
+    fn jsx_embedded_javascript_keeps_nested_object_whitespace() {
+        let content = "const x = <A p={{\n  color: PRIMARY_COLOR\n}} />;";
+        let maps = super::tokenize_maps_for_detection(content, "tsx", &Options::default());
+        let embedded = maps
+            .iter()
+            .find(|map| map.format == "javascript")
+            .expect("embedded javascript map");
+
+        assert!(
+            embedded
+                .tokens
+                .iter()
+                .any(|token| &content[token.range[0]..token.range[1]] == "\n  ")
         );
     }
 
