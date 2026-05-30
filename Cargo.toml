@@ -2,11 +2,25 @@
 name = "jscpd-rs"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.93"
 license = "MIT"
 description = "Fast Rust clone of jscpd"
+readme = "README.md"
+repository = "https://github.com/vv-bogdanov/jscpd-rs"
+keywords = ["jscpd", "copy-paste", "duplication", "clone-detection", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+include = [
+    "/Cargo.lock",
+    "/Cargo.toml",
+    "/LICENSE",
+    "/README.md",
+    "/docs/**",
+    "/examples/**",
+    "/src/**",
+]
 
 [[bin]]
-name = "jscpd-rs"
+name = "jscpd"
 path = "src/main.rs"
 
 [dependencies]

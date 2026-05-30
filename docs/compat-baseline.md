@@ -381,14 +381,14 @@ Recent local sanity checks:
 | `/home/dev/dream` | `tsx` | `0.0358s` | `0.568s` | `16x` |
 | `jscpd/packages` | `typescript` | `0.0143s` | `0.831s` | `58x` |
 
-Initial public benchmark suite checks, using repositories cloned outside the
+Latest public benchmark suite checks, using repositories cloned outside the
 project tree:
 
 | Target | Commit | Format | Rust avg | Upstream avg | Approx speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `facebook/react` | `f0dfee3` | `javascript` | `0.191875s` | `10.227470s` | `53x` |
-| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.624001s` | `14.595568s` | `23x` |
-| `prometheus/prometheus` | `a0524ee` | `go` | `0.082080s` | `4.585403s` | `56x` |
+| `facebook/react` | `f0dfee3` | `javascript` | `0.181628s` | `9.956166s` | `55x` |
+| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.240113s` | `14.080903s` | `59x` |
+| `prometheus/prometheus` | `a0524ee` | `go` | `0.078047s` | `4.490761s` | `58x` |
 
 ## Additional Mode Checks
 

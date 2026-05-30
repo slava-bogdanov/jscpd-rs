@@ -58,7 +58,7 @@ printf 'tmp: %s\n\n' "$TMP_ROOT"
 
 (
   cd "$PROJECT"
-  "$ROOT/target/release/jscpd-rs" src \
+  "$ROOT/target/release/jscpd" src \
     --format javascript \
     --reporters json \
     --output rust \

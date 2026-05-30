@@ -46,7 +46,7 @@ fi
 mkdir -p "$RUST_OUT" "$UPSTREAM_OUT"
 
 rust_cmd=(
-  "$ROOT/target/release/jscpd-rs"
+  "$ROOT/target/release/jscpd"
   "$TARGET_PATH"
   --reporters json
   --output "$RUST_OUT"

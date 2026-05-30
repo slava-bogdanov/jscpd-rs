@@ -29,7 +29,7 @@ if [[ ! -f "$ROOT/jscpd/apps/jscpd/dist/bin/jscpd.js" ]]; then
   pnpm --dir "$ROOT/jscpd" build
 fi
 
-rust_cmd=("$ROOT/target/release/jscpd-rs" "$TARGET_PATH" --silent --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size "$MAX_SIZE")
+rust_cmd=("$ROOT/target/release/jscpd" "$TARGET_PATH" --silent --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size "$MAX_SIZE")
 node_cmd=(node "$ROOT/jscpd/apps/jscpd/bin/jscpd" "$TARGET_PATH" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size "$MAX_SIZE")
 
 if [[ -n "$FORMAT" ]]; then

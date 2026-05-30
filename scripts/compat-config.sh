@@ -283,7 +283,7 @@ run_invalid_package_case() {
   local cmd=()
 
   if [[ "$tool" == "rust" ]]; then
-    cmd=("$ROOT/target/release/jscpd-rs")
+    cmd=("$ROOT/target/release/jscpd")
   else
     cmd=(node "$ROOT/jscpd/apps/jscpd/bin/jscpd")
   fi
@@ -339,7 +339,7 @@ printf 'tmp: %s\n\n' "$TMP_ROOT"
 
 (
   cd "$RUST_PROJECT"
-  "$ROOT/target/release/jscpd-rs"
+  "$ROOT/target/release/jscpd"
 )
 (
   cd "$UPSTREAM_PROJECT"
@@ -358,7 +358,7 @@ printf '\npackage.json config fixture\n\n'
 
 (
   cd "$PACKAGE_RUST_PROJECT"
-  "$ROOT/target/release/jscpd-rs"
+  "$ROOT/target/release/jscpd"
 )
 (
   cd "$PACKAGE_UPSTREAM_PROJECT"
@@ -377,7 +377,7 @@ printf '\nexplicit --config fixture\n\n'
 
 (
   cd "$EXPLICIT_RUST_PROJECT"
-  "$ROOT/target/release/jscpd-rs" --config configs/jscpd.custom.json
+  "$ROOT/target/release/jscpd" --config configs/jscpd.custom.json
 )
 (
   cd "$EXPLICIT_UPSTREAM_PROJECT"
@@ -405,7 +405,7 @@ printf '\nformatsNames config fixture\n\n'
 
 (
   cd "$NAMES_RUST_PROJECT"
-  "$ROOT/target/release/jscpd-rs"
+  "$ROOT/target/release/jscpd"
 )
 (
   cd "$NAMES_UPSTREAM_PROJECT"
@@ -424,7 +424,7 @@ printf '\nbadge reportersOptions config fixture\n\n'
 
 (
   cd "$BADGE_RUST_PROJECT"
-  "$ROOT/target/release/jscpd-rs"
+  "$ROOT/target/release/jscpd"
 )
 (
   cd "$BADGE_UPSTREAM_PROJECT"

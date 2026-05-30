@@ -82,7 +82,7 @@ run_case() {
     "$case_dir/rust.code" \
     "$case_dir/rust.stdout" \
     "$case_dir/rust.stderr" \
-    "$ROOT/target/release/jscpd-rs" \
+    "$ROOT/target/release/jscpd" \
     "${args[@]}"
   run_command \
     "$case_dir/upstream.code" \

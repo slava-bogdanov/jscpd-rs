@@ -53,15 +53,14 @@ or documented before they are added to this allowlist.
 Latest release-gate measurements on May 30, 2026:
 
 ```bash
-FULL=1 PUBLIC=1 PUBLIC_CASES=react,next,prometheus PUBLIC_RUNS=3 \
-  PUBLIC_CHECK_COMPAT=1 PUBLIC_MIN_SPEEDUP=10 scripts/release-gate.sh
+PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh
 ```
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `react` | `f0dfee3` | `javascript` | 0.201130s | 9.810778s | 48.78x |
-| `next` | `2bbb67b9` | `typescript` | 0.542690s | 14.182219s | 26.13x |
-| `prometheus` | `a0524ee` | `go` | 0.078821s | 4.471017s | 56.72x |
+| `react` | `f0dfee3` | `javascript` | 0.181628s | 9.956166s | 54.82x |
+| `next` | `2bbb67b9` | `typescript` | 0.240113s | 14.080903s | 58.64x |
+| `prometheus` | `a0524ee` | `go` | 0.078047s | 4.490761s | 57.54x |
 
 `kubernetes` was also checked as a Go stress case, but upstream `jscpd` ran out
 of memory with the default Node heap, so it is intentionally not part of the
