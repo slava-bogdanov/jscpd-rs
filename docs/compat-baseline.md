@@ -4,11 +4,13 @@ Baseline date: 2026-05-30.
 
 Latest full release gate:
 `FULL=1 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `cd96227`.
+passed on 2026-05-30 at commit `ccdf5dc` as part of
+`scripts/release-candidate.sh`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `ac990a7`.
+passed on 2026-05-30 at commit `ccdf5dc` as part of
+`scripts/release-candidate.sh`.
 
 Default gate:
 
