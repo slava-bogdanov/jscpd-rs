@@ -33,37 +33,96 @@ pub(super) fn compile_patterns(patterns: Vec<String>) -> Result<Vec<Regex>> {
 }
 
 pub(super) fn parse_size(value: &str) -> Result<u64> {
-    let trimmed = value.trim().to_ascii_lowercase();
-    let mut split_at = 0;
-    let mut saw_dot = false;
-    for (idx, ch) in trimmed.char_indices() {
-        if ch.is_ascii_digit() {
-            split_at = idx + ch.len_utf8();
-        } else if ch == '.' && !saw_dot {
-            saw_dot = true;
-            split_at = idx + ch.len_utf8();
-        } else {
-            break;
+    let trimmed = value.trim();
+    if let Some(bytes) = parse_bytes_unit(trimmed) {
+        return Ok(bytes);
+    }
+    Ok(parse_js_int_bytes(trimmed))
+}
+
+fn parse_bytes_unit(value: &str) -> Option<u64> {
+    let (number_part, rest) = split_decimal_prefix(value)?;
+    let suffix = rest.trim_start().to_ascii_lowercase();
+    let multiplier = match suffix.as_str() {
+        "kb" => 1024.0,
+        "mb" => 1024.0 * 1024.0,
+        "gb" => 1024.0 * 1024.0 * 1024.0,
+        "tb" => 1024.0 * 1024.0 * 1024.0 * 1024.0,
+        "pb" => 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0,
+        _ => return None,
+    };
+    let number = number_part.parse::<f64>().ok()?;
+    Some(float_bytes_to_u64(number * multiplier))
+}
+
+fn split_decimal_prefix(value: &str) -> Option<(&str, &str)> {
+    let bytes = value.as_bytes();
+    let mut idx = 0;
+    if matches!(bytes.first(), Some(b'-' | b'+')) {
+        idx = 1;
+    }
+
+    let digit_start = idx;
+    while idx < bytes.len() && bytes[idx].is_ascii_digit() {
+        idx += 1;
+    }
+    if idx == digit_start {
+        return None;
+    }
+
+    if idx < bytes.len() && bytes[idx] == b'.' {
+        let dot = idx;
+        idx += 1;
+        let fraction_start = idx;
+        while idx < bytes.len() && bytes[idx].is_ascii_digit() {
+            idx += 1;
+        }
+        if idx == fraction_start {
+            idx = dot;
         }
     }
-    let number_part = &trimmed[..split_at];
-    if number_part.is_empty() || number_part.starts_with('.') {
-        anyhow::bail!("missing numeric size in `{value}`");
-    }
-    let number = number_part
-        .parse::<f64>()
-        .with_context(|| format!("missing numeric size in `{value}`"))?;
-    let suffix = trimmed[split_at..].trim();
-    let multiplier = match suffix {
-        "" | "b" => 1.0,
-        "k" | "kb" => 1024.0,
-        "m" | "mb" => 1024.0 * 1024.0,
-        "g" | "gb" => 1024.0 * 1024.0 * 1024.0,
-        _ => anyhow::bail!("unsupported size suffix `{suffix}`"),
+
+    Some((&value[..idx], &value[idx..]))
+}
+
+fn parse_js_int_bytes(value: &str) -> u64 {
+    let bytes = value.as_bytes();
+    let mut idx = 0;
+    let negative = match bytes.first() {
+        Some(b'-') => {
+            idx = 1;
+            true
+        }
+        Some(b'+') => {
+            idx = 1;
+            false
+        }
+        _ => false,
     };
-    let bytes = (number * multiplier).floor();
-    if !bytes.is_finite() || bytes < 0.0 {
-        anyhow::bail!("invalid size `{value}`");
+
+    if negative {
+        return 0;
     }
-    Ok(bytes as u64)
+
+    let mut result = 0_u64;
+    let mut saw_digit = false;
+    while idx < bytes.len() && bytes[idx].is_ascii_digit() {
+        saw_digit = true;
+        result = result
+            .saturating_mul(10)
+            .saturating_add((bytes[idx] - b'0') as u64);
+        idx += 1;
+    }
+
+    if saw_digit { result } else { 0 }
+}
+
+fn float_bytes_to_u64(bytes: f64) -> u64 {
+    if !bytes.is_finite() || bytes <= 0.0 {
+        return 0;
+    }
+    if bytes >= u64::MAX as f64 {
+        return u64::MAX;
+    }
+    bytes.floor() as u64
 }

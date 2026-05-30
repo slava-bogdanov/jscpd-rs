@@ -14,7 +14,19 @@ fn parses_size_suffixes() {
     assert_eq!(parse_size("1.5kb").unwrap(), 1536);
     assert_eq!(parse_size("1.5 kb").unwrap(), 1536);
     assert_eq!(parse_size("1.1kb").unwrap(), 1126);
-    assert!(parse_size(".5kb").is_err());
+    assert_eq!(parse_size("+1kb").unwrap(), 1024);
+    assert_eq!(parse_size("1tb").unwrap(), 1024_u64.pow(4));
+    assert_eq!(
+        parse_size("1.5tb").unwrap(),
+        1024_u64.pow(4) + 1024_u64.pow(4) / 2
+    );
+    assert_eq!(parse_size("1pb").unwrap(), 1024_u64.pow(5));
+    assert_eq!(parse_size("1k").unwrap(), 1);
+    assert_eq!(parse_size("1m").unwrap(), 1);
+    assert_eq!(parse_size("1 kb extra").unwrap(), 1);
+    assert_eq!(parse_size(".5kb").unwrap(), 0);
+    assert_eq!(parse_size("nope").unwrap(), 0);
+    assert_eq!(parse_size("-1mb").unwrap(), 0);
 }
 
 #[test]

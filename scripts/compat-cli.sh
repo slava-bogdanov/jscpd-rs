@@ -132,6 +132,28 @@ require_contains() {
   fi
 }
 
+require_both_not_contain() {
+  local stream="$1"
+  local needle="$2"
+  local rust_file="$LAST_CASE_DIR/rust.$stream.clean"
+  local upstream_file="$LAST_CASE_DIR/upstream.$stream.clean"
+
+  require_not_contains "$rust_file" "$needle" "rust $stream"
+  require_not_contains "$upstream_file" "$needle" "upstream $stream"
+}
+
+require_not_contains() {
+  local file="$1"
+  local needle="$2"
+  local label="$3"
+
+  if grep -Fq -- "$needle" "$file"; then
+    printf '%s had unexpected text: %s\n' "$label" "$needle" >&2
+    print_case "$LAST_CASE_DIR"
+    return 1
+  fi
+}
+
 print_case() {
   local case_dir="$1"
   for tool in rust upstream; do
@@ -179,6 +201,15 @@ require_both_contain stdout "$SUMMARY"
 
 run_case "decimal max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1.5kb
 require_both_contain stdout "$SUMMARY"
+
+run_case "terabyte max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1tb
+require_both_contain stdout "$SUMMARY"
+
+run_case "short suffix max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1k
+require_both_not_contain stdout "$SUMMARY"
+
+run_case "invalid max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size nope
+require_both_not_contain stdout "$SUMMARY"
 
 run_case "store fallback warning" 0 "$TARGET_REL" --store leveldb --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
