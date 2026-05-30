@@ -26,17 +26,26 @@ const rustDuplicates = getDuplicates(rust);
 const upstreamDuplicates = getDuplicates(upstream);
 const rustStartKeys = new Set(rustDuplicates.map(startKey));
 const upstreamStartKeys = new Set(upstreamDuplicates.map(startKey));
+const rustFragmentKeys = new Set(rustDuplicates.flatMap(fragmentKeys));
+const upstreamFragmentKeys = new Set(upstreamDuplicates.flatMap(fragmentKeys));
 const commonStartKeys = [...rustStartKeys].filter((key) => upstreamStartKeys.has(key));
+const commonFragmentKeys = [...rustFragmentKeys].filter((key) => upstreamFragmentKeys.has(key));
 const allMissingStartKeys = upstreamDuplicates
   .filter((duplicate) => !rustStartKeys.has(startKey(duplicate)));
 const allExtraStartKeys = rustDuplicates
   .filter((duplicate) => !upstreamStartKeys.has(startKey(duplicate)));
+const allMissingFragmentKeys = [...upstreamFragmentKeys]
+  .filter((key) => !rustFragmentKeys.has(key));
 const missingStartKeys = allMissingStartKeys.slice(0, 10);
 const extraStartKeys = allExtraStartKeys.slice(0, 10);
+const missingFragmentKeys = allMissingFragmentKeys.slice(0, 10);
 
 console.log('');
 console.log(
   `clone start overlap: ${commonStartKeys.length}/${upstreamStartKeys.size} upstream, ${commonStartKeys.length}/${rustStartKeys.size} rust`,
+);
+console.log(
+  `clone fragment coverage: ${commonFragmentKeys.length}/${upstreamFragmentKeys.size} upstream, ${commonFragmentKeys.length}/${rustFragmentKeys.size} rust`,
 );
 
 console.log('');
@@ -59,6 +68,12 @@ if (extraStartKeys.length > 0) {
   console.log('');
   console.log('extra rust starts:');
   for (const duplicate of extraStartKeys) console.log(`  ${startKey(duplicate)}`);
+}
+
+if (missingFragmentKeys.length > 0) {
+  console.log('');
+  console.log('missing upstream fragments:');
+  for (const key of missingFragmentKeys) console.log(`  ${key}`);
 }
 
 if (process.env.DETAILS === '1') {
@@ -91,8 +106,8 @@ if (process.env.STRICT === '1') {
 
 function coverageFailures() {
   const failures = [];
-  if (allMissingStartKeys.length > 0) {
-    failures.push(`missing upstream clone starts: ${allMissingStartKeys.length}`);
+  if (allMissingFragmentKeys.length > 0) {
+    failures.push(`missing upstream clone fragments: ${allMissingFragmentKeys.length}`);
   }
   if (rustSummary.clones < upstreamSummary.clones) {
     failures.push(`rust clones ${rustSummary.clones} < upstream clones ${upstreamSummary.clones}`);
@@ -166,6 +181,18 @@ function startKey(duplicate) {
   const second = duplicate.secondFile ?? duplicate.duplicationB;
   const format = duplicate.format ?? 'unknown';
   return `${format}:` + [formatStart(first), formatStart(second)].sort().join(' <> ');
+}
+
+function fragmentKeys(duplicate) {
+  if (!duplicate) return [];
+  const first = duplicate.firstFile ?? duplicate.duplicationA;
+  const second = duplicate.secondFile ?? duplicate.duplicationB;
+  const format = duplicate.format ?? 'unknown';
+  return [formatFragment(format, first), formatFragment(format, second)];
+}
+
+function formatFragment(format, file) {
+  return `${format}:${formatStart(file)}`;
 }
 
 function formatStart(file) {

@@ -16,14 +16,15 @@ primary reference for behavior.
 ## Compatibility Policy
 
 The primary compatibility gate is coverage-first parity: on the same inputs and
-options, this Rust clone must not miss duplicates reported by upstream `jscpd`.
-Additional duplicates reported only by the Rust implementation are allowed while
-the project is still converging, but they must remain visible in compatibility
-reports as `extra` findings.
+options, this Rust clone must not miss duplicate fragments reported by upstream
+`jscpd`. Additional duplicates reported only by the Rust implementation are
+allowed while the project is still converging, but they must remain visible in
+compatibility reports as `extra` findings.
 
 Exact 1:1 report parity is still valuable, but it is a quality metric rather
-than the default blocking gate. Treat missing upstream duplicates as blockers;
-treat extra Rust duplicates as follow-up compatibility work unless they reveal a
+than the default blocking gate. Treat missing upstream fragments as blockers;
+treat exact-pair ordering differences as diagnostics for multi-way duplicates.
+Treat extra Rust duplicates as follow-up compatibility work unless they reveal a
 clear false-positive regression.
 
 ## Engineering Principles
