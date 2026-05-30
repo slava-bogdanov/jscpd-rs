@@ -8,6 +8,10 @@ use super::model::{
 use super::skip_local::same_configured_root;
 use super::statistics::clone_stat_lines;
 
+mod secondary;
+
+use secondary::{add_secondary_clones, remember_repeated_window};
+
 const WINDOW_HASH_BASE: u64 = 0x9e37_79b9_7f4a_7c15;
 
 pub(super) struct FormatDetection {
@@ -23,6 +27,7 @@ pub(super) fn detect_format(
     options: &Options,
 ) -> FormatDetection {
     let mut store: FxHashMap<u64, Occurrence> = FxHashMap::default();
+    let mut repeated_windows: FxHashMap<u64, Vec<Occurrence>> = FxHashMap::default();
     store.reserve(total_windows(
         source_indices,
         prepared_files,
@@ -71,6 +76,8 @@ pub(super) fn detect_format(
                     } else if let Some(clone) = open_clone.as_mut() {
                         enlarge_clone(clone, current, stored, prepared_files, options);
                     }
+                    remember_repeated_window(&mut repeated_windows, hash, stored);
+                    remember_repeated_window(&mut repeated_windows, hash, current);
                 }
                 _ => {
                     flush_clone(open_clone.take(), &mut clones, &mut skipped_clones, options);
@@ -89,6 +96,15 @@ pub(super) fn detect_format(
         }
         flush_clone(open_clone.take(), &mut clones, &mut skipped_clones, options);
     }
+
+    add_secondary_clones(
+        &format_names[format_id.0],
+        repeated_windows,
+        prepared_files,
+        options,
+        &mut clones,
+        &mut skipped_clones,
+    );
 
     FormatDetection {
         clones,
