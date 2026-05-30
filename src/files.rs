@@ -312,7 +312,7 @@ fn read_candidate(
 }
 
 fn reporter_needs_report_paths(reporter: &str) -> bool {
-    matches!(reporter, "json" | "xml" | "xcode")
+    matches!(reporter, "json" | "xml" | "sarif" | "xcode")
 }
 
 fn is_ignored(path: &Path, ignore_set: &GlobSet, cwd: &Path) -> bool {

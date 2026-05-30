@@ -38,7 +38,8 @@ measure whether a Rust clone has enough performance upside to continue:
 - Language-agnostic non-whitespace tokenizer.
 - MD5 window hashing and in-memory per-format store.
 - Clone growth and `minLines` validation.
-- Console, JSON, CSV, Markdown, XML PMD CPD, and Xcode reporters.
+- Console, JSON, CSV, Markdown, XML PMD CPD, SARIF, Xcode, silent, and
+  threshold reporters.
 - Benchmark script against upstream on the same target path.
 
 Known MVP gaps:
@@ -47,7 +48,7 @@ Known MVP gaps:
 - The upstream format registry is synchronized, but most long-tail formats still
   use generic tokenization rather than Prism-compatible tokenization.
 - `strict/mild/weak` are only approximated.
-- No HTML/SARIF/AI/badge reporters yet, and console output is still MVP-level.
+- No HTML/AI/badge reporters yet, and console output is still MVP-level.
 - No blame, persistent stores, custom format mappings, or embedded block
   tokenization yet.
 
@@ -61,7 +62,7 @@ Known MVP gaps:
 3. Tokenizer backend: replace the MVP tokenizer with maintained crates and
    language-aware token streams. Prefer existing parsers/tokenizers over custom
    grammars.
-4. Reporters: add HTML, SARIF, AI, badge, consoleFull, and full console output.
+4. Reporters: add HTML, AI, badge, consoleFull, and full console output.
 5. Advanced sources: shebang detection, Vue/Svelte/Astro/Markdown block splitting,
    ignore blocks, ignore regex patterns, and weak-mode comment stripping.
 6. Performance work: parallel file reads/tokenization, compact hash storage,
