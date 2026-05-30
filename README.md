@@ -123,14 +123,26 @@ Latest recorded public benchmark baseline:
 
 | Repo | Format | Rust avg | Upstream avg | Speedup |
 | --- | --- | ---: | ---: | ---: |
-| React | JavaScript | 0.184779s | 9.980451s | 54.01x |
-| Next.js | TypeScript | 0.237314s | 14.249317s | 60.04x |
-| Prometheus | Go | 0.079982s | 4.609812s | 57.64x |
+| React | JavaScript | 0.191113s | 9.846157s | 51.52x |
+| Next.js | TypeScript | 0.242847s | 14.149407s | 58.26x |
+| Prometheus | Go | 0.080328s | 4.608977s | 57.38x |
 
 See [docs/compat-baseline.md](docs/compat-baseline.md) for the current gate
 baseline, [docs/release-readiness.md](docs/release-readiness.md) for component
-status, and [docs/release-decisions.md](docs/release-decisions.md) for approved
-first-release compatibility decisions.
+status, [docs/release-checklist.md](docs/release-checklist.md) for the
+publication checklist, and [docs/release-decisions.md](docs/release-decisions.md)
+for approved first-release compatibility decisions.
+
+## Known First-Release Deviations
+
+The first release is native-only and coverage-first. These differences from the
+JavaScript package are intentional unless a real workflow proves otherwise:
+
+- dynamic npm reporters, stores, listeners, and plugins are not loaded;
+- token totals and exact clone pair ordering may differ from Prism-based
+  upstream reports while duplicated upstream lines remain covered;
+- HTML reports are self-contained and practically compatible, not pixel-perfect;
+- the Rust crate exposes a native API, not the upstream JavaScript package API.
 
 ## Development
 
