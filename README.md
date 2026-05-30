@@ -81,6 +81,12 @@ Public benchmark and coverage gate:
 PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh
 ```
 
+Release candidate gate:
+
+```bash
+scripts/release-candidate.sh
+```
+
 The GitHub Actions workflow runs the fast gate on pushes and pull requests.
 Manual workflow runs can enable the full compatibility matrix and public
 benchmark suite before a release.

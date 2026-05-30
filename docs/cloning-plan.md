@@ -84,6 +84,20 @@ Known MVP gaps:
    faster hashers where compatible, memory profiling, and optional external
    store backends.
 
+## Release Candidate Gate
+
+Before publishing a release candidate, run:
+
+```bash
+scripts/release-candidate.sh
+```
+
+This wraps the strict local lint check, the default release gate, the full
+coverage matrix, and the public benchmark/coverage suite into one reproducible
+pre-publication command. The defaults can still be overridden with environment
+variables such as `PUBLIC_CASES`, `PUBLIC_RUNS`, `PUBLIC_MIN_SPEEDUP`, and
+`STRICT`.
+
 ## Current Benchmark
 
 Command:

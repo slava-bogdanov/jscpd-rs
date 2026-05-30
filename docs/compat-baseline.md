@@ -116,6 +116,17 @@ project-owned public benchmark suite with coverage compatibility enabled, using
 to override its defaults. `FULL=1 PUBLIC=1 scripts/release-gate.sh` is required
 before publication.
 
+Release candidate gate:
+
+```bash
+scripts/release-candidate.sh
+```
+
+This is the pre-publication gate: it runs
+`cargo clippy --all-targets -- -D warnings`, the default release gate, the full
+compatibility matrix with `STRICT=coverage`, and the public benchmark/coverage
+suite with three timing runs on the default public cases.
+
 CI gate:
 
 ```bash
