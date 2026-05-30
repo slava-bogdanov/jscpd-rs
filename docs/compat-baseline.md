@@ -270,6 +270,8 @@ coverage-first compatibility matrix and is required before publication.
 - `--max-size`/`maxSize` follows upstream `bytes.parse` semantics, including
   decimal `kb` through `pb` values, `parseInt` fallback for non-matching
   suffixes such as `1k`, and zero-file behavior for invalid limits.
+- CLI `--min-lines`, `--min-tokens`, and `--max-lines` accept upstream-style
+  `parseInt` numeric prefixes, so values such as `20.9` are treated as `20`.
 - If discovery, size, or line filters leave no files to detect, reporters are
   not run, matching upstream's `InFilesDetector` early return. Silent mode
   stays quiet; non-silent mode only prints the terminal footer.
