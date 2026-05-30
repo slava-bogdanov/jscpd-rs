@@ -5,6 +5,7 @@ use crate::detector::DetectionResult;
 
 mod badge;
 mod console;
+mod console_full;
 mod csv;
 mod json;
 mod markdown;
@@ -21,6 +22,9 @@ mod xml;
 pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> {
     if should_write_report("console", options) && !options.silent {
         console::write(result);
+    }
+    if should_write_report("consoleFull", options) {
+        console_full::write(result, options);
     }
     if should_write_report("json", options) {
         json::write(result, options)?;

@@ -156,7 +156,7 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
     let include_source_contents = options
         .reporters
         .iter()
-        .any(|reporter| matches!(reporter.as_str(), "json" | "xml"));
+        .any(|reporter| matches!(reporter.as_str(), "json" | "xml" | "consoleFull"));
 
     for (idx, prepared) in prepared_files.iter().enumerate() {
         if prepared.stream.spans.is_empty() {
