@@ -48,7 +48,8 @@ Known MVP gaps:
 - The upstream format registry is synchronized, but most long-tail formats still
   use generic tokenization rather than Prism-compatible tokenization.
 - `strict/mild/weak` are only approximated.
-- Terminal timing/tips/progress polish is still approximate.
+- Terminal timing/tips/progress/verbose behavior is partially aligned with
+  upstream, including clone progress and detector event output.
 - Blame, persistent store, and cache workflow options are parsed, but the
   workflows themselves are not implemented yet.
 - No full parity for non-native syntax-specific token streams yet.

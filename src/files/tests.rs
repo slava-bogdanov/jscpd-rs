@@ -5,6 +5,7 @@ use std::path::Path;
 use crate::cli::Options;
 
 use super::discover;
+use super::discovery::format_filter_skip_message;
 use super::gitignore::gitignore_line_to_globs;
 use super::paths::{display_relative_to, fast_glob_like_path_cmp, relative_path};
 
@@ -65,6 +66,17 @@ fn gitignore_line_to_globs_preserves_negations_like_upstream() {
         globs
             .iter()
             .any(|glob| glob == "!/repo/app/ignored/keep.js/**")
+    );
+}
+
+#[test]
+fn format_filter_skip_message_matches_upstream_shape() {
+    let cwd = Path::new("/repo");
+    let path = Path::new("/repo/src/file.ts");
+
+    assert_eq!(
+        format_filter_skip_message(path, "typescript", cwd),
+        "File src/file.ts skipped! Format \"typescript\" does not included to supported formats."
     );
 }
 

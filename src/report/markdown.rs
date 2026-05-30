@@ -135,6 +135,7 @@ mod tests {
     fn markdown_report_matches_upstream_summary_shape() {
         let result = crate::detector::DetectionResult {
             clones: Vec::new(),
+            skipped_clones: Vec::new(),
             statistics: crate::report::test_support::make_test_statistics(),
             sources: Vec::new(),
             source_contents: std::collections::HashMap::new(),

@@ -16,8 +16,8 @@ mod tests;
 #[cfg(test)]
 pub use model::FormatStatistic;
 pub use model::{
-    BlamedLine, BlamedLines, CloneMatch, DetectionResult, Fragment, SourceSummary, StatisticRow,
-    Statistics,
+    BlamedLine, BlamedLines, CloneMatch, DetectionResult, Fragment, SkippedClone, SourceSummary,
+    StatisticRow, Statistics,
 };
 pub use statistics::clone_lines;
 
@@ -84,7 +84,7 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
         source_indices_by_format[prepared.stream.format_id.0].push(idx);
     }
 
-    let clones_by_format = source_indices_by_format
+    let format_results = source_indices_by_format
         .par_iter()
         .enumerate()
         .map(|(format_id, source_indices)| {
@@ -98,7 +98,12 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
         })
         .collect::<Vec<_>>();
 
-    let clones = clones_by_format.into_iter().flatten().collect::<Vec<_>>();
+    let mut clones = Vec::new();
+    let mut skipped_clones = Vec::new();
+    for format_result in format_results {
+        clones.extend(format_result.clones);
+        skipped_clones.extend(format_result.skipped_clones);
+    }
     for clone in &clones {
         update_clone_statistics(&mut statistics, clone);
     }
@@ -107,6 +112,7 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
 
     DetectionResult {
         clones,
+        skipped_clones,
         statistics,
         sources,
         source_contents,

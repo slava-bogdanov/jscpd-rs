@@ -135,6 +135,9 @@ fn collect_candidate(
     if let Some(formats) = &options.formats
         && !formats.contains(format.as_str())
     {
+        if options.verbose || options.debug {
+            println!("{}", format_filter_skip_message(path, &format, cwd));
+        }
         return Ok(());
     }
 
@@ -203,6 +206,14 @@ fn read_candidate(
 
 fn reporter_needs_report_paths(reporter: &str) -> bool {
     matches!(reporter, "json" | "xml" | "html" | "sarif" | "xcode")
+}
+
+pub(super) fn format_filter_skip_message(path: &Path, format: &str, cwd: &Path) -> String {
+    format!(
+        "File {} skipped! Format \"{}\" does not included to supported formats.",
+        display_relative_to(path, cwd),
+        format
+    )
 }
 
 fn is_ignored(path: &Path, ignore_set: &IgnoreMatcher, cwd: &Path) -> bool {

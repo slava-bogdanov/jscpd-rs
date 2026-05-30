@@ -1,4 +1,4 @@
-use super::console_common::{BOLD, GREY, RED, RESET_BOLD, RESET_COLOR, clone_header};
+use super::console_common::{BOLD, GREY, RED, RESET_BOLD, RESET_COLOR};
 use super::summary::statistic_to_summary_row;
 use crate::cli::Options;
 use crate::detector::DetectionResult;
@@ -17,12 +17,8 @@ pub(super) fn write(result: &DetectionResult, options: &Options) {
     print!("{}", console_report(result, options));
 }
 
-fn console_report(result: &DetectionResult, options: &Options) -> String {
+fn console_report(result: &DetectionResult, _options: &Options) -> String {
     let mut output = String::new();
-    for clone in &result.clones {
-        output.push_str(&clone_header(clone, options));
-        output.push('\n');
-    }
     output.push_str(&summary_table(result));
     output.push_str(&format!(
         "{GREY}Found {} clones.{RESET_COLOR}\n",
@@ -143,7 +139,7 @@ mod tests {
         let result = make_test_result_with_clone("src/a.js", "src/b.js");
         let report = console_report(&result, &Options::default());
 
-        assert!(report.contains("Clone found (javascript):"));
+        assert!(!report.contains("Clone found (javascript):"));
         assert!(report.contains("Format"));
         assert!(report.contains("Files analyzed"));
         assert!(report.contains("javascript"));
@@ -168,6 +164,7 @@ mod tests {
         }
         let result = DetectionResult {
             clones: Vec::new(),
+            skipped_clones: Vec::new(),
             statistics,
             sources: Vec::new(),
             source_contents: std::collections::HashMap::new(),

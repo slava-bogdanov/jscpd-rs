@@ -65,8 +65,11 @@ range while compatibility is converging.
   then exits before clone detection and reporter execution.
 - `--list` follows the upstream output shape: a `Supported formats:` header
   followed by comma-separated formats.
-- Non-silent runs print a `time:` footer after reporters. Tips are printed by
-  default and suppressed by `--noTips`, matching the upstream workflow shape.
+- Non-silent runs print clone progress for non-`ai` reporters, then reporter
+  output, then a `time:` footer. Tips are printed by default and suppressed by
+  `--noTips`, matching the upstream workflow shape.
+- `--verbose` prints upstream-style format-filter skip messages and detector
+  events for `START_DETECTION`, `CLONE_FOUND`, and `CLONE_SKIPPED`.
 - Unknown reporter names emit the upstream-style install warning. Dynamic
   loading of external reporter packages is not implemented yet.
 - `reportersOptions.badge` supports the upstream-style `subject`, `status`,

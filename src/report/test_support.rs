@@ -69,6 +69,7 @@ pub(super) fn make_test_result_with_clone(source_a: &str, source_b: &str) -> Det
 
     DetectionResult {
         clones: vec![make_test_clone(source_a, source_b)],
+        skipped_clones: Vec::new(),
         statistics: make_test_statistics(),
         sources: Vec::new(),
         source_contents,

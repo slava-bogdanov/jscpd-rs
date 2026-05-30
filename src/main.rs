@@ -5,6 +5,7 @@ mod files;
 mod formats;
 mod report;
 mod tokenizer;
+mod verbose;
 
 use std::time::{Duration, Instant};
 
@@ -43,6 +44,10 @@ fn run() -> Result<()> {
         blame::apply_blame(&mut result);
     }
 
+    if options.verbose {
+        verbose::write_detection_events(&result);
+    }
+    report::write_progress(&result, &options);
     report::write_reports(&result, &options)?;
     print_terminal_footer(&options, started.elapsed());
 

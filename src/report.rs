@@ -67,6 +67,26 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
     Ok(())
 }
 
+pub fn write_progress(result: &DetectionResult, options: &Options) {
+    if !should_write_progress(options) {
+        return;
+    }
+    print!("{}", progress_output(result, options));
+}
+
+fn should_write_progress(options: &Options) -> bool {
+    !options.silent && !options.reporters.iter().any(|reporter| reporter == "ai")
+}
+
+fn progress_output(result: &DetectionResult, options: &Options) -> String {
+    let mut output = String::new();
+    for clone in &result.clones {
+        output.push_str(&console_common::clone_header(clone, options));
+        output.push('\n');
+    }
+    output
+}
+
 fn should_write_report(name: &str, options: &Options) -> bool {
     options.reporters.iter().any(|reporter| reporter == name)
 }
@@ -152,5 +172,31 @@ mod tests {
                 "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
             ]
         );
+    }
+
+    #[test]
+    fn progress_prints_clone_headers_when_not_silent_or_ai() {
+        let result = test_support::make_test_result_with_clone("src/a.js", "src/b.js");
+        let options = Options::default();
+
+        let output = progress_output(&result, &options);
+
+        assert!(output.contains("Clone found (javascript):"));
+        assert!(output.contains("src/a.js"));
+    }
+
+    #[test]
+    fn progress_is_suppressed_for_silent_and_ai_reports_like_upstream() {
+        let silent = Options {
+            silent: true,
+            ..Options::default()
+        };
+        let ai = Options {
+            reporters: vec!["ai".to_string()],
+            ..Options::default()
+        };
+
+        assert!(!should_write_progress(&silent));
+        assert!(!should_write_progress(&ai));
     }
 }

@@ -2,11 +2,18 @@ use rustc_hash::FxHashMap;
 
 use crate::cli::Options;
 
-use super::model::{CloneMatch, FormatId, Fragment, Occurrence, PreparedSource, TokenStream};
+use super::model::{
+    CloneMatch, FormatId, Fragment, Occurrence, PreparedSource, SkippedClone, TokenStream,
+};
 use super::skip_local::same_configured_root;
 use super::statistics::clone_stat_lines;
 
 const WINDOW_HASH_BASE: u64 = 0x9e37_79b9_7f4a_7c15;
+
+pub(super) struct FormatDetection {
+    pub(super) clones: Vec<CloneMatch>,
+    pub(super) skipped_clones: Vec<SkippedClone>,
+}
 
 pub(super) fn detect_format(
     format_id: FormatId,
@@ -14,7 +21,7 @@ pub(super) fn detect_format(
     prepared_files: &[PreparedSource],
     format_names: &[String],
     options: &Options,
-) -> Vec<CloneMatch> {
+) -> FormatDetection {
     let mut store: FxHashMap<u64, Occurrence> = FxHashMap::default();
     store.reserve(total_windows(
         source_indices,
@@ -22,6 +29,7 @@ pub(super) fn detect_format(
         options.min_tokens,
     ));
     let mut clones = Vec::new();
+    let mut skipped_clones = Vec::new();
 
     for &source_idx in source_indices.iter().rev() {
         let stream = &prepared_files[source_idx].stream;
@@ -65,7 +73,7 @@ pub(super) fn detect_format(
                     }
                 }
                 _ => {
-                    flush_clone(open_clone.take(), &mut clones, options);
+                    flush_clone(open_clone.take(), &mut clones, &mut skipped_clones, options);
                     store.insert(hash, current);
                 }
             }
@@ -79,10 +87,13 @@ pub(super) fn detect_format(
                 );
             }
         }
-        flush_clone(open_clone.take(), &mut clones, options);
+        flush_clone(open_clone.take(), &mut clones, &mut skipped_clones, options);
     }
 
-    clones
+    FormatDetection {
+        clones,
+        skipped_clones,
+    }
 }
 
 fn total_windows(
@@ -191,7 +202,12 @@ fn enlarge_fragment_end(
     fragment.range[1] = end_span.range[1];
 }
 
-fn flush_clone(clone: Option<CloneMatch>, clones: &mut Vec<CloneMatch>, options: &Options) {
+fn flush_clone(
+    clone: Option<CloneMatch>,
+    clones: &mut Vec<CloneMatch>,
+    skipped_clones: &mut Vec<SkippedClone>,
+    options: &Options,
+) {
     let Some(clone) = clone else {
         return;
     };
@@ -202,12 +218,41 @@ fn flush_clone(clone: Option<CloneMatch>, clones: &mut Vec<CloneMatch>, options:
             options,
         )
     {
+        push_skipped_clone(skipped_clones, options, clone, |clone| {
+            format!(
+                "Sources of duplication located in same local folder ({}, {})",
+                clone.duplication_a.source_id, clone.duplication_b.source_id
+            )
+        });
         return;
     }
     let lines = clone_stat_lines(&clone);
     if lines < options.min_lines {
+        push_skipped_clone(skipped_clones, options, clone, |_| {
+            format!(
+                "Lines of code less than limit ({lines} < {})",
+                options.min_lines
+            )
+        });
         return;
     }
 
     clones.push(clone);
+}
+
+fn push_skipped_clone<F>(
+    skipped_clones: &mut Vec<SkippedClone>,
+    options: &Options,
+    clone: CloneMatch,
+    message: F,
+) where
+    F: FnOnce(&CloneMatch) -> String,
+{
+    if options.verbose {
+        let message = message(&clone);
+        skipped_clones.push(SkippedClone {
+            clone,
+            message: vec![message],
+        });
+    }
 }

@@ -41,6 +41,12 @@ pub struct CloneMatch {
     pub tokens: usize,
 }
 
+#[derive(Clone, Debug)]
+pub struct SkippedClone {
+    pub clone: CloneMatch,
+    pub message: Vec<String>,
+}
+
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct StatisticRow {
     pub lines: usize,
@@ -83,6 +89,8 @@ pub struct SourceSummary {
 #[derive(Clone, Debug, Serialize)]
 pub struct DetectionResult {
     pub clones: Vec<CloneMatch>,
+    #[serde(skip)]
+    pub skipped_clones: Vec<SkippedClone>,
     pub statistics: Statistics,
     pub sources: Vec<SourceSummary>,
     #[serde(skip)]
