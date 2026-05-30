@@ -5,7 +5,7 @@ use std::path::Path;
 use crate::cli::Options;
 
 use super::discover;
-use super::discovery::format_filter_skip_message;
+use super::discovery::{count_lines, decode_source, format_filter_skip_message};
 use super::gitignore::{
     collect_cwd_gitignore_patterns, collect_gitignore_patterns_with_global, gitignore_line_to_globs,
 };
@@ -212,6 +212,23 @@ fn format_filter_skip_message_matches_upstream_shape() {
         format_filter_skip_message(path, "typescript", cwd),
         "File src/file.ts skipped! Format \"typescript\" does not included to supported formats."
     );
+}
+
+#[test]
+fn decode_source_reuses_valid_utf8_and_falls_back_to_lossy() {
+    assert_eq!(
+        decode_source(b"const answer = 42;\n".to_vec()),
+        "const answer = 42;\n"
+    );
+    assert_eq!(decode_source(vec![b'a', 0xff, b'b']), "a\u{fffd}b");
+}
+
+#[test]
+fn count_lines_matches_upstream_empty_and_newline_rules() {
+    assert_eq!(count_lines(b""), 1);
+    assert_eq!(count_lines(b"one"), 1);
+    assert_eq!(count_lines(b"one\n"), 2);
+    assert_eq!(count_lines(b"one\ntwo"), 2);
 }
 
 #[cfg(unix)]

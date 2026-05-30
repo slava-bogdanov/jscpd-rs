@@ -201,16 +201,11 @@ fn read_candidate(
 ) -> Result<Option<SourceFile>> {
     let bytes = fs::read(&candidate.path)
         .with_context(|| format!("failed to read `{}`", candidate.path.display()))?;
-    let content = String::from_utf8_lossy(&bytes).into_owned();
-    let lines = content
-        .as_bytes()
-        .iter()
-        .filter(|byte| **byte == b'\n')
-        .count()
-        + 1;
+    let lines = count_lines(&bytes);
     if lines < options.min_lines || lines > options.max_lines {
         return Ok(None);
     }
+    let content = decode_source(bytes);
 
     let needs_report_paths = options
         .reporters
@@ -235,6 +230,17 @@ fn read_candidate(
         format: candidate.format,
         content,
     }))
+}
+
+pub(super) fn decode_source(bytes: Vec<u8>) -> String {
+    match String::from_utf8(bytes) {
+        Ok(content) => content,
+        Err(error) => String::from_utf8_lossy(error.as_bytes()).into_owned(),
+    }
+}
+
+pub(super) fn count_lines(bytes: &[u8]) -> usize {
+    bytes.iter().filter(|byte| **byte == b'\n').count() + 1
 }
 
 fn is_symlink(path: &Path) -> bool {
