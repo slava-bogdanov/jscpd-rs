@@ -70,7 +70,9 @@ option-surface preservation for `config`, `cache`, `listeners`, and
 malformed `package.json` files emit a warning and do not prevent detection from
 continuing. Malformed `.jscpd.json` files are checked separately: both
 implementations fail before detection with an upstream-style `SyntaxError`
-printed to stdout.
+printed to stdout. Symlinked explicit config files are also checked so
+`config`, relative `path`, and relative `ignore` resolution follow the symlink
+location rather than the real target path.
 
 Blame gate:
 
@@ -409,6 +411,9 @@ Latest public benchmark measurements:
   implementation gap.
 - `--debug` is a dry run like upstream: it prints JS-style option fields and
   discovered files, then exits before clone detection and reporter execution.
+- Explicit `--config` paths are resolved lexically like Node `path.resolve()`,
+  without canonicalizing symlinks, so config-relative options use the visible
+  config path's directory.
 - `--list` follows the upstream output shape: a `Supported formats:` header
   followed by comma-separated formats.
 - Non-silent runs print clone progress for non-`ai` reporters, then reporter

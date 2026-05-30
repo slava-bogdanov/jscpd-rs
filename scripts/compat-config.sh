@@ -20,6 +20,8 @@ BADGE_RUST_PROJECT="$TMP_ROOT/rust-badge-options"
 BADGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-badge-options"
 OPTIONS_RUST_PROJECT="$TMP_ROOT/rust-option-surface"
 OPTIONS_UPSTREAM_PROJECT="$TMP_ROOT/upstream-option-surface"
+SYMLINK_RUST_PROJECT="$TMP_ROOT/rust-symlink-config"
+SYMLINK_UPSTREAM_PROJECT="$TMP_ROOT/upstream-symlink-config"
 
 cleanup() {
   if [[ "${KEEP:-0}" != "1" ]]; then
@@ -117,6 +119,29 @@ make_explicit_config_project() {
   }
 }
 JSON
+}
+
+make_symlink_config_project() {
+  local project="$1"
+  mkdir -p "$project/real" "$project/linked/src"
+  cp "$TARGET_FIXTURE" "$project/linked/src/one.dup"
+  cat >"$project/real/.jscpd.json" <<'JSON'
+{
+  "path": ["src"],
+  "ignore": ["ignored/**"],
+  "minTokens": 50,
+  "minLines": 5,
+  "maxSize": "1mb",
+  "reporters": ["console"],
+  "debug": true,
+  "noTips": true,
+  "formatsExts": {
+    "typescript": ["dup"],
+    "javascript": ["dup"]
+  }
+}
+JSON
+  ln -s ../real/.jscpd.json "$project/linked/.jscpd.json"
 }
 
 make_invalid_package_project() {
@@ -448,6 +473,48 @@ run_option_surface_debug_case() {
   done
 }
 
+run_symlink_config_debug_case() {
+  local project="$1"
+  local tool="$2"
+  local stdout_file="$project/stdout.txt"
+  local stderr_file="$project/stderr.txt"
+  local code
+  local cmd=()
+
+  if [[ "$tool" == "rust" ]]; then
+    cmd=("$ROOT/target/release/jscpd")
+  else
+    cmd=(node "$ROOT/jscpd/apps/jscpd/bin/jscpd")
+  fi
+
+  set +e
+  (
+    cd "$project"
+    "${cmd[@]}" --config linked/.jscpd.json --debug --noTips
+  ) >"$stdout_file" 2>"$stderr_file"
+  code=$?
+  set -e
+
+  if [[ "$code" != "0" ]]; then
+    printf '%s symlink config debug case exited with %s\n' "$tool" "$code" >&2
+    sed -n '1,120p' "$stdout_file" >&2 || true
+    sed -n '1,80p' "$stderr_file" >&2 || true
+    return 1
+  fi
+  for expected in \
+    "'$project/linked/src'" \
+    "'linked/ignored/**'" \
+    "config: '$project/linked/.jscpd.json'" \
+    "Found 1 files to detect."
+  do
+    if ! grep -Fq "$expected" "$stdout_file"; then
+      printf '%s symlink config debug output missing: %s\n' "$tool" "$expected" >&2
+      sed -n '1,160p' "$stdout_file" >&2 || true
+      return 1
+    fi
+  done
+}
+
 make_project "$RUST_PROJECT"
 make_project "$UPSTREAM_PROJECT"
 make_package_project "$PACKAGE_RUST_PROJECT"
@@ -464,6 +531,8 @@ make_badge_options_project "$BADGE_RUST_PROJECT"
 make_badge_options_project "$BADGE_UPSTREAM_PROJECT"
 make_option_surface_project "$OPTIONS_RUST_PROJECT"
 make_option_surface_project "$OPTIONS_UPSTREAM_PROJECT"
+make_symlink_config_project "$SYMLINK_RUST_PROJECT"
+make_symlink_config_project "$SYMLINK_UPSTREAM_PROJECT"
 
 printf 'fixture: %s\n' "$TARGET_FIXTURE"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -584,6 +653,11 @@ printf '\noption-surface debug config fixture\n\n'
 run_option_surface_debug_case "$OPTIONS_RUST_PROJECT" rust
 run_option_surface_debug_case "$OPTIONS_UPSTREAM_PROJECT" upstream
 
+printf '\nsymlink --config debug fixture\n\n'
+
+run_symlink_config_debug_case "$SYMLINK_RUST_PROJECT" rust
+run_symlink_config_debug_case "$SYMLINK_UPSTREAM_PROJECT" upstream
+
 if [[ "${KEEP:-0}" == "1" ]]; then
   printf '\nrust project: %s\n' "$RUST_PROJECT"
   printf 'upstream project: %s\n' "$UPSTREAM_PROJECT"
@@ -601,4 +675,6 @@ if [[ "${KEEP:-0}" == "1" ]]; then
   printf 'upstream badge options project: %s\n' "$BADGE_UPSTREAM_PROJECT"
   printf 'rust option-surface project: %s\n' "$OPTIONS_RUST_PROJECT"
   printf 'upstream option-surface project: %s\n' "$OPTIONS_UPSTREAM_PROJECT"
+  printf 'rust symlink config project: %s\n' "$SYMLINK_RUST_PROJECT"
+  printf 'upstream symlink config project: %s\n' "$SYMLINK_UPSTREAM_PROJECT"
 fi

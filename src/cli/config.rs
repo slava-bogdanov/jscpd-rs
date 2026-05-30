@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use serde::Deserialize;
@@ -137,8 +137,7 @@ pub(super) fn read_config(path: Option<&Path>) -> Result<Option<(FileConfig, Pat
         return Ok(None);
     }
 
-    let path = path
-        .canonicalize()
+    let path = absolute_config_path(&path)
         .with_context(|| format!("failed to resolve config path `{}`", path.display()))?;
     let data = fs::read_to_string(&path)
         .with_context(|| format!("failed to read config `{}`", path.display()))?;
@@ -163,6 +162,35 @@ pub(super) fn read_config(path: Option<&Path>) -> Result<Option<(FileConfig, Pat
         .to_path_buf();
 
     Ok(Some((config, config_dir, path)))
+}
+
+fn absolute_config_path(path: &Path) -> Result<PathBuf> {
+    let path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .context("failed to resolve current directory")?
+            .join(path)
+    };
+    Ok(clean_lexical_path(&path))
+}
+
+fn clean_lexical_path(path: &Path) -> PathBuf {
+    let mut clean = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => clean.push(prefix.as_os_str()),
+            Component::RootDir => clean.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !clean.pop() && !clean.has_root() {
+                    clean.push("..");
+                }
+            }
+            Component::Normal(value) => clean.push(value),
+        }
+    }
+    clean
 }
 
 pub(super) fn read_package_json_config() -> Result<Option<(FileConfig, PathBuf, PathBuf)>> {
@@ -385,6 +413,7 @@ pub(super) fn resolve_config_ignore(config_dir: &Path, pattern: String) -> Resul
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn malformed_config_json_uses_upstream_style_syntax_error() {
@@ -396,5 +425,45 @@ mod tests {
             config_syntax_error(path, data, &error),
             "SyntaxError: /tmp/project/.jscpd.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn read_config_preserves_symlink_path_like_upstream() {
+        let root = unique_temp_dir("jscpd-rs-config-symlink");
+        let real_dir = root.join("real");
+        let link_dir = root.join("link");
+        std::fs::create_dir_all(&real_dir).unwrap();
+        std::fs::create_dir_all(link_dir.join("src")).unwrap();
+        std::fs::write(
+            real_dir.join(".jscpd.json"),
+            r#"{"path":["src"],"ignore":["ignored/**"]}"#,
+        )
+        .unwrap();
+        std::os::unix::fs::symlink("../real/.jscpd.json", link_dir.join(".jscpd.json")).unwrap();
+
+        let link_config = link_dir.join(".jscpd.json");
+        let (config, config_dir, config_path) = read_config(Some(&link_config)).unwrap().unwrap();
+
+        assert_eq!(config_path, link_config);
+        assert_eq!(config_dir, link_dir);
+
+        let mut options = Options::default();
+        apply_config(&mut options, config, &config_dir).unwrap();
+        assert_eq!(options.paths, vec![root.join("link/src")]);
+        assert_eq!(
+            options.ignore,
+            vec![root.join("link/ignored/**").display().to_string()]
+        );
+
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    fn unique_temp_dir(prefix: &str) -> PathBuf {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("{prefix}-{}-{suffix}", std::process::id()))
     }
 }
