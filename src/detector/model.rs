@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::Serialize;
 
 use crate::tokenizer::Location;
 
-pub type BlamedLines = HashMap<String, BlamedLine>;
+pub type BlamedLines = BTreeMap<String, BlamedLine>;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct BlamedLine {

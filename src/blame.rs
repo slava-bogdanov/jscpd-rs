@@ -8,29 +8,24 @@ use regex::Regex;
 use crate::detector::{BlamedLine, BlamedLines, DetectionResult, Fragment};
 
 pub fn apply_blame(result: &mut DetectionResult) {
-    let mut cache = HashMap::<(String, usize, usize), Option<BlamedLines>>::new();
+    let mut cache = HashMap::<String, Option<BlamedLines>>::new();
     for clone in &mut result.clones {
         apply_fragment_blame(&mut clone.duplication_a, &mut cache);
         apply_fragment_blame(&mut clone.duplication_b, &mut cache);
     }
 }
 
-fn apply_fragment_blame(
-    fragment: &mut Fragment,
-    cache: &mut HashMap<(String, usize, usize), Option<BlamedLines>>,
-) {
-    let key = (
-        fragment.source_id.clone(),
-        fragment.start.line,
-        fragment.end.line,
-    );
-    let blamed = cache.entry(key).or_insert_with(|| {
-        blame_fragment(&fragment.source_id, fragment.start.line, fragment.end.line)
-    });
-    fragment.blame = blamed.clone();
+fn apply_fragment_blame(fragment: &mut Fragment, cache: &mut HashMap<String, Option<BlamedLines>>) {
+    let blamed_file = cache
+        .entry(fragment.source_id.clone())
+        .or_insert_with(|| blame_file(&fragment.source_id));
+    fragment.blame = blamed_file
+        .as_ref()
+        .map(|blame| slice_blame(blame, fragment.start.line, fragment.end.line))
+        .filter(|blame| !blame.is_empty());
 }
 
-fn blame_fragment(path: &str, start: usize, end: usize) -> Option<BlamedLines> {
+fn blame_file(path: &str) -> Option<BlamedLines> {
     let path = Path::new(path);
     let parent = path
         .parent()
@@ -42,8 +37,6 @@ fn blame_fragment(path: &str, start: usize, end: usize) -> Option<BlamedLines> {
         .arg(parent)
         .arg("blame")
         .arg("-w")
-        .arg("-L")
-        .arg(format!("{start},{end}"))
         .arg("--")
         .arg(file_name)
         .output()
@@ -54,6 +47,15 @@ fn blame_fragment(path: &str, start: usize, end: usize) -> Option<BlamedLines> {
     let stdout = String::from_utf8(output.stdout).ok()?;
     let blamed = parse_git_blame(&stdout);
     (!blamed.is_empty()).then_some(blamed)
+}
+
+fn slice_blame(blame: &BlamedLines, start: usize, end: usize) -> BlamedLines {
+    (start..=end)
+        .filter_map(|line| {
+            let key = line.to_string();
+            blame.get(&key).cloned().map(|blamed| (key, blamed))
+        })
+        .collect()
 }
 
 fn parse_git_blame(output: &str) -> BlamedLines {
@@ -107,5 +109,22 @@ bbbbbbbb (Bob Smith 2024-01-02 03:04:05 -0700 57) second
         assert_eq!(blame["56"].date, "2013-06-02 23:31:50 +0300");
         assert_eq!(blame["56"].line, "56");
         assert_eq!(blame["57"].author, "Bob Smith");
+    }
+
+    #[test]
+    fn slices_blame_to_fragment_range() {
+        let blame = parse_git_blame(
+            "\
+aaaaaaaa (Alice 2024-01-01 00:00:00 +0000 1) first
+bbbbbbbb (Bob 2024-01-02 00:00:00 +0000 2) second
+cccccccc (Carol 2024-01-03 00:00:00 +0000 3) third
+",
+        );
+
+        let sliced = slice_blame(&blame, 2, 3);
+
+        assert_eq!(sliced.keys().cloned().collect::<Vec<_>>(), vec!["2", "3"]);
+        assert_eq!(sliced["2"].author, "Bob");
+        assert_eq!(sliced["3"].author, "Carol");
     }
 }
