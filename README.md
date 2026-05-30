@@ -101,7 +101,8 @@ Latest recorded public benchmark baseline:
 | Prometheus | Go | 0.077913s | 4.489508s | 57.62x |
 
 See [docs/compat-baseline.md](docs/compat-baseline.md) for the current gate
-baseline and [docs/release-decisions.md](docs/release-decisions.md) for approved
+baseline, [docs/release-readiness.md](docs/release-readiness.md) for component
+status, and [docs/release-decisions.md](docs/release-decisions.md) for approved
 first-release compatibility decisions.
 
 ## Development
