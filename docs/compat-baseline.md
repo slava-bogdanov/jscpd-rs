@@ -30,6 +30,8 @@ compatibility is converging.
 | `jscpd/fixtures` | `svelte` | pass | 6/6 upstream fragments line-covered; exact start differs for wider css range |
 | `jscpd/fixtures` | `astro` | pass | 8/8 upstream fragments line-covered; exact starts differ for wider markup/css ranges |
 | `jscpd/fixtures/css` | `css` | pass | exact clone coverage; token totals differ |
+| `jscpd/fixtures/css` | `less` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/css` | `scss` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/python` | `python` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/go` | `go` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/ruby` | `ruby` | pass | 2/2 upstream fragments line-covered |
@@ -55,6 +57,7 @@ compatibility is converging.
 | `jscpd/fixtures/mllike` | `fsharp` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/objective-c` | `objectivec` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/clike` | `c` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/z80` | `c` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/clike` | `cpp` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/clike` | `java` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/clike` | `csharp` | pass | 4/4 upstream fragments line-covered |
@@ -82,6 +85,7 @@ compatibility is converging.
 | `jscpd/fixtures/diff` | `diff` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/cmake` | `cmake` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/hcl` | `hcl` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/gitignore` | `ignore` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/json5` | `json5` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/latex` | `latex` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/puppet` | `puppet` | pass | 4/4 upstream fragments line-covered |
@@ -98,6 +102,7 @@ compatibility is converging.
 | `jscpd/fixtures/turtle` | `turtle` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/twig` | `twig` | pass | 6/6 upstream fragments line-covered |
 | `jscpd/fixtures/properties` | `properties` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/properties` | `ini` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/xml` | `markup` | pass | 6/6 upstream fragments line-covered; Rust skips empty XML/XSD inputs |
 | `jscpd/fixtures/htmlmixed` | `markup` | pass | exact clone and line summary parity; upstream also reports embedded script/style sources |
 | `jscpd/fixtures/htmlembedded` | `aspnet` | pass | 9/10 upstream fragments line-covered; one documented upstream range overextends through an inserted email block |
@@ -127,6 +132,7 @@ compatibility is converging.
 | `jscpd/fixtures/openqasm` | `openqasm` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/oz` | `oz` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/pascal` | `pascal` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/idl` | `prolog` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/plsql` | `plsql` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/plant-uml` | `plant-uml` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/powerquery` | `powerquery` | pass | 2/2 upstream fragments line-covered |
@@ -140,6 +146,7 @@ compatibility is converging.
 | `jscpd/fixtures/tt2` | `tt2` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/unrealscript` | `unrealscript` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/velocity` | `velocity` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/mathematica` | `wolfram` | pass | exact clone and line summary parity |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
@@ -169,6 +176,9 @@ compatibility is converging.
   a full Prism port.
 - Properties uses the same generic punctuation/operator split so dotted keys
   and assignments reach upstream clone thresholds without a dedicated lexer.
+- Several upstream fixture directories are gated through upstream aliases:
+  `gitignore` as `ignore`, `mathematica` as `wolfram`, `idl` as `prolog`, and
+  `z80` as `c`.
 - ASP.NET uses the code-like generic splitter and is gated with a narrow
   documented upstream range exception for `file2.aspx:18-43`, where upstream
   reports through an inserted email field block that is not present in the

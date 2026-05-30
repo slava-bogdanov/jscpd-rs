@@ -46,6 +46,8 @@ run_case "fixtures vue" "jscpd/fixtures" "vue" 20 3
 run_case "fixtures svelte" "jscpd/fixtures" "svelte" 20 3
 run_case "fixtures astro" "jscpd/fixtures" "astro" 20 3
 run_case "fixtures css" "jscpd/fixtures/css" "css" 20 3
+run_case "fixtures less" "jscpd/fixtures/css" "less" 20 3
+run_case "fixtures scss" "jscpd/fixtures/css" "scss" 20 3
 run_case "fixtures python" "jscpd/fixtures/python" "python" 20 3
 run_case "fixtures go" "jscpd/fixtures/go" "go" 20 3
 run_case "fixtures ruby" "jscpd/fixtures/ruby" "ruby" 20 3
@@ -71,6 +73,7 @@ run_case "fixtures ocaml" "jscpd/fixtures/mllike" "ocaml" 20 3
 run_case "fixtures fsharp" "jscpd/fixtures/mllike" "fsharp" 20 3
 run_case "fixtures objectivec" "jscpd/fixtures/objective-c" "objectivec" 20 3
 run_case "fixtures c" "jscpd/fixtures/clike" "c" 20 3
+run_case "fixtures z80 as c" "jscpd/fixtures/z80" "c" 20 3
 run_case "fixtures cpp" "jscpd/fixtures/clike" "cpp" 20 3
 run_case "fixtures java" "jscpd/fixtures/clike" "java" 20 3
 run_case "fixtures csharp" "jscpd/fixtures/clike" "csharp" 20 3
@@ -98,6 +101,7 @@ run_case "fixtures csv" "jscpd/fixtures/csv" "csv" 20 3
 run_case "fixtures diff" "jscpd/fixtures/diff" "diff" 20 3
 run_case "fixtures cmake" "jscpd/fixtures/cmake" "cmake" 20 3
 run_case "fixtures hcl" "jscpd/fixtures/hcl" "hcl" 20 3
+run_case "fixtures ignore" "jscpd/fixtures/gitignore" "ignore" 20 3
 run_case "fixtures json5" "jscpd/fixtures/json5" "json5" 20 3
 run_case "fixtures latex" "jscpd/fixtures/latex" "latex" 20 3
 run_case "fixtures puppet" "jscpd/fixtures/puppet" "puppet" 20 3
@@ -114,6 +118,7 @@ run_case "fixtures tcl" "jscpd/fixtures/tcl" "tcl" 20 3
 run_case "fixtures turtle" "jscpd/fixtures/turtle" "turtle" 20 3
 run_case "fixtures twig" "jscpd/fixtures/twig" "twig" 20 3
 run_case "fixtures properties" "jscpd/fixtures/properties" "properties" 20 3
+run_case "fixtures ini" "jscpd/fixtures/properties" "ini" 20 3
 run_case "fixtures markup" "jscpd/fixtures/xml" "markup" 20 3
 run_case "fixtures htmlmixed markup" "jscpd/fixtures/htmlmixed" "markup" 20 3
 run_case "fixtures aspnet" "jscpd/fixtures/htmlembedded" "aspnet" 20 3 \
@@ -144,6 +149,7 @@ run_case "fixtures nsis" "jscpd/fixtures/nsis" "nsis" 20 3
 run_case "fixtures openqasm" "jscpd/fixtures/openqasm" "openqasm" 20 3
 run_case "fixtures oz" "jscpd/fixtures/oz" "oz" 20 3
 run_case "fixtures pascal" "jscpd/fixtures/pascal" "pascal" 20 3
+run_case "fixtures prolog" "jscpd/fixtures/idl" "prolog" 20 3
 run_case "fixtures plsql" "jscpd/fixtures/plsql" "plsql" 20 3
 run_case "fixtures plant-uml" "jscpd/fixtures/plant-uml" "plant-uml" 20 3
 run_case "fixtures powerquery" "jscpd/fixtures/powerquery" "powerquery" 20 3
@@ -157,6 +163,7 @@ run_case "fixtures sparql" "jscpd/fixtures/sparql" "sparql" 20 3
 run_case "fixtures tt2" "jscpd/fixtures/tt2" "tt2" 20 3
 run_case "fixtures unrealscript" "jscpd/fixtures/unrealscript" "unrealscript" 20 3
 run_case "fixtures velocity" "jscpd/fixtures/velocity" "velocity" 20 3
+run_case "fixtures wolfram" "jscpd/fixtures/mathematica" "wolfram" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5
