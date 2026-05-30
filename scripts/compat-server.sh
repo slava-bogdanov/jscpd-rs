@@ -202,15 +202,44 @@ http_json() {
   fi
 }
 
+http_json_with_headers() {
+  local output="$1"
+  local headers="$2"
+  local expected_code="$3"
+  shift 3
+  local code
+  code="$(curl -sS -D "$headers" -o "$output" -w '%{http_code}' "$@")"
+  if [[ "$code" != "$expected_code" ]]; then
+    printf 'HTTP code mismatch for %s: got %s expected %s\n' "$output" "$code" "$expected_code" >&2
+    sed -n '1,160p' "$output" >&2
+    return 1
+  fi
+}
+
 check_server_http() {
   local label="$1"
   local port="$2"
   local dir="$TMP_ROOT/$label-http"
   mkdir -p "$dir"
 
-  http_json "$dir/root.json" 200 "http://127.0.0.1:$port/"
-  http_json "$dir/health.json" 200 "http://127.0.0.1:$port/api/health"
-  http_json "$dir/stats.json" 200 "http://127.0.0.1:$port/api/stats"
+  node --input-type=module - "$dir/check-large-payload.json" "$dir/check-special-payload.json" <<'NODE'
+import fs from 'node:fs';
+
+const [largePath, specialPath] = process.argv.slice(2);
+const largeCode = Array.from({ length: 100 }, (_, i) => `const variable${i} = ${i};`).join('\n');
+const specialCode = [
+  `const str = "Hello, ${String.fromCodePoint(0x4e16, 0x754c)}! ${String.fromCodePoint(0x1f30d)}";`,
+  'const regex = /[a-z]+/gi;',
+  'const template = `${str}`;',
+].join('\n');
+
+fs.writeFileSync(largePath, JSON.stringify({ code: largeCode, format: 'javascript' }));
+fs.writeFileSync(specialPath, JSON.stringify({ code: specialCode, format: 'javascript' }));
+NODE
+
+  http_json_with_headers "$dir/root.json" "$dir/root.headers" 200 "http://127.0.0.1:$port/"
+  http_json_with_headers "$dir/health.json" "$dir/health.headers" 200 "http://127.0.0.1:$port/api/health"
+  http_json_with_headers "$dir/stats.json" "$dir/stats.headers" 200 "http://127.0.0.1:$port/api/stats"
   http_json "$dir/check-json.json" 200 \
     -H 'Content-Type: application/json' \
     -d '{"code":"function sample() {\n  const a = 1;\n  const b = 2;\n  const c = 3;\n  const d = 4;\n  const e = 5;\n  return a + b + c + d + e;\n}","format":"javascript"}' \
@@ -220,9 +249,21 @@ check_server_http() {
     --data-urlencode $'code=function sample() {\n  const a = 1;\n  const b = 2;\n  const c = 3;\n  const d = 4;\n  const e = 5;\n  return a + b + c + d + e;\n}' \
     --data-urlencode 'format=javascript' \
     "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-large.json" 200 \
+    -H 'Content-Type: application/json' \
+    -d @"$dir/check-large-payload.json" \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-special.json" 200 \
+    -H 'Content-Type: application/json' \
+    -d @"$dir/check-special-payload.json" \
+    "http://127.0.0.1:$port/api/check"
   http_json "$dir/check-missing-code.json" 400 \
     -H 'Content-Type: application/json' \
     -d '{}' \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-empty-code.json" 400 \
+    -H 'Content-Type: application/json' \
+    -d '{"code":"   ","format":"javascript"}' \
     "http://127.0.0.1:$port/api/check"
   http_json "$dir/check-non-string-code.json" 400 \
     -H 'Content-Type: application/json' \
@@ -236,11 +277,15 @@ check_server_http() {
     -H 'Content-Type: application/json' \
     -d '{"code":"console.log(1);"}' \
     "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-empty-format.json" 400 \
+    -H 'Content-Type: application/json' \
+    -d '{"code":"console.log(1);","format":"   "}' \
+    "http://127.0.0.1:$port/api/check"
   http_json "$dir/check-invalid-json.json" 400 \
     -H 'Content-Type: application/json' \
     -d 'invalid-json' \
     "http://127.0.0.1:$port/api/check"
-  http_json "$dir/not-found.json" 404 "http://127.0.0.1:$port/api/unknown?ignored=true"
+  http_json_with_headers "$dir/not-found.json" "$dir/not-found.headers" 404 "http://127.0.0.1:$port/api/unknown?ignored=true"
   http_json "$dir/wrong-method-get-check.json" 404 \
     -X GET \
     "http://127.0.0.1:$port/api/check"
@@ -380,6 +425,14 @@ import path from 'node:path';
 
 const [label, dir] = process.argv.slice(2);
 const read = (file) => JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+const readText = (file) => fs.readFileSync(path.join(dir, file), 'utf8');
+
+for (const file of ['root.headers', 'health.headers', 'stats.headers', 'not-found.headers']) {
+  assert(
+    /content-type:\s*application\/json/i.test(readText(file)),
+    `${label} ${file} JSON content-type`,
+  );
+}
 
 const root = read('root.json');
 assert(root.name === 'jscpd-server', `${label} root name`);
@@ -401,10 +454,23 @@ for (const file of ['check-json.json', 'check-form.json']) {
   assert(typeof body.statistics?.percentageDuplicated === 'number', `${label} ${file} percentageDuplicated`);
 }
 
+const large = read('check-large.json');
+assert(Array.isArray(large.duplications), `${label} large snippet duplications`);
+assert(large.statistics?.totalLines === 100, `${label} large snippet totalLines`);
+
+const special = read('check-special.json');
+assert(Array.isArray(special.duplications), `${label} special chars duplications`);
+assert(typeof special.statistics?.totalLines === 'number', `${label} special chars totalLines`);
+
 const missingCode = read('check-missing-code.json');
 assert(missingCode.error === 'ValidationError', `${label} missing code error`);
 assert(missingCode.statusCode === 400, `${label} missing code statusCode`);
 assert(missingCode.message === 'Missing required field: code', `${label} missing code message`);
+
+const emptyCode = read('check-empty-code.json');
+assert(emptyCode.error === 'ValidationError', `${label} empty code error`);
+assert(emptyCode.statusCode === 400, `${label} empty code statusCode`);
+assert(emptyCode.message === 'Field "code" cannot be empty', `${label} empty code message`);
 
 const nonStringCode = read('check-non-string-code.json');
 assert(nonStringCode.error === 'ValidationError', `${label} non-string code error`);
@@ -420,6 +486,11 @@ const missingFormat = read('check-missing-format.json');
 assert(missingFormat.error === 'ValidationError', `${label} missing format error`);
 assert(missingFormat.statusCode === 400, `${label} missing format statusCode`);
 assert(missingFormat.message === 'Missing required field: format', `${label} missing format message`);
+
+const emptyFormat = read('check-empty-format.json');
+assert(emptyFormat.error === 'ValidationError', `${label} empty format error`);
+assert(emptyFormat.statusCode === 400, `${label} empty format statusCode`);
+assert(emptyFormat.message === 'Field "format" cannot be empty', `${label} empty format message`);
 
 const invalidJson = read('check-invalid-json.json');
 assert(invalidJson.error === 'SyntaxError', `${label} invalid JSON error`);
