@@ -32,7 +32,7 @@ current implementation status.
 | Token totals | diagnostic | Native token streams may differ from Prism. Keep report-visible clone coverage as the gate. |
 | HTML reporter polish | practical parity | Keep self-contained HTML stable. Do not chase pixel-perfect upstream parity for the first release. |
 | Terminal cosmetics | practical parity | Important messages are gated; exact wrapping/order remains lower priority. |
-| Latest full publication gate | pending | `FULL=1 PUBLIC=0 scripts/release-gate.sh` passed on `bd7fdc8`; rerun `scripts/release-candidate.sh` before publishing. |
+| Latest full publication gate | partial | `FULL=1 PUBLIC=0 scripts/release-gate.sh` passed on `c3092d9`; full publication still requires `scripts/release-candidate.sh` with the public suite. |
 
 ## Post-MVP
 
@@ -43,4 +43,3 @@ current implementation status.
 | Listeners/plugins runtime | Option-surface compatibility only unless a real workflow requires native support. |
 | Persistent cache/store backends | Add only if public benchmark data proves the in-memory path is insufficient. |
 | Full Prism grammar port | Do not rewrite all grammars eagerly; use native crates or small scanners only for proven gaps. |
-

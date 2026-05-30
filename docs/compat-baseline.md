@@ -4,7 +4,7 @@ Baseline date: 2026-05-31.
 
 Latest full release gate:
 `FULL=1 PUBLIC=0 scripts/release-gate.sh`
-passed on 2026-05-31 at commit `bd7fdc8`.
+passed on 2026-05-31 at commit `c3092d9`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
