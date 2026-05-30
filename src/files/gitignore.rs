@@ -87,12 +87,44 @@ pub(super) fn gitignore_line_to_globs(line: &str, base_dir: Option<&Path>) -> Ve
         return Vec::new();
     }
 
-    let has_middle_slash = pattern.contains('/');
-    if (is_rooted || has_middle_slash)
-        && let Some(base_dir) = base_dir
-    {
-        let mut globs = Vec::new();
-        push_gitignore_glob_variants(&mut globs, &base_dir.join(&pattern));
+    if let Some(base_dir) = base_dir {
+        return scoped_gitignore_globs(base_dir, &pattern, is_rooted);
+    }
+
+    upstream_gitignore_globs(&pattern, is_rooted)
+}
+
+fn scoped_gitignore_globs(base_dir: &Path, pattern: &str, is_rooted: bool) -> Vec<String> {
+    let mut globs = Vec::new();
+
+    if is_rooted {
+        push_gitignore_glob_variants(&mut globs, &base_dir.join(pattern));
+        return globs;
+    }
+
+    if pattern.contains('/') {
+        push_gitignore_glob_variants(&mut globs, &base_dir.join(pattern));
+        if !pattern.starts_with("**/") {
+            push_gitignore_glob_variants(&mut globs, &base_dir.join("**").join(pattern));
+        }
+        return globs;
+    }
+
+    push_gitignore_glob_variants(&mut globs, &base_dir.join("**").join(pattern));
+    globs
+}
+
+fn upstream_gitignore_globs(pattern: &str, is_rooted: bool) -> Vec<String> {
+    if is_rooted {
+        return vec![pattern.to_string(), format!("{pattern}/**")];
+    }
+
+    if pattern.contains('/') {
+        let mut globs = vec![pattern.to_string(), format!("{pattern}/**")];
+        if !pattern.starts_with("**/") {
+            globs.push(format!("**/{pattern}"));
+            globs.push(format!("**/{pattern}/**"));
+        }
         return globs;
     }
 

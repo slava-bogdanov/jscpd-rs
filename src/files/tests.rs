@@ -70,6 +70,43 @@ fn gitignore_line_to_globs_preserves_negations_like_upstream() {
 }
 
 #[test]
+fn gitignore_line_to_globs_matches_upstream_conversion_without_base_dir() {
+    assert_eq!(
+        gitignore_line_to_globs("/node_modules", None),
+        vec!["node_modules", "node_modules/**"]
+    );
+    assert_eq!(
+        gitignore_line_to_globs("src/dist", None),
+        vec!["src/dist", "src/dist/**", "**/src/dist", "**/src/dist/**"]
+    );
+    assert_eq!(
+        gitignore_line_to_globs("**/dist", None),
+        vec!["**/dist", "**/dist/**"]
+    );
+    assert_eq!(
+        gitignore_line_to_globs("!test.js", None),
+        vec!["!**/test.js", "!**/test.js/**"]
+    );
+    assert!(gitignore_line_to_globs("# ignored", None).is_empty());
+    assert!(gitignore_line_to_globs("  ", None).is_empty());
+}
+
+#[test]
+fn gitignore_line_to_globs_keeps_upstream_variants_for_cwd_base_dir() {
+    let cwd = std::env::current_dir().unwrap();
+
+    let globs = gitignore_line_to_globs("src/dist", Some(&cwd));
+    assert!(globs.iter().any(|glob| glob == "src/dist"));
+    assert!(globs.iter().any(|glob| glob == "src/dist/**"));
+    assert!(globs.iter().any(|glob| glob == "**/src/dist"));
+    assert!(globs.iter().any(|glob| glob == "**/src/dist/**"));
+
+    let negated = gitignore_line_to_globs("!test.js", Some(&cwd));
+    assert!(negated.iter().any(|glob| glob == "!**/test.js"));
+    assert!(negated.iter().any(|glob| glob == "!**/test.js/**"));
+}
+
+#[test]
 fn format_filter_skip_message_matches_upstream_shape() {
     let cwd = Path::new("/repo");
     let path = Path::new("/repo/src/file.ts");
@@ -314,4 +351,40 @@ fn gitignore_negation_reincludes_files_during_compat_discovery() {
 
     assert_eq!(paths.len(), 1);
     assert!(paths[0].ends_with("ignored/keep.js"));
+}
+
+#[test]
+fn gitignore_broad_ignore_with_negated_filename_keeps_nested_file() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-gitignore-issue-723-{}-{nonce}",
+        std::process::id()
+    ));
+    let nested = dir.join("nested");
+    std::fs::create_dir_all(&nested).unwrap();
+    std::fs::write(dir.join(".gitignore"), "**/**/*\n!test.js\n").unwrap();
+    std::fs::write(nested.join("drop.js"), "const drop = 1;\n").unwrap();
+    std::fs::write(nested.join("test.js"), "const keep = 1;\n").unwrap();
+
+    let options = Options {
+        paths: vec![dir.clone()],
+        min_lines: 1,
+        reporters: vec!["json".to_string()],
+        silent: true,
+        gitignore: true,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    let paths = files
+        .iter()
+        .map(|file| file.source_id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths.len(), 1);
+    assert!(paths[0].ends_with("nested/test.js"));
 }

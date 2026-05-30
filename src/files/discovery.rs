@@ -58,12 +58,14 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
         if needs_compat_discovery {
             let root_path = root.clone();
             let walk_ignore_set = Arc::clone(&ignore_set);
+            let has_negations = walk_ignore_set.has_negations();
             let walk_cwd = cwd.clone();
             builder.filter_entry(move |entry| {
                 entry.path() == root_path
                     || !entry
                         .file_type()
                         .is_some_and(|file_type| file_type.is_dir())
+                    || has_negations
                     || !is_ignored(entry.path(), &walk_ignore_set, &walk_cwd)
             });
         }
@@ -236,6 +238,10 @@ struct IgnoreMatcher {
 impl IgnoreMatcher {
     fn is_empty(&self) -> bool {
         self.ignored.is_empty()
+    }
+
+    fn has_negations(&self) -> bool {
+        !self.negated.is_empty()
     }
 
     fn is_match(&self, path: &Path) -> bool {
