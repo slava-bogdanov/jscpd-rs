@@ -237,3 +237,41 @@ defaulting:
 
 Expected behavior: either document these fields as reserved/no-op, remove them
 from the public option surface, or wire them to runtime behavior.
+
+## Bare optional numeric CLI flags produce accidental behavior
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+Several Commander options are declared with optional numeric values, for example
+`--threshold [number]` and `--exitCode [number]`. When the flag is passed
+without a value, Commander supplies boolean `true`.
+
+Repro:
+
+```sh
+node jscpd/apps/jscpd/bin/jscpd jscpd/fixtures/javascript \
+  --threshold \
+  --silent \
+  --noTips \
+  --min-tokens 20 \
+  --min-lines 3 \
+  --max-size 1mb
+
+node jscpd/apps/jscpd/bin/jscpd jscpd/fixtures/javascript \
+  --exitCode \
+  --silent \
+  --noTips \
+  --min-tokens 20 \
+  --min-lines 3 \
+  --max-size 1mb
+```
+
+Observed behavior:
+
+- Bare `--threshold` is converted with `Number(true)`, so the threshold becomes
+  `1%` and detection fails if duplication is at least 1%.
+- Bare `--exitCode` stores boolean `true`; when clones are found, Node rejects
+  that boolean as `process.exitCode` with `TypeError [ERR_INVALID_ARG_TYPE]`.
+
+Expected behavior: require a numeric value, or explicitly document and normalize
+the default value for bare flags.
