@@ -344,7 +344,27 @@ impl Options {
             options.exit_code = exit_code;
         }
 
+        normalize_reporters(&mut options);
+
         Ok(options)
+    }
+}
+
+fn normalize_reporters(options: &mut Options) {
+    if options.silent {
+        options
+            .reporters
+            .retain(|reporter| !reporter.contains("console"));
+        push_reporter_once(&mut options.reporters, "silent");
+    }
+    if options.threshold.is_some() {
+        push_reporter_once(&mut options.reporters, "threshold");
+    }
+}
+
+fn push_reporter_once(reporters: &mut Vec<String>, reporter: &str) {
+    if !reporters.iter().any(|candidate| candidate == reporter) {
+        reporters.push(reporter.to_string());
     }
 }
 
@@ -544,7 +564,7 @@ fn parse_size(value: &str) -> Result<u64> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_format_mappings, parse_size};
+    use super::{Options, normalize_reporters, parse_format_mappings, parse_size};
 
     #[test]
     fn parses_size_suffixes() {
@@ -559,5 +579,32 @@ mod tests {
         assert_eq!(mappings.find_format_for_value("ts"), Some("javascript"));
         assert_eq!(mappings.find_format_for_value("py"), Some("python"));
         assert_eq!(mappings.find_format_for_value("rs"), None);
+    }
+
+    #[test]
+    fn normalizes_silent_reporter_like_upstream() {
+        let mut options = Options {
+            silent: true,
+            reporters: vec!["console".to_string(), "json".to_string()],
+            ..Options::default()
+        };
+
+        normalize_reporters(&mut options);
+
+        assert_eq!(options.reporters, vec!["json", "silent"]);
+    }
+
+    #[test]
+    fn normalizes_threshold_reporter_like_upstream() {
+        let mut options = Options {
+            threshold: Some(10.0),
+            reporters: vec!["json".to_string()],
+            ..Options::default()
+        };
+
+        normalize_reporters(&mut options);
+        normalize_reporters(&mut options);
+
+        assert_eq!(options.reporters, vec!["json", "threshold"]);
     }
 }

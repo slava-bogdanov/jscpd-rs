@@ -32,15 +32,6 @@ fn run() -> Result<()> {
 
     report::write_reports(&result, &options)?;
 
-    if let Some(threshold) = options.threshold
-        && result.statistics.total.percentage >= threshold
-    {
-        anyhow::bail!(
-            "jscpd-rs found too many duplicates ({:.2}%) over threshold ({threshold:.2}%)",
-            result.statistics.total.percentage
-        );
-    }
-
     if !result.clones.is_empty() && options.exit_code != 0 {
         std::process::exit(options.exit_code);
     }

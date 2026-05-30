@@ -26,6 +26,12 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
     if should_write_report("xcode", options) {
         write_xcode(result, options);
     }
+    if should_write_report("silent", options) {
+        write_silent(result);
+    }
+    if should_write_report("threshold", options) {
+        write_threshold(result, options)?;
+    }
     Ok(())
 }
 
@@ -66,9 +72,7 @@ fn write_json(result: &DetectionResult, options: &Options) -> Result<()> {
     let report = JsonReport::from_detection(result);
     let json = serde_json::to_string_pretty(&report)?;
     fs::write(&path, json).with_context(|| format!("failed to write `{}`", path.display()))?;
-    if !options.silent {
-        println!("JSON report saved to {}", path.display());
-    }
+    println!("JSON report saved to {}", path.display());
     Ok(())
 }
 
@@ -78,9 +82,7 @@ fn write_csv(result: &DetectionResult, options: &Options) -> Result<()> {
     let path = options.output.join("jscpd-report.csv");
     let csv = CsvReport::from_statistics(&result.statistics).to_string();
     fs::write(&path, csv).with_context(|| format!("failed to write `{}`", path.display()))?;
-    if !options.silent {
-        println!("CSV report saved to {}", path.display());
-    }
+    println!("CSV report saved to {}", path.display());
     Ok(())
 }
 
@@ -90,9 +92,7 @@ fn write_markdown(result: &DetectionResult, options: &Options) -> Result<()> {
     let path = options.output.join("jscpd-report.md");
     let md = MarkdownReport::from_detection(result).to_string();
     fs::write(&path, md).with_context(|| format!("failed to write `{}`", path.display()))?;
-    if !options.silent {
-        println!("Markdown report saved to {}", path.display());
-    }
+    println!("Markdown report saved to {}", path.display());
     Ok(())
 }
 
@@ -102,9 +102,7 @@ fn write_xml(result: &DetectionResult, options: &Options) -> Result<()> {
     let path = options.output.join("jscpd-report.xml");
     let xml = XmlReport::from_detection(result).to_string();
     fs::write(&path, xml).with_context(|| format!("failed to write `{}`", path.display()))?;
-    if !options.silent {
-        println!("XML report saved to {}", path.display());
-    }
+    println!("XML report saved to {}", path.display());
     Ok(())
 }
 
@@ -113,6 +111,24 @@ fn write_xcode(result: &DetectionResult, options: &Options) {
         println!("{}", XcodeWarning::from_clone(clone, options));
     }
     println!("Found {} clones.", result.clones.len());
+}
+
+fn write_silent(result: &DetectionResult) {
+    println!("{}", silent_summary(result));
+}
+
+fn write_threshold(result: &DetectionResult, options: &Options) -> Result<()> {
+    let Some(threshold) = options.threshold else {
+        return Ok(());
+    };
+    if threshold < result.statistics.total.percentage {
+        anyhow::bail!(
+            "ERROR: jscpd found too many duplicates ({}%) over threshold ({}%)",
+            result.statistics.total.percentage,
+            threshold,
+        );
+    }
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -489,6 +505,17 @@ fn absolute_report_path(source_id: &str) -> String {
     }
 }
 
+fn silent_summary(result: &DetectionResult) -> String {
+    format!(
+        "Duplications detection: Found {} exact clones with {}({}%) duplicated lines in {} ({} formats) files.",
+        result.clones.len(),
+        result.statistics.total.duplicated_lines,
+        result.statistics.total.percentage,
+        result.statistics.total.sources,
+        result.statistics.formats.len(),
+    )
+}
+
 #[allow(dead_code)]
 fn normalize_report_path(path: &Path) -> String {
     path.display().to_string()
@@ -760,5 +787,39 @@ mod tests {
 
         assert!(xml.contains("<pmd-cpd>"));
         assert!(xml.contains(r#"<file path="src/a.js" line="2">"#));
+    }
+
+    #[test]
+    fn silent_reporter_matches_upstream_summary_shape() {
+        let result = make_test_result_with_clone("src/a.js", "src/b.js");
+
+        assert_eq!(
+            silent_summary(&result),
+            "Duplications detection: Found 1 exact clones with 5(25%) duplicated lines in 2 (1 formats) files."
+        );
+    }
+
+    #[test]
+    fn threshold_reporter_uses_strictly_greater_percentage_like_upstream() {
+        let mut result = make_test_result_with_clone("src/a.js", "src/b.js");
+        result.statistics.total.percentage = 25.0;
+
+        let equal = Options {
+            threshold: Some(25.0),
+            reporters: vec!["threshold".to_string()],
+            ..Options::default()
+        };
+        assert!(write_reports(&result, &equal).is_ok());
+
+        let below = Options {
+            threshold: Some(24.9),
+            reporters: vec!["threshold".to_string()],
+            ..Options::default()
+        };
+        let error = write_reports(&result, &below).unwrap_err().to_string();
+        assert_eq!(
+            error,
+            "ERROR: jscpd found too many duplicates (25%) over threshold (24.9%)"
+        );
     }
 }
