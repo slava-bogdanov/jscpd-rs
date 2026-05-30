@@ -25,8 +25,11 @@ scripts/compat-reporters.sh
 
 This smoke check runs Rust and upstream with
 `json,csv,markdown,xml,sarif,badge,html`, verifies the expected report files,
-parses JSON/SARIF payloads, and compares the root JSON report with the default
-coverage rule.
+parses JSON/SARIF payloads, checks stable artifact contracts, and compares the
+root JSON report with the default coverage rule. Stable artifact checks include
+CSV/Markdown line and clone summary columns, exact XML output for the fixture,
+SARIF structure with normalized paths, badge title/aria text, HTML report text,
+and equality between each HTML JSON payload and its root JSON report.
 
 CLI gate:
 
