@@ -189,7 +189,7 @@ if [[ "$LIST" == "1" ]]; then
 fi
 
 mkdir -p "$RESULTS_DIR"
-printf 'case\tcommit\tformat\trust_avg_s\tupstream_avg_s\tspeedup\n' >"$SUMMARY_FILE"
+printf 'case\tcommit\tformat\trust_avg_s\tupstream_avg_s\tspeedup\tcompat\n' >"$SUMMARY_FILE"
 ran_cases=0
 
 for spec in "${SUITE_CASES[@]}"; do
@@ -221,11 +221,10 @@ for spec in "${SUITE_CASES[@]}"; do
     exit 1
   fi
   speedup="$(speedup_ratio "$rust_avg" "$upstream_avg")"
-  printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
-    "$name" "$commit" "$format" "$rust_avg" "$upstream_avg" "$speedup" >>"$SUMMARY_FILE"
   printf 'speedup: %sx\n' "$speedup"
   assert_min_speedup "$name" "$speedup"
 
+  compat_status="skipped"
   if [[ "$CHECK_COMPAT" == "1" ]]; then
     printf '\n== %s coverage compatibility ==\n' "$name"
     allowed_missing_coverage="$(compat_allow_missing_coverage "$name" "$repo_path")"
@@ -236,7 +235,11 @@ for spec in "${SUITE_CASES[@]}"; do
       MIN_LINES="$MIN_LINES" \
       MAX_SIZE="$MAX_SIZE" \
       "$ROOT/scripts/compat.sh" "$target_path"
+    compat_status="pass"
   fi
+
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$name" "$commit" "$format" "$rust_avg" "$upstream_avg" "$speedup" "$compat_status" >>"$SUMMARY_FILE"
 
   printf 'saved benchmark output: %s\n' "$result_file"
 done

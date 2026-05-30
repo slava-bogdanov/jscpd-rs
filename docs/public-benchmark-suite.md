@@ -39,9 +39,9 @@ Default behavior clones missing repositories with `--depth=1`, runs Rust and
 upstream `jscpd` through `scripts/bench.sh`, and writes raw benchmark output to
 `$BENCH_ROOT/results`. It also writes a TSV summary to
 `$BENCH_ROOT/results/summary.tsv` with case, commit, format, Rust average,
-upstream average, and speedup. Set `UPDATE=1` to refresh existing clones.
-Set `MIN_SPEEDUP` to make the suite fail when any selected case falls below the
-required upstream/Rust speedup.
+upstream average, speedup, and compatibility status. Set `UPDATE=1` to refresh
+existing clones. Set `MIN_SPEEDUP` to make the suite fail when any selected
+case falls below the required upstream/Rust speedup.
 
 When `CHECK_COMPAT=1` is enabled, the suite runs the same coverage-first report
 comparison used by the fixture gates. `react`, `next`, and `prometheus` include
@@ -56,11 +56,11 @@ Latest release-gate measurements on May 30, 2026:
 PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh
 ```
 
-| Case | Commit | Format | Rust avg | Upstream avg | Speedup |
-| --- | --- | --- | ---: | ---: | ---: |
-| `react` | `f0dfee3` | `javascript` | 0.184965s | 9.798689s | 52.98x |
-| `next` | `2bbb67b9` | `typescript` | 0.243170s | 14.392520s | 59.19x |
-| `prometheus` | `a0524ee` | `go` | 0.077913s | 4.489508s | 57.62x |
+| Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| `react` | `f0dfee3` | `javascript` | 0.184965s | 9.798689s | 52.98x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.243170s | 14.392520s | 59.19x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.077913s | 4.489508s | 57.62x | pass |
 
 `kubernetes` was also checked as a Go stress case, but upstream `jscpd` ran out
 of memory with the default Node heap, so it is intentionally not part of the
