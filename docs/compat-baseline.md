@@ -1,11 +1,10 @@
 # Compatibility Baseline
 
-Baseline date: 2026-05-30.
+Baseline date: 2026-05-31.
 
 Latest full release gate:
-`FULL=1 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `1fa9c90` as part of
-`scripts/release-candidate.sh`.
+`FULL=1 PUBLIC=0 scripts/release-gate.sh`
+passed on 2026-05-31 at commit `bd7fdc8`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
