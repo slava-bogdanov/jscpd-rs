@@ -266,7 +266,11 @@ fn markdown_front_matter_emits_yaml_map() {
     assert_eq!(yaml.tokens[0].start.line, 2);
     assert_eq!(
         &content[yaml.tokens[0].range[0]..yaml.tokens[0].range[1]],
-        "title:"
+        "title"
+    );
+    assert_eq!(
+        &content[yaml.tokens[1].range[0]..yaml.tokens[1].range[1]],
+        ":"
     );
 }
 
@@ -375,6 +379,25 @@ fn vue_sfc_emits_template_script_and_style_maps() {
         &content[typescript.tokens[0].range[0]..typescript.tokens[0].range[1]],
         "const"
     );
+}
+
+#[test]
+fn vue_sfc_trims_edge_whitespace_from_embedded_block_maps() {
+    let content = "<template>\n  <section>{{ title }}</section>\n</template>\n<style lang=\"scss\">\n.panel { color: red; }\n</style>\n";
+    let maps = tokenize_maps_for_detection(content, "vue", &Options::default());
+    let markup = maps
+        .iter()
+        .find(|map| map.format == "markup")
+        .expect("markup map");
+    let scss = maps
+        .iter()
+        .find(|map| map.format == "scss")
+        .expect("scss map");
+
+    assert_eq!(markup.tokens[0].start.line, 2);
+    assert_eq!(markup.tokens.last().unwrap().end.line, 2);
+    assert_eq!(scss.tokens[0].start.line, 5);
+    assert_eq!(scss.tokens.last().unwrap().end.line, 5);
 }
 
 #[test]

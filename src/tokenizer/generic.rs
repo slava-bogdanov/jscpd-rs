@@ -82,7 +82,11 @@ pub(super) fn scan_generic_token(content: &str, start: usize) -> usize {
     end
 }
 
-fn scan_punctuation_split_token(content: &str, format: &str, start: usize) -> (usize, TokenKind) {
+pub(super) fn scan_punctuation_split_token(
+    content: &str,
+    format: &str,
+    start: usize,
+) -> (usize, TokenKind) {
     let ch = content[start..].chars().next().unwrap_or('\0');
     if is_split_punctuation(format, ch) {
         return (start + ch.len_utf8(), TokenKind::Punctuation);

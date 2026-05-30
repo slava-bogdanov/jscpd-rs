@@ -176,9 +176,37 @@ fn append_offset_block_tokens(
     };
     let inner_start = line_index.location(block.inner_start);
     for mut map in inner_maps {
+        if map.format == format {
+            trim_edge_whitespace_tokens(&mut map.tokens, inner);
+        }
         offset_tokens(&mut map.tokens, block.inner_start, &inner_start);
         grouped.entry(map.format).or_default().extend(map.tokens);
     }
+}
+
+fn trim_edge_whitespace_tokens(tokens: &mut Vec<DetectionToken>, content: &str) {
+    let Some(first_content) = tokens
+        .iter()
+        .position(|token| !token_slice(content, token).chars().all(char::is_whitespace))
+    else {
+        tokens.clear();
+        return;
+    };
+    let last_content = tokens
+        .iter()
+        .rposition(|token| !token_slice(content, token).chars().all(char::is_whitespace))
+        .unwrap_or(first_content);
+
+    if last_content + 1 < tokens.len() {
+        tokens.drain(last_content + 1..);
+    }
+    if first_content > 0 {
+        tokens.drain(..first_content);
+    }
+}
+
+fn token_slice<'a>(content: &'a str, token: &DetectionToken) -> &'a str {
+    &content[token.range[0]..token.range[1]]
 }
 
 fn tokenize_markup_fragment_maps(

@@ -186,7 +186,7 @@ Latest public benchmark measurements:
 | `jscpd/fixtures` | `jsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures` | `tsx` | pass | token totals differ slightly; fragments covered |
 | `jscpd/fixtures/markdown` | `markdown` | pass | 18/18 upstream fragments line-covered; Rust reports wider/split ranges |
-| `jscpd/fixtures` | `vue` | pass | 18/18 upstream fragments line-covered; exact starts differ for wider markup/scss ranges |
+| `jscpd/fixtures` | `vue` | pass | 18/18 upstream fragments line-covered; template starts match upstream; one wider internal scss range remains |
 | `jscpd/fixtures` | `svelte` | pass | 6/6 upstream fragments line-covered; exact start differs for wider css range |
 | `jscpd/fixtures` | `astro` | pass | 8/8 upstream fragments line-covered; exact starts differ for wider markup/css ranges |
 | `jscpd/fixtures/pug` | `pug` | pass | exact clone and line summary parity; upstream overextended `style.` range is mirrored |
@@ -327,8 +327,11 @@ Latest public benchmark measurements:
   format maps. The upstream Markdown fixture is line-covered, though exact
   starts still differ where Rust reports wider/split ranges.
 - Vue, Svelte, and Astro now split embedded template/script/style/frontmatter
-  regions into format maps. Their fixtures are line-covered, with expected
-  wider ranges from generic markup/style tokenization.
+  regions into format maps. Embedded generic block maps split common
+  punctuation while preserving internal whitespace, and SFC block-edge
+  whitespace is trimmed so Vue template/style starts align with upstream where
+  tokenization otherwise matches. Their fixtures are line-covered, with
+  remaining wider ranges from generic markup/style tokenization.
 - Plain `markup` now extracts top-level `<script>` and `<style>` blocks into
   embedded JavaScript/TypeScript/CSS-like maps. This covers upstream mixed HTML
   fixture clones, though Rust may report a wider equivalent embedded range.

@@ -1,6 +1,6 @@
 use crate::cli::Options;
 
-use super::generic::{generic_comment_span_end, scan_generic_token};
+use super::generic::{generic_comment_span_end, scan_punctuation_split_token};
 use super::{ByteSpan, DetectionToken, LineIndex, Location, TokenContext, TokenKind, push_token};
 
 pub(super) fn blank_ranges_preserve_newlines(content: &str, ranges: &[[usize; 2]]) -> String {
@@ -62,7 +62,7 @@ pub(super) fn tokenize_generic_with_whitespace(
         {
             (comment_end, TokenKind::Comment)
         } else {
-            (scan_generic_token(content, start_byte), TokenKind::Default)
+            scan_punctuation_split_token(content, format, start_byte)
         };
         push_token(
             &mut tokens,
