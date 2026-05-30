@@ -261,6 +261,7 @@ print_case() {
 
 COMMON_ARGS=(--min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size "$MAX_SIZE")
 SUMMARY="Duplications detection: Found 1 exact clones with 10(35.71%) duplicated lines in 1 (1 formats) files."
+FORMATS_NAMES_SUMMARY="Duplications detection: Found 1 exact clones with 4(50%) duplicated lines in 2 (1 formats) files."
 THRESHOLD_ERROR="ERROR: jscpd found too many duplicates (35.71%) over threshold (10%)"
 EXIT_CODE_TYPE_ERROR_STRING="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type string ('nope')"
 EXIT_CODE_RANGE_ERROR="RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is out of range. It must be an integer. Received 7.5"
@@ -299,6 +300,16 @@ const beta = 2;
 const gamma = 3;
 EOF_JS
 done
+FORMATS_NAMES_DIR="$TMP_ROOT/formats-names"
+mkdir -p "$FORMATS_NAMES_DIR/a" "$FORMATS_NAMES_DIR/b"
+cat >"$FORMATS_NAMES_DIR/a/CustomScript" <<'EOF_JS'
+function alpha() {
+  const one = 1;
+  const two = 2;
+  return one + two;
+}
+EOF_JS
+cp "$FORMATS_NAMES_DIR/a/CustomScript" "$FORMATS_NAMES_DIR/b/CustomScript"
 
 printf 'target: %s\n' "$TARGET_REL"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -352,6 +363,9 @@ run_case "no gitignore disables cwd ignore" 0 "$CWD_GITIGNORE_DIR" --debug --noT
 require_both_contain stdout "Found 5 files to detect."
 require_both_contain stdout "target/file.js"
 require_both_contain stdout "report/file.js"
+
+run_case "formats names discovery" 0 "$FORMATS_NAMES_DIR" --format javascript --formats-names javascript:CustomScript --reporters silent --noTips --min-tokens 5 --min-lines 2 --max-size 1mb
+require_both_contain stdout "$FORMATS_NAMES_SUMMARY"
 
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
