@@ -20,6 +20,12 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
     if should_write_report("markdown", options) {
         write_markdown(result, options)?;
     }
+    if should_write_report("xml", options) {
+        write_xml(result, options)?;
+    }
+    if should_write_report("xcode", options) {
+        write_xcode(result, options);
+    }
     Ok(())
 }
 
@@ -90,6 +96,25 @@ fn write_markdown(result: &DetectionResult, options: &Options) -> Result<()> {
     Ok(())
 }
 
+fn write_xml(result: &DetectionResult, options: &Options) -> Result<()> {
+    fs::create_dir_all(&options.output)
+        .with_context(|| format!("failed to create output dir `{}`", options.output.display()))?;
+    let path = options.output.join("jscpd-report.xml");
+    let xml = XmlReport::from_detection(result).to_string();
+    fs::write(&path, xml).with_context(|| format!("failed to write `{}`", path.display()))?;
+    if !options.silent {
+        println!("XML report saved to {}", path.display());
+    }
+    Ok(())
+}
+
+fn write_xcode(result: &DetectionResult, options: &Options) {
+    for clone in &result.clones {
+        println!("{}", XcodeWarning::from_clone(clone, options));
+    }
+    println!("Found {} clones.", result.clones.len());
+}
+
 #[derive(Serialize)]
 struct JsonReport {
     duplicates: Vec<JsonDuplicate>,
@@ -121,6 +146,27 @@ struct JsonFile {
 
 struct CsvReport {
     rows: Vec<[String; 7]>,
+}
+
+struct XmlReport {
+    duplications: Vec<XmlDuplication>,
+}
+
+struct XmlDuplication {
+    lines: usize,
+    first_file: XmlFile,
+    second_file: XmlFile,
+    fragment: String,
+}
+
+struct XmlFile {
+    path: String,
+    line: usize,
+    fragment: String,
+}
+
+struct XcodeWarning {
+    message: String,
 }
 
 impl JsonReport {
@@ -199,6 +245,99 @@ impl std::fmt::Display for CsvReport {
             write!(f, "{}", row.join(","))?;
         }
         Ok(())
+    }
+}
+
+impl XmlReport {
+    fn from_detection(result: &DetectionResult) -> Self {
+        Self {
+            duplications: result
+                .clones
+                .iter()
+                .map(|clone| XmlDuplication::from_clone(clone, result))
+                .collect(),
+        }
+    }
+}
+
+impl XmlDuplication {
+    fn from_clone(clone: &CloneMatch, result: &DetectionResult) -> Self {
+        let first_fragment = clone_fragment(result, &clone.duplication_a);
+        let second_fragment = clone_fragment(result, &clone.duplication_b);
+
+        Self {
+            lines: clone
+                .duplication_a
+                .end
+                .line
+                .saturating_sub(clone.duplication_a.start.line),
+            first_file: XmlFile {
+                path: escape_xml(&clone.duplication_a.source_id),
+                line: clone.duplication_a.start.line,
+                fragment: first_fragment.clone(),
+            },
+            second_file: XmlFile {
+                path: escape_xml(&clone.duplication_b.source_id),
+                line: clone.duplication_b.start.line,
+                fragment: second_fragment,
+            },
+            fragment: first_fragment,
+        }
+    }
+}
+
+impl std::fmt::Display for XmlReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, r#"<?xml version="1.0" encoding="UTF-8" ?><pmd-cpd>"#)?;
+        for duplication in &self.duplications {
+            write!(
+                f,
+                "\n      <duplication lines=\"{}\">\n            <file path=\"{}\" line=\"{}\">\n              <codefragment><![CDATA[{}]]></codefragment>\n            </file>\n            <file path=\"{}\" line=\"{}\">\n              <codefragment><![CDATA[{}]]></codefragment>\n            </file>\n            <codefragment><![CDATA[{}]]></codefragment>\n        </duplication>\n      ",
+                duplication.lines,
+                duplication.first_file.path,
+                duplication.first_file.line,
+                cdata_fragment(&duplication.first_file.fragment),
+                duplication.second_file.path,
+                duplication.second_file.line,
+                cdata_fragment(&duplication.second_file.fragment),
+                cdata_fragment(&duplication.fragment),
+            )?;
+        }
+        write!(f, "</pmd-cpd>")
+    }
+}
+
+impl XcodeWarning {
+    fn from_clone(clone: &CloneMatch, options: &Options) -> Self {
+        let start_line_a = clone.duplication_a.start.line;
+        let end_line_a = clone.duplication_a.end.line;
+        let path_a = absolute_report_path(&clone.duplication_a.source_id);
+        let path_b = if options.absolute {
+            absolute_report_path(&clone.duplication_b.source_id)
+        } else {
+            clone.duplication_b.source_id.clone()
+        };
+
+        Self {
+            message: format!(
+                "{}:{}:{}: warning: Found {} lines ({}-{}) duplicated on file {} ({}-{})",
+                path_a,
+                start_line_a,
+                clone.duplication_a.start.column,
+                end_line_a.saturating_sub(start_line_a),
+                start_line_a,
+                end_line_a,
+                path_b,
+                clone.duplication_b.start.line,
+                clone.duplication_b.end.line,
+            ),
+        }
+    }
+}
+
+impl std::fmt::Display for XcodeWarning {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
     }
 }
 
@@ -316,6 +455,40 @@ fn slice_range(content: &str, range: [usize; 2]) -> String {
     content.get(start..end).unwrap_or_default().to_string()
 }
 
+fn clone_fragment(result: &DetectionResult, fragment: &crate::detector::Fragment) -> String {
+    result
+        .source_contents
+        .get(&fragment.source_id)
+        .map(|content| slice_range(content, fragment.range))
+        .unwrap_or_default()
+}
+
+fn escape_xml(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('\'', "&apos;")
+        .replace('"', "&quot;")
+}
+
+fn cdata_fragment(value: &str) -> String {
+    value.replacen("]]>", "CDATA_END", 1)
+}
+
+fn absolute_report_path(source_id: &str) -> String {
+    let path = Path::new(source_id);
+    if path.is_absolute() {
+        source_id.to_string()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|_| Path::new(".").to_path_buf())
+            .join(path)
+            .display()
+            .to_string()
+    }
+}
+
 #[allow(dead_code)]
 fn normalize_report_path(path: &Path) -> String {
     path.display().to_string()
@@ -324,8 +497,8 @@ fn normalize_report_path(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::detector::FormatStatistic;
-    use crate::detector::StatisticRow;
+    use crate::detector::{CloneMatch, FormatStatistic, Fragment, StatisticRow};
+    use crate::tokenizer::Location;
     use std::collections::HashMap;
 
     fn make_test_statistics() -> Statistics {
@@ -362,6 +535,46 @@ mod tests {
                 new_clones: 0,
             },
             formats,
+        }
+    }
+
+    fn make_test_clone(source_a: &str, source_b: &str) -> CloneMatch {
+        CloneMatch {
+            format: "javascript".to_string(),
+            duplication_a: Fragment {
+                source_id: source_a.to_string(),
+                start: location(2, 3, 0),
+                end: location(5, 1, 18),
+                range: [0, 18],
+            },
+            duplication_b: Fragment {
+                source_id: source_b.to_string(),
+                start: location(8, 1, 0),
+                end: location(11, 1, 18),
+                range: [0, 18],
+            },
+            tokens: 6,
+        }
+    }
+
+    fn make_test_result_with_clone(source_a: &str, source_b: &str) -> DetectionResult {
+        let mut source_contents = HashMap::new();
+        source_contents.insert(source_a.to_string(), "alpha <beta> ]]>\n".to_string());
+        source_contents.insert(source_b.to_string(), "alpha & beta\nxxxx\n".to_string());
+
+        DetectionResult {
+            clones: vec![make_test_clone(source_a, source_b)],
+            statistics: make_test_statistics(),
+            sources: Vec::new(),
+            source_contents,
+        }
+    }
+
+    fn location(line: usize, column: usize, position: usize) -> Location {
+        Location {
+            line,
+            column,
+            position,
         }
     }
 
@@ -469,5 +682,83 @@ mod tests {
             ]
             .join("\n")
         );
+    }
+
+    #[test]
+    fn xcode_warning_matches_upstream_shape() {
+        let options = Options {
+            absolute: false,
+            ..Options::default()
+        };
+        let clone = make_test_clone("src/a.js", "src/b.js");
+        let warning = XcodeWarning::from_clone(&clone, &options).to_string();
+        let expected_prefix = std::env::current_dir()
+            .unwrap()
+            .join("src/a.js")
+            .display()
+            .to_string();
+
+        assert_eq!(
+            warning,
+            format!(
+                "{expected_prefix}:2:3: warning: Found 3 lines (2-5) duplicated on file src/b.js (8-11)"
+            )
+        );
+    }
+
+    #[test]
+    fn xcode_warning_respects_absolute_second_path() {
+        let options = Options {
+            absolute: true,
+            ..Options::default()
+        };
+        let clone = make_test_clone("src/a.js", "src/b.js");
+        let warning = XcodeWarning::from_clone(&clone, &options).to_string();
+        let expected_second = std::env::current_dir()
+            .unwrap()
+            .join("src/b.js")
+            .display()
+            .to_string();
+
+        assert!(warning.ends_with(&format!("duplicated on file {expected_second} (8-11)")));
+    }
+
+    #[test]
+    fn xml_report_matches_upstream_pmd_cpd_shape() {
+        let result = make_test_result_with_clone("src/a<&>.js", "src/b.js");
+        let xml = XmlReport::from_detection(&result).to_string();
+
+        assert!(xml.starts_with(r#"<?xml version="1.0" encoding="UTF-8" ?><pmd-cpd>"#));
+        assert!(xml.ends_with("</pmd-cpd>"));
+        assert!(xml.contains(r#"<duplication lines="3">"#));
+        assert!(xml.contains(r#"<file path="src/a&lt;&amp;&gt;.js" line="2">"#));
+        assert!(xml.contains("<![CDATA[alpha <beta> CDATA_END\n]]>"));
+        assert!(xml.contains(r#"<file path="src/b.js" line="8">"#));
+    }
+
+    #[test]
+    fn write_reports_writes_xml_report() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let output = std::env::temp_dir().join(format!(
+            "jscpd-rs-xml-report-{}-{nonce}",
+            std::process::id()
+        ));
+        let options = Options {
+            output: output.clone(),
+            reporters: vec!["xml".to_string()],
+            silent: true,
+            ..Options::default()
+        };
+        let result = make_test_result_with_clone("src/a.js", "src/b.js");
+
+        write_reports(&result, &options).unwrap();
+        let xml = std::fs::read_to_string(output.join("jscpd-report.xml")).unwrap();
+        let _ = std::fs::remove_dir_all(output);
+
+        assert!(xml.contains("<pmd-cpd>"));
+        assert!(xml.contains(r#"<file path="src/a.js" line="2">"#));
     }
 }

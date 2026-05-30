@@ -153,7 +153,10 @@ pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
     let mut sources = Vec::new();
     let mut source_contents = HashMap::new();
     let mut source_indices_by_format = vec![Vec::new(); format_names.len()];
-    let include_source_contents = options.reporters.iter().any(|reporter| reporter == "json");
+    let include_source_contents = options
+        .reporters
+        .iter()
+        .any(|reporter| matches!(reporter.as_str(), "json" | "xml"));
 
     for (idx, prepared) in prepared_files.iter().enumerate() {
         if prepared.stream.spans.is_empty() {

@@ -33,8 +33,11 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
 
     let pattern_set = build_glob_set(std::slice::from_ref(&options.pattern))
         .with_context(|| format!("invalid pattern `{}`", options.pattern))?;
-    let needs_compat_discovery =
-        options.reporters.iter().any(|reporter| reporter == "json") || !options.silent;
+    let needs_compat_discovery = options
+        .reporters
+        .iter()
+        .any(|reporter| reporter_needs_report_paths(reporter))
+        || !options.silent;
     let mut ignore_patterns = options.ignore.clone();
     if options.gitignore && needs_compat_discovery {
         ignore_patterns.extend(collect_gitignore_patterns(&options.paths));
@@ -283,8 +286,11 @@ fn read_candidate(
         return Ok(None);
     }
 
-    let needs_report_paths =
-        options.reporters.iter().any(|reporter| reporter == "json") || !options.silent;
+    let needs_report_paths = options
+        .reporters
+        .iter()
+        .any(|reporter| reporter_needs_report_paths(reporter))
+        || !options.silent;
     let source_id = if options.absolute {
         candidate
             .path
@@ -303,6 +309,10 @@ fn read_candidate(
         format: candidate.format,
         content,
     }))
+}
+
+fn reporter_needs_report_paths(reporter: &str) -> bool {
+    matches!(reporter, "json" | "xml" | "xcode")
 }
 
 fn is_ignored(path: &Path, ignore_set: &GlobSet, cwd: &Path) -> bool {
@@ -504,7 +514,10 @@ mod tests {
 
     use crate::cli::Options;
 
-    use super::{discover, fast_glob_like_path_cmp, gitignore_line_to_globs, relative_path};
+    use super::{
+        discover, display_relative_to, fast_glob_like_path_cmp, gitignore_line_to_globs,
+        relative_path,
+    };
 
     #[test]
     fn fast_glob_like_order_places_parent_files_before_child_files() {
@@ -621,5 +634,36 @@ mod tests {
         assert!(formats.contains("yaml"));
         assert!(formats.contains("toml"));
         assert!(formats.contains("vue"));
+    }
+
+    #[test]
+    fn xcode_reporter_uses_report_paths_when_silent() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "jscpd-rs-xcode-paths-{}-{nonce}",
+            std::process::id()
+        ));
+        let path = dir.join("file.js");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(&path, "const alpha = 1;\n").unwrap();
+
+        let options = Options {
+            paths: vec![path.clone()],
+            min_lines: 1,
+            reporters: vec!["xcode".to_string()],
+            silent: true,
+            gitignore: false,
+            ..Options::default()
+        };
+        let cwd = std::env::current_dir().unwrap();
+
+        let files = discover(&options).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].source_id, display_relative_to(&path, &cwd));
     }
 }
