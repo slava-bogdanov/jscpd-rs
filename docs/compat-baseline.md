@@ -8,7 +8,7 @@ passed on 2026-05-30 at commit `cd96227`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `2ed438f`.
+passed on 2026-05-30 at commit `ac990a7`.
 
 Default gate:
 
@@ -128,9 +128,9 @@ Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.181628s | 9.956166s | 54.82x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.240113s | 14.080903s | 58.64x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.078047s | 4.490761s | 57.54x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.184628s | 10.059620s | 54.49x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.241178s | 14.238566s | 59.04x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.075945s | 4.508015s | 59.36x | pass |
 
 ## Current Matrix
 
