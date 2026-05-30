@@ -115,6 +115,32 @@ check_server_cli() {
     "Failed to start server: Error: Invalid port number: true" \
     "$label bare --port stderr"
 
+  for option in \
+    --list \
+    -h \
+    --reporters \
+    --output \
+    --debug \
+    --verbose \
+    --exitCode \
+    --noTips \
+    --skipComments \
+    --formats-exts \
+    --formats-names \
+    --pattern \
+    --blame \
+    --silent \
+    --threshold \
+    --no-gitignore; do
+    local slug="${option//-/}"
+    run_command "$dir/unknown-$slug.code" "$dir/unknown-$slug.stdout" "$dir/unknown-$slug.stderr" \
+      "${cmd[@]}" "$option"
+    check_exit_code "$dir/unknown-$slug.code" 1 "$label unknown $option"
+    require_contains "$dir/unknown-$slug.stderr" \
+      "error: unknown option '$option'" \
+      "$label unknown $option stderr"
+  done
+
   printf 'ok %-18s\n' "$label CLI"
 }
 
