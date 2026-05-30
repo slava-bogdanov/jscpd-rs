@@ -36,6 +36,7 @@ cd "$ROOT"
 
 run_case "fixtures javascript" "jscpd/fixtures" "javascript" 20 3
 run_case "fixtures typescript" "jscpd/fixtures" "typescript" 20 3
+run_case "fixtures json" "jscpd/fixtures/javascript" "json" 20 3
 run_case "fixtures javascript strict" "jscpd/fixtures/javascript" "javascript" 20 3 "$DEFAULT_MAX_SIZE" "strict" "1"
 run_case "fixtures typescript strict" "jscpd/fixtures" "typescript" 20 3 "$DEFAULT_MAX_SIZE" "strict" "1"
 run_case "fixtures javascript weak" "jscpd/fixtures/javascript" "javascript" 20 3 "$DEFAULT_MAX_SIZE" "weak" "coverage"
@@ -75,6 +76,8 @@ run_case "fixtures objectivec" "jscpd/fixtures/objective-c" "objectivec" 20 3
 run_case "fixtures c" "jscpd/fixtures/clike" "c" 20 3
 run_case "fixtures z80 as c" "jscpd/fixtures/z80" "c" 20 3
 run_case "fixtures cpp" "jscpd/fixtures/clike" "cpp" 20 3
+run_case "fixtures c-header" "jscpd/fixtures/clike" "c-header" 20 3
+run_case "fixtures cpp-header" "jscpd/fixtures/clike" "cpp-header" 20 3
 run_case "fixtures java" "jscpd/fixtures/clike" "java" 20 3
 run_case "fixtures csharp" "jscpd/fixtures/clike" "csharp" 20 3
 run_case "fixtures kotlin" "jscpd/fixtures/clike" "kotlin" 20 3

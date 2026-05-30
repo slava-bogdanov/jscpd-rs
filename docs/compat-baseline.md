@@ -20,6 +20,7 @@ compatibility is converging.
 | --- | --- | --- | --- |
 | `jscpd/fixtures` | `javascript` | pass | exact summary parity |
 | `jscpd/fixtures` | `typescript` | pass | exact summary parity |
+| `jscpd/fixtures/javascript` | `json` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/javascript` | `javascript` / `strict` | pass | exact summary parity |
 | `jscpd/fixtures` | `typescript` / `strict` | pass | exact summary parity |
 | `jscpd/fixtures/javascript` | `javascript` / `weak` | pass | clone and line summary parity; token totals differ slightly |
@@ -59,6 +60,8 @@ compatibility is converging.
 | `jscpd/fixtures/clike` | `c` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/z80` | `c` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/clike` | `cpp` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/clike` | `c-header` | pass | exact clone and line summary parity |
+| `jscpd/fixtures/clike` | `cpp-header` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/clike` | `java` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/clike` | `csharp` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/clike` | `kotlin` | pass | 4/4 upstream fragments line-covered |
@@ -179,6 +182,8 @@ compatibility is converging.
 - Several upstream fixture directories are gated through upstream aliases:
   `gitignore` as `ignore`, `mathematica` as `wolfram`, `idl` as `prolog`, and
   `z80` as `c`.
+- The remaining upstream `formats.test.ts` fixture formats not in the green
+  matrix are `pug` and `haml`; both are tracked as upstream bug candidates.
 - ASP.NET uses the code-like generic splitter and is gated with a narrow
   documented upstream range exception for `file2.aspx:18-43`, where upstream
   reports through an inserted email field block that is not present in the
