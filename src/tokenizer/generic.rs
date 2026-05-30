@@ -44,8 +44,8 @@ pub(super) fn tokenize_generic(
             generic_comment_span_end(content, format, start_byte, content.len())
         {
             (comment_end, TokenKind::Comment)
-        } else if css_like_format(format) {
-            scan_css_like_token(content, start_byte)
+        } else if punctuation_split_format(format) {
+            scan_punctuation_split_token(content, format, start_byte)
         } else {
             (scan_generic_token(content, start_byte), TokenKind::Default)
         };
@@ -78,16 +78,22 @@ pub(super) fn scan_generic_token(content: &str, start: usize) -> usize {
     end
 }
 
-fn scan_css_like_token(content: &str, start: usize) -> (usize, TokenKind) {
+fn scan_punctuation_split_token(content: &str, format: &str, start: usize) -> (usize, TokenKind) {
     let ch = content[start..].chars().next().unwrap_or('\0');
-    if is_css_punctuation(ch) {
+    if is_split_punctuation(format, ch) {
         return (start + ch.len_utf8(), TokenKind::Punctuation);
+    }
+    if code_like_format(format) && is_operator_start(ch) {
+        return (scan_operator_token(content, start), TokenKind::Operator);
     }
 
     let mut end = start;
     while end < content.len() {
         let ch = content[end..].chars().next().unwrap_or('\0');
-        if ch.is_whitespace() || is_css_punctuation(ch) {
+        if ch.is_whitespace()
+            || is_split_punctuation(format, ch)
+            || (code_like_format(format) && is_operator_start(ch))
+        {
             break;
         }
         end += ch.len_utf8();
@@ -95,8 +101,28 @@ fn scan_css_like_token(content: &str, start: usize) -> (usize, TokenKind) {
     (end, TokenKind::Default)
 }
 
-fn is_css_punctuation(ch: char) -> bool {
+fn scan_operator_token(content: &str, start: usize) -> usize {
+    let mut end = start;
+    while end < content.len() {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        if !is_operator_start(ch) {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+    end
+}
+
+fn is_split_punctuation(format: &str, ch: char) -> bool {
     matches!(ch, '{' | '}' | '(' | ')' | '[' | ']' | ':' | ';' | ',')
+        || (code_like_format(format) && ch == '.')
+}
+
+fn is_operator_start(ch: char) -> bool {
+    matches!(
+        ch,
+        '+' | '-' | '*' | '/' | '%' | '=' | '!' | '<' | '>' | '&' | '|' | '^' | '~' | '?'
+    )
 }
 
 pub(super) fn scan_whitespace(content: &str, start: usize) -> usize {
@@ -193,8 +219,34 @@ fn generic_semicolon_comment_format(format: &str) -> bool {
     )
 }
 
+fn punctuation_split_format(format: &str) -> bool {
+    css_like_format(format) || code_like_format(format)
+}
+
 fn css_like_format(format: &str) -> bool {
     matches!(format, "css" | "less" | "sass" | "scss" | "stylus")
+}
+
+fn code_like_format(format: &str) -> bool {
+    matches!(
+        format,
+        "c" | "c-header"
+            | "clike"
+            | "cpp"
+            | "cpp-header"
+            | "csharp"
+            | "dart"
+            | "go"
+            | "java"
+            | "kotlin"
+            | "objectivec"
+            | "perl"
+            | "php"
+            | "rust"
+            | "scala"
+            | "solidity"
+            | "swift"
+    )
 }
 
 fn scan_to_line_end(bytes: &[u8], start: usize, limit: usize) -> usize {

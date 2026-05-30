@@ -44,6 +44,10 @@ range while compatibility is converging.
 | `jscpd/fixtures/clojure` | `clojure` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/sass` | `sass` | pass | 6/6 upstream fragments line-covered |
 | `jscpd/fixtures/stylus` | `stylus` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/rust` | `rust` | pass | exact summary parity; 76/76 upstream fragments line-covered |
+| `jscpd/fixtures/dart` | `dart` | pass | exact summary parity; 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/solidity` | `solidity` | pass | 4/4 upstream fragments line-covered; Rust reports one extra clone |
+| `jscpd/fixtures/perl` | `perl` | pass | exact summary parity; 8/8 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
@@ -68,6 +72,9 @@ range while compatibility is converging.
   prefixes are comments in the upstream Prism grammar.
 - CSS-like generic formats split common punctuation so practical stylesheet
   clones meet upstream token thresholds without carrying a full Prism port.
+- Code-like generic formats split common punctuation and operator runs so
+  practical language fixtures meet upstream token thresholds without carrying
+  a full Prism port.
 - `--mode strict` now preserves Prism-style `empty` and `new_line` whitespace
   tokens in the native JS/TS/Oxc path and the generic tokenizer. The
   JavaScript fixture has exact strict-mode summary parity.

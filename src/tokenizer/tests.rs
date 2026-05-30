@@ -347,6 +347,24 @@ fn css_like_tokenizer_splits_punctuation() {
 }
 
 #[test]
+fn code_like_tokenizer_splits_punctuation_and_operators() {
+    let content = "fn call<T>(x: i32) -> bool { x >= 1 }";
+    let tokens = tokenize_for_detection(content, "rust", &Options::default());
+    let token_values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        token_values,
+        vec![
+            "fn", "call", "<", "T", ">", "(", "x", ":", "i32", ")", "->", "bool", "{", "x", ">=",
+            "1", "}"
+        ]
+    );
+}
+
+#[test]
 fn weak_mode_skips_js_comments() {
     let options = Options {
         mode: crate::cli::Mode::Weak,

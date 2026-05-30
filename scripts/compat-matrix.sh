@@ -59,6 +59,10 @@ run_case "fixtures haskell" "jscpd/fixtures/haskell" "haskell" 20 3
 run_case "fixtures clojure" "jscpd/fixtures/clojure" "clojure" 20 3
 run_case "fixtures sass" "jscpd/fixtures/sass" "sass" 20 3
 run_case "fixtures stylus" "jscpd/fixtures/stylus" "stylus" 20 3
+run_case "fixtures rust" "jscpd/fixtures/rust" "rust" 20 3
+run_case "fixtures dart" "jscpd/fixtures/dart" "dart" 20 3
+run_case "fixtures solidity" "jscpd/fixtures/solidity" "solidity" 20 3
+run_case "fixtures perl" "jscpd/fixtures/perl" "perl" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5
