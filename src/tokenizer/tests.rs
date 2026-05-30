@@ -565,6 +565,24 @@ fn js_line_comments_split_into_comment_tokens() {
 }
 
 #[test]
+fn js_hashbang_splits_like_prism() {
+    let content = "#!/usr/bin/env node\n'use strict';\n";
+    let tokens = tokenize_for_detection(content, "javascript", &Options::default());
+    let values = tokens
+        .iter()
+        .take(9)
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        values,
+        vec!["#", "!", "/", "usr", "/", "bin", "/", "env", "node"]
+    );
+    assert_eq!(tokens[0].hash, hash_token(TokenKind::Default, "#", false));
+    assert_eq!(tokens[1].hash, hash_token(TokenKind::Operator, "!", false));
+}
+
+#[test]
 fn splits_template_interpolation_like_prism() {
     let tokens = tokenize_for_detection(
         "const x = `a${b}c${d}e`;",

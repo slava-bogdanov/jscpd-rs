@@ -170,7 +170,11 @@ fn push_oxc_token(
         }
         return;
     }
-    if value.starts_with("/*") || value.starts_with("#!") || value.starts_with("<!--") {
+    if value.starts_with("#!") {
+        push_hashbang_tokens(tokens, context, span, line_index);
+        return;
+    }
+    if value.starts_with("/*") || value.starts_with("<!--") {
         if context.options.mode != Mode::Weak {
             push_comment_token(tokens, context, span, line_index);
         }
@@ -370,10 +374,12 @@ fn push_comments_in_gap(
         if idx + 1 >= gap_end {
             break;
         }
-        let is_line_comment = (idx == 0 && bytes[idx] == b'#' && bytes[idx + 1] == b'!')
-            || (bytes[idx] == b'/' && bytes[idx + 1] == b'/')
+        let is_hashbang = idx == 0 && bytes[idx] == b'#' && bytes[idx + 1] == b'!';
+        let is_line_comment = (bytes[idx] == b'/' && bytes[idx + 1] == b'/')
             || bytes[idx..gap_end].starts_with(b"<!--");
         let comment_end = if is_line_comment {
+            Some(scan_line_comment(bytes, idx, gap_end))
+        } else if is_hashbang {
             Some(scan_line_comment(bytes, idx, gap_end))
         } else if bytes[idx] == b'/' && bytes[idx + 1] == b'*' {
             Some(scan_block_comment(bytes, idx, gap_end))
@@ -382,7 +388,13 @@ fn push_comments_in_gap(
         };
 
         if let Some(comment_end) = comment_end {
-            if context.options.mode != Mode::Weak {
+            if is_hashbang {
+                let span = ByteSpan {
+                    start: idx,
+                    end: comment_end,
+                };
+                push_hashbang_tokens(tokens, context, span, line_index);
+            } else if context.options.mode != Mode::Weak {
                 let span = ByteSpan {
                     start: idx,
                     end: comment_end,
@@ -398,6 +410,20 @@ fn push_comments_in_gap(
             idx += ch.len_utf8();
         }
     }
+}
+
+fn push_hashbang_tokens(
+    tokens: &mut Vec<DetectionToken>,
+    context: &TokenContext<'_>,
+    span: ByteSpan,
+    line_index: &LineIndex,
+) {
+    let hash_span = ByteSpan {
+        start: span.start,
+        end: span.start + 1,
+    };
+    push_token_part(tokens, context, TokenKind::Default, hash_span, line_index);
+    tokenize_js_like_range(tokens, context, span.start + 1, span.end, line_index);
 }
 
 pub(super) fn push_line_comment_tokens(
