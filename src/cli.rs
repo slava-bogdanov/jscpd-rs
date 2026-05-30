@@ -183,6 +183,11 @@ impl OneOrMany {
 pub struct FormatMappings(Vec<(String, Vec<String>)>);
 
 impl FormatMappings {
+    #[cfg(test)]
+    pub fn from_pairs(pairs: Vec<(String, Vec<String>)>) -> Self {
+        Self(pairs)
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

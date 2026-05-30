@@ -44,7 +44,8 @@ measure whether a Rust clone has enough performance upside to continue:
 Known MVP gaps:
 
 - Tokenization is not language-compatible with upstream yet.
-- Most of the 223 upstream formats are not mapped yet.
+- The upstream format registry is synchronized, but most long-tail formats still
+  use generic tokenization rather than Prism-compatible tokenization.
 - `strict/mild/weak` are only approximated.
 - No XML/CSV/Markdown/HTML/SARIF/AI reporters yet.
 - No blame, persistent stores, custom format mappings, or embedded block
@@ -115,6 +116,20 @@ work:
   gate for deciding whether the clone is viable.
 
 Use the compatibility harness with `STRICT=coverage` to enforce this rule.
+Use `scripts/compat-matrix.sh` for the current JS/TS-focused release matrix.
+
+## Format Coverage Strategy
+
+The format registry is generated from upstream `@jscpd/tokenizer` using
+`scripts/sync-formats.mjs`. This keeps extension detection and `--list` aligned
+with upstream while avoiding hand-maintained mapping drift.
+
+Tokenizer strategy remains hybrid:
+
+- native Rust/Oxc path for hot JS/TS formats;
+- generic tokenizer for long-tail formats until fallback/native support exists;
+- future `prism-fallback` feature for Prism-compatible tokenization of formats
+  that are not worth rewriting natively.
 
 ## Larger Local Repo Benchmarks
 

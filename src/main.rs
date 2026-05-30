@@ -4,6 +4,8 @@ mod files;
 mod formats;
 mod report;
 mod tokenizer;
+#[cfg(feature = "prism-fallback")]
+mod tokenizer_fallback;
 
 use anyhow::Result;
 use clap::Parser;

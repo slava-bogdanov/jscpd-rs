@@ -5,6 +5,10 @@ edition = "2024"
 license = "MIT"
 description = "Fast Rust clone of jscpd"
 
+[features]
+default = []
+prism-fallback = []
+
 [[bin]]
 name = "jscpd-rs"
 path = "src/main.rs"
