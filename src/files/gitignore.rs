@@ -68,8 +68,14 @@ pub(super) fn collect_gitignore_patterns(roots: &[PathBuf]) -> Vec<String> {
 
 pub(super) fn gitignore_line_to_globs(line: &str, base_dir: Option<&Path>) -> Vec<String> {
     let trimmed = line.trim();
-    if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with('!') {
+    if trimmed.is_empty() || trimmed.starts_with('#') {
         return Vec::new();
+    }
+    if let Some(pattern) = trimmed.strip_prefix('!') {
+        return gitignore_line_to_globs(pattern, base_dir)
+            .into_iter()
+            .map(|glob| format!("!{glob}"))
+            .collect();
     }
 
     let is_rooted = trimmed.starts_with('/');

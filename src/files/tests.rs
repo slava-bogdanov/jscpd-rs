@@ -52,6 +52,22 @@ fn gitignore_line_to_globs_anchors_rooted_patterns_to_base_dir() {
     assert!(globs.iter().any(|glob| glob == "/repo/app/node_modules/**"));
 }
 
+#[test]
+fn gitignore_line_to_globs_preserves_negations_like_upstream() {
+    let globs = gitignore_line_to_globs("!ignored/keep.js", Some(Path::new("/repo/app")));
+
+    assert!(
+        globs
+            .iter()
+            .any(|glob| glob == "!/repo/app/ignored/keep.js")
+    );
+    assert!(
+        globs
+            .iter()
+            .any(|glob| glob == "!/repo/app/ignored/keep.js/**")
+    );
+}
+
 #[cfg(unix)]
 #[test]
 fn discovers_executable_node_shebang_without_extension() {
@@ -250,4 +266,40 @@ fn empty_file_counts_as_one_line_like_upstream() {
 
     assert_eq!(files.len(), 1);
     assert_eq!(files[0].source_id, path.display().to_string());
+}
+
+#[test]
+fn gitignore_negation_reincludes_files_during_compat_discovery() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-gitignore-negation-{}-{nonce}",
+        std::process::id()
+    ));
+    let ignored = dir.join("ignored");
+    std::fs::create_dir_all(&ignored).unwrap();
+    std::fs::write(dir.join(".gitignore"), "ignored/**\n!ignored/keep.js\n").unwrap();
+    std::fs::write(ignored.join("drop.js"), "const drop = 1;\n").unwrap();
+    std::fs::write(ignored.join("keep.js"), "const keep = 1;\n").unwrap();
+
+    let options = Options {
+        paths: vec![dir.clone()],
+        min_lines: 1,
+        reporters: vec!["json".to_string()],
+        silent: true,
+        gitignore: true,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    let paths = files
+        .iter()
+        .map(|file| file.source_id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths.len(), 1);
+    assert!(paths[0].ends_with("ignored/keep.js"));
 }

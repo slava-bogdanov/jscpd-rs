@@ -33,7 +33,8 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
     if options.gitignore && needs_compat_discovery {
         ignore_patterns.extend(collect_gitignore_patterns(&options.paths));
     }
-    let ignore_set = Arc::new(build_glob_set(&ignore_patterns).context("invalid ignore pattern")?);
+    let ignore_set =
+        Arc::new(build_ignore_matcher(&ignore_patterns).context("invalid ignore pattern")?);
     let mut candidates = Vec::new();
     let cwd = std::env::current_dir().context("failed to resolve current directory")?;
 
@@ -108,7 +109,7 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
 fn collect_candidate(
     path: &Path,
     options: &Options,
-    ignore_set: &GlobSet,
+    ignore_set: &IgnoreMatcher,
     cwd: &Path,
     candidates: &mut Vec<CandidateFile>,
 ) -> Result<()> {
@@ -204,7 +205,7 @@ fn reporter_needs_report_paths(reporter: &str) -> bool {
     matches!(reporter, "json" | "xml" | "html" | "sarif" | "xcode")
 }
 
-fn is_ignored(path: &Path, ignore_set: &GlobSet, cwd: &Path) -> bool {
+fn is_ignored(path: &Path, ignore_set: &IgnoreMatcher, cwd: &Path) -> bool {
     if ignore_set.is_empty() {
         return false;
     }
@@ -214,6 +215,37 @@ fn is_ignored(path: &Path, ignore_set: &GlobSet, cwd: &Path) -> bool {
     path.strip_prefix(cwd)
         .map(|relative| ignore_set.is_match(relative))
         .unwrap_or(false)
+}
+
+struct IgnoreMatcher {
+    ignored: GlobSet,
+    negated: GlobSet,
+}
+
+impl IgnoreMatcher {
+    fn is_empty(&self) -> bool {
+        self.ignored.is_empty()
+    }
+
+    fn is_match(&self, path: &Path) -> bool {
+        self.ignored.is_match(path) && !self.negated.is_match(path)
+    }
+}
+
+fn build_ignore_matcher(patterns: &[String]) -> Result<IgnoreMatcher> {
+    let mut ignored = GlobSetBuilder::new();
+    let mut negated = GlobSetBuilder::new();
+    for pattern in patterns {
+        if let Some(pattern) = pattern.strip_prefix('!') {
+            negated.add(Glob::new(pattern)?);
+        } else {
+            ignored.add(Glob::new(pattern)?);
+        }
+    }
+    Ok(IgnoreMatcher {
+        ignored: ignored.build()?,
+        negated: negated.build()?,
+    })
 }
 
 fn build_glob_set(patterns: &[String]) -> Result<GlobSet> {
