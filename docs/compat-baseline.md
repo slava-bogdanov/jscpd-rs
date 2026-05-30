@@ -25,6 +25,16 @@ This smoke check runs Rust and upstream with
 parses JSON/SARIF payloads, and compares the root JSON report with the default
 coverage rule.
 
+CLI gate:
+
+```bash
+scripts/compat-cli.sh
+```
+
+This smoke check compares Rust and upstream exit codes plus stable terminal
+contracts for `--list`, `--debug`, `--exitCode`, `--threshold`, `--store`,
+unknown reporters, `xcode`, and `consoleFull`.
+
 ## Current Matrix
 
 | Target | Format | Gate | Notes |
