@@ -17,8 +17,11 @@ mod tests;
 #[cfg(test)]
 use config::{FileConfig, resolve_config_ignore};
 use config::{apply_config, read_config, read_package_json_config};
+#[cfg(test)]
+use parsing::parse_format_mappings;
 use parsing::{
-    compile_patterns, parse_format_mappings, parse_js_number, parse_js_usize, parse_size, split_csv,
+    compile_patterns, parse_format_mappings_like_upstream, parse_js_number, parse_js_usize,
+    parse_size, split_csv,
 };
 
 const BARE_EXIT_CODE_VALUE: &str = "__jscpd_rs_bare_exit_code_true__";
@@ -493,13 +496,13 @@ impl Options {
             if is_bare_string(&formats_exts) {
                 bail!("TypeError: extensions.split is not a function");
             }
-            options.formats_exts = parse_format_mappings(&formats_exts);
+            options.formats_exts = parse_format_mappings_like_upstream(&formats_exts)?;
         }
         if let Some(formats_names) = cli.formats_names {
             if is_bare_string(&formats_names) {
                 bail!("TypeError: extensions.split is not a function");
             }
-            options.formats_names = parse_format_mappings(&formats_names);
+            options.formats_names = parse_format_mappings_like_upstream(&formats_names)?;
         }
         if let Some(ignore_pattern) = cli.ignore_pattern {
             if is_bare_string(&ignore_pattern) {

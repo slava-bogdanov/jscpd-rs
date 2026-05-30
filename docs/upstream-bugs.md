@@ -371,6 +371,36 @@ numeric values where upstream continues. Config `minTokens` remains strict for
 now because accepting that upstream-broken path would silently change visible
 runtime behavior instead of preserving a safe compatibility contract.
 
+## Malformed format mapping CLI values crash during option conversion
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+`--formats-exts` and `--formats-names` are parsed by splitting each semicolon
+entry on `:` and then calling `.split(',')` on the second half. If an entry does
+not contain `:`, option conversion throws a runtime TypeError before detection.
+
+Repro:
+
+```sh
+node jscpd/apps/jscpd/bin/jscpd jscpd/fixtures/custom \
+  --formats-exts javascript \
+  --silent \
+  --noTips \
+  --min-tokens 20 \
+  --min-lines 3 \
+  --max-size 1mb
+```
+
+Observed first line:
+
+```text
+TypeError: Cannot read properties of undefined (reading 'split')
+```
+
+Rust clone handling: the CLI now mirrors this visible runtime error for
+malformed `--formats-exts` and `--formats-names` values. Valid mapping strings
+and empty strings continue through the upstream-compatible path.
+
 ## Bare optional numeric CLI flags produce accidental behavior
 
 Status: observed on the `jscpd` submodule during compatibility work.

@@ -48,7 +48,8 @@ This smoke check compares Rust and upstream exit codes plus stable terminal
 contracts for `--help`, `--version`, `--list`, `--debug`, `--exitCode`,
 `--threshold`, invalid `--mode`, bare `--config`, `--store`, `--store-path`,
 bare optional string flag crashes, `--formats-exts`, `--formats-names`,
-`--ignore-pattern`, `--ignoreCase`, unknown reporters, explicit `time`
+malformed `--formats-exts`/`--formats-names` mappings, `--ignore-pattern`,
+`--ignoreCase`, unknown reporters, explicit `time`
 reporter fallback, terminal footer/tips, `xcode`, `ai`, `consoleFull`, and
 `--verbose`.
 The debug checks include cwd `.gitignore` expansion in the printed `ignore`
@@ -394,6 +395,9 @@ Latest public benchmark measurements:
   instead of failing during CLI parsing, including the different
   `fs.mkdirSync` and `path.join` error strings used by different file
   reporters.
+- Malformed CLI `--formats-exts`/`--formats-names` entries without `:` now
+  preserve upstream's visible `Cannot read properties of undefined` TypeError
+  instead of silently ignoring the entry.
 - CLI `--threshold` follows JavaScript `Number(...)` parsing for values such as
   `0x10` and `nope`, matching upstream threshold reporter behavior.
 - CLI/config `exitCode` keeps the raw Node-like value until clones are found.

@@ -358,6 +358,7 @@ BARE_REPORTERS_TYPE_ERROR="TypeError: cli.reporters.split is not a function"
 BARE_MODE_TYPE_ERROR="TypeError: mode is not a function"
 BARE_FORMAT_TYPE_ERROR="TypeError: cli.format.split is not a function"
 BARE_FORMATS_TYPE_ERROR="TypeError: extensions.split is not a function"
+MALFORMED_FORMATS_TYPE_ERROR="TypeError: Cannot read properties of undefined (reading 'split')"
 BARE_OUTPUT_FS_TYPE_ERROR="TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string or an instance of Buffer or URL. Received type boolean (true)"
 BARE_OUTPUT_JOIN_TYPE_ERROR="TypeError [ERR_INVALID_ARG_TYPE]: The \"path\" argument must be of type string. Received type boolean (true)"
 STORE_WARNING="store name leveldb not installed."
@@ -569,6 +570,12 @@ require_both_contain stdout "$BARE_FORMATS_TYPE_ERROR"
 
 run_case "bare formats names" 1 "$TARGET_REL" --formats-names
 require_both_contain stdout "$BARE_FORMATS_TYPE_ERROR"
+
+run_case "malformed formats exts" 1 "$TARGET_REL" --formats-exts javascript --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$MALFORMED_FORMATS_TYPE_ERROR"
+
+run_case "malformed formats names" 1 "$TARGET_REL" --formats-names javascript --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$MALFORMED_FORMATS_TYPE_ERROR"
 
 run_case "bare output json" 1 "$TARGET_REL" --output --reporters json --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$BARE_OUTPUT_FS_TYPE_ERROR"

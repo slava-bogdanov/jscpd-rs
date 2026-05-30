@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use regex::Regex;
 
 use super::{ExitCode, FormatMappings};
@@ -23,6 +23,25 @@ pub(super) fn parse_format_mappings(value: &str) -> FormatMappings {
         })
         .collect();
     FormatMappings(mappings)
+}
+
+pub(super) fn parse_format_mappings_like_upstream(value: &str) -> Result<FormatMappings> {
+    if value.is_empty() {
+        return Ok(FormatMappings::default());
+    }
+
+    let mut mappings = Vec::new();
+    for entry in value.split(';') {
+        let Some((format, values)) = entry.split_once(':') else {
+            bail!("TypeError: Cannot read properties of undefined (reading 'split')");
+        };
+        mappings.push((
+            format.to_string(),
+            values.split(',').map(ToOwned::to_owned).collect(),
+        ));
+    }
+
+    Ok(FormatMappings(mappings))
 }
 
 pub(super) fn compile_patterns(patterns: Vec<String>) -> Result<Vec<Regex>> {

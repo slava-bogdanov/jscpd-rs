@@ -181,6 +181,20 @@ fn bare_optional_string_flags_match_upstream_runtime_errors() {
 }
 
 #[test]
+fn malformed_cli_format_mappings_match_upstream_runtime_error() {
+    for flag in ["--formats-exts", "--formats-names"] {
+        let cli = Cli::parse_from(["jscpd-rs", ".", flag, "javascript"]);
+        let error = Options::from_cli(cli).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "TypeError: Cannot read properties of undefined (reading 'split')",
+            "{flag}"
+        );
+    }
+}
+
+#[test]
 fn help_output_keeps_upstream_cli_contract_text() {
     let mut command = Cli::command();
     let mut output = Vec::new();
