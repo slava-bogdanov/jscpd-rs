@@ -285,6 +285,12 @@ check_server_http() {
     sed -n '1,80p' "$mcp_tools_headers" >&2
     return 1
   fi
+  http_json "$dir/mcp-resources-list.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"resources/list","id":11}' \
+    "http://127.0.0.1:$port/mcp"
   http_json "$dir/mcp-stats-tool.json" 200 \
     -H 'Accept: application/json, text/event-stream' \
     -H 'Content-Type: application/json' \
@@ -410,10 +416,17 @@ const init = read('mcp-init.json');
 assert(init.result?.serverInfo?.name === 'jscpd-server', `${label} mcp initialize`);
 const tools = read('mcp-tools.json');
 assert(tools.result?.tools?.some((tool) => tool.name === 'check_duplication'), `${label} mcp tools`);
+for (const tool of tools.result?.tools ?? []) {
+  assert(tool.inputSchema?.$schema === 'http://json-schema.org/draft-07/schema#', `${label} mcp ${tool.name} schema`);
+  assert(tool.execution?.taskSupport === 'forbidden', `${label} mcp ${tool.name} execution`);
+}
+const resourcesList = read('mcp-resources-list.json');
+assert(resourcesList.result?.resources?.some((resource) => resource.uri === 'jscpd://statistics'), `${label} mcp resources list`);
 const statsTool = read('mcp-stats-tool.json');
 assert(statsTool.result?.content?.[0]?.text?.includes('statistics'), `${label} mcp stats tool`);
 const resource = read('mcp-resource.json');
 assert(resource.result?.contents?.[0]?.uri === 'jscpd://statistics', `${label} mcp resource`);
+assert(!Object.hasOwn(resource.result?.contents?.[0] ?? {}, 'mimeType'), `${label} mcp resource read content mimeType`);
 
 const noAccept = read('mcp-no-accept.json');
 assert(noAccept.error?.code === -32000, `${label} mcp no accept code`);
@@ -459,3 +472,37 @@ NODE
 
 check_server_http rust "$RUST_PORT"
 check_server_http upstream "$UPSTREAM_PORT"
+
+node --input-type=module - "$TMP_ROOT" <<'NODE'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const [root] = process.argv.slice(2);
+const read = (label, file) =>
+  JSON.parse(fs.readFileSync(path.join(root, `${label}-http`, file), 'utf8'));
+
+const normalizeInit = (body) => {
+  const normalized = structuredClone(body);
+  delete normalized.result.serverInfo.version;
+  return normalized;
+};
+
+assert.deepStrictEqual(
+  normalizeInit(read('rust', 'mcp-init.json')),
+  normalizeInit(read('upstream', 'mcp-init.json')),
+  'MCP initialize stable contract differs from upstream',
+);
+assert.deepStrictEqual(
+  read('rust', 'mcp-tools.json'),
+  read('upstream', 'mcp-tools.json'),
+  'MCP tools/list contract differs from upstream',
+);
+assert.deepStrictEqual(
+  read('rust', 'mcp-resources-list.json'),
+  read('upstream', 'mcp-resources-list.json'),
+  'MCP resources/list contract differs from upstream',
+);
+
+console.log('ok MCP stable contract');
+NODE

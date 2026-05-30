@@ -104,8 +104,12 @@ fn initialize(service: ServerService, request_id: Value) -> Response {
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {
                 "logging": {},
-                "tools": {},
-                "resources": {},
+                "tools": {
+                    "listChanged": true,
+                },
+                "resources": {
+                    "listChanged": true,
+                },
             },
             "serverInfo": {
                 "name": "jscpd-server",
@@ -214,7 +218,6 @@ fn read_resource(service: ServerService, request_id: Value, payload: Value) -> R
                     json!({
                         "contents": [{
                             "uri": "jscpd://statistics",
-                            "mimeType": "application/json",
                             "text": text,
                         }],
                     }),
@@ -249,6 +252,7 @@ fn tools_list_result() -> Value {
                 "name": "check_duplication",
                 "description": "Check code snippet for duplications against the codebase",
                 "inputSchema": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
                     "type": "object",
                     "properties": {
                         "code": {
@@ -266,21 +270,32 @@ fn tools_list_result() -> Value {
                     },
                     "required": ["code", "format"],
                 },
+                "execution": {
+                    "taskSupport": "forbidden",
+                },
             },
             {
                 "name": "get_statistics",
                 "description": "Get overall project duplication statistics",
                 "inputSchema": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
                     "type": "object",
                     "properties": {},
+                },
+                "execution": {
+                    "taskSupport": "forbidden",
                 },
             },
             {
                 "name": "check_current_directory",
                 "description": "Trigger a re-scan of the current working directory for duplications",
                 "inputSchema": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
                     "type": "object",
                     "properties": {},
+                },
+                "execution": {
+                    "taskSupport": "forbidden",
                 },
             },
         ],
@@ -505,11 +520,45 @@ mod tests {
         assert_eq!(body["jsonrpc"], "2.0");
         assert_eq!(body["id"], 1);
         assert_eq!(body["result"]["serverInfo"]["name"], "jscpd-server");
+        assert_eq!(body["result"]["capabilities"]["tools"]["listChanged"], true);
+        assert_eq!(
+            body["result"]["capabilities"]["resources"]["listChanged"],
+            true
+        );
         let session_id = headers
             .get(MCP_SESSION_ID)
             .and_then(|value| value.to_str().ok())
             .expect("session id");
         assert!(service.has_mcp_session(session_id));
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn mcp_tools_list_matches_upstream_schema_shape() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        let session_id = service.create_mcp_session();
+
+        let response = handle_mcp_request(
+            service,
+            Some(&session_id),
+            json!({
+                "jsonrpc": "2.0",
+                "method": "tools/list",
+                "id": 2,
+            }),
+        )
+        .await;
+        let (status, _headers, body) = response_json(response).await;
+
+        assert_eq!(status, StatusCode::OK);
+        for tool in body["result"]["tools"].as_array().expect("tools list") {
+            assert_eq!(
+                tool["inputSchema"]["$schema"],
+                "http://json-schema.org/draft-07/schema#"
+            );
+            assert_eq!(tool["execution"]["taskSupport"], "forbidden");
+        }
         fs::remove_dir_all(path).ok();
     }
 
@@ -593,6 +642,10 @@ mod tests {
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body["id"], 4);
         assert_eq!(body["result"]["contents"][0]["uri"], "jscpd://statistics");
+        assert!(
+            body["result"]["contents"][0].get("mimeType").is_none(),
+            "upstream resource reads omit content mimeType"
+        );
         let content = body["result"]["contents"][0]["text"]
             .as_str()
             .expect("text content");
