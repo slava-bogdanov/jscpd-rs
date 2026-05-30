@@ -288,6 +288,50 @@ through reversed/oversized ranges:
 Expected behavior: clone fragments should be split at the actual matching token
 runs and should not report reversed or multi-test overextended ranges.
 
+## Prometheus Go public benchmark overextended report ranges
+
+Status: observed on the `prometheus` public benchmark at commit `a0524ee`
+during coverage-first compatibility work.
+
+Repro target:
+
+```sh
+FORMAT=go MIN_TOKENS=50 MIN_LINES=5 MAX_SIZE=1mb STRICT=coverage KEEP=1 \
+  scripts/compat.sh /home/dev/.cache/jscpd-rs/public-bench/repos/prometheus/.
+```
+
+The Rust clone reports more Go clones overall on this benchmark, but upstream
+still has a small set of fragments whose line ranges extend beyond the matching
+token run. Several are reversed ranges, and several table-driven test cases use
+one early case as the paired fragment for many later cases, which makes the
+reported early range span unrelated intervening cases. The public benchmark
+gate allows these exact ranges while keeping them visible as ignored exceptions:
+
+- `storage/remote/write_test.go:214-221` and `240-249`: upstream starts on the
+  tail of a different config-call line; Rust starts at the following shared
+  block and covers the real repeated assertions.
+- `storage/remote/read_test.go:339-414`: upstream reports a reversed fragment
+  (`414-339`) across multiple table entries; Rust covers the smaller repeated
+  entries around that region.
+- `discovery/marathon/marathon_test.go:325-478`: upstream reports a reversed
+  table-test range twice.
+- `discovery/hetzner/mock_test.go:58-457` and `464-517`: upstream pairs a very
+  large mock implementation range with a later smaller block.
+- `discovery/triton/triton.go:90-136` and `discovery/gce/gce.go:91-117`:
+  upstream extends structurally similar config validation clones into
+  neighboring declarations.
+- `cmd/promtool/main_test.go:250-256` and `250-258`: upstream reports two
+  overlapping partial ranges for the same test setup.
+- `tsdb/head_read_test.go:73-94`, `122-171`, `122-213`, and `122-280`:
+  upstream repeatedly pairs later table entries with broad earlier table-entry
+  spans instead of the closest equivalent repeated case.
+- `rules/group_test.go:42-67`: upstream includes adjacent setup lines around
+  the repeated body.
+
+Expected behavior: clone fragments should stop at the matching token run, keep
+start/end ordering stable, and avoid stretching one table-driven test case
+through unrelated neighboring cases.
+
 ## Option fields are exposed but unused at runtime
 
 Status: observed on the `jscpd` submodule during compatibility work.

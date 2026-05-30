@@ -114,6 +114,23 @@ compat_allow_missing_coverage() {
       printf 'typescript:%s/test/development/basic/next-rs-api.test.ts:327-356\n' "$repo_rel"
       printf 'typescript:%s/test/development/basic/next-rs-api.test.ts:175-203\n' "$repo_rel"
       ;;
+    prometheus)
+      printf 'go:%s/storage/remote/write_test.go:240-249\n' "$repo_rel"
+      printf 'go:%s/storage/remote/write_test.go:214-221\n' "$repo_rel"
+      printf 'go:%s/storage/remote/read_test.go:339-414\n' "$repo_rel"
+      printf 'go:%s/discovery/marathon/marathon_test.go:325-478\n' "$repo_rel"
+      printf 'go:%s/discovery/hetzner/mock_test.go:464-517\n' "$repo_rel"
+      printf 'go:%s/discovery/hetzner/mock_test.go:58-457\n' "$repo_rel"
+      printf 'go:%s/discovery/triton/triton.go:90-136\n' "$repo_rel"
+      printf 'go:%s/discovery/gce/gce.go:91-117\n' "$repo_rel"
+      printf 'go:%s/cmd/promtool/main_test.go:250-256\n' "$repo_rel"
+      printf 'go:%s/cmd/promtool/main_test.go:250-258\n' "$repo_rel"
+      printf 'go:%s/tsdb/head_read_test.go:73-94\n' "$repo_rel"
+      printf 'go:%s/tsdb/head_read_test.go:122-171\n' "$repo_rel"
+      printf 'go:%s/tsdb/head_read_test.go:122-213\n' "$repo_rel"
+      printf 'go:%s/tsdb/head_read_test.go:122-280\n' "$repo_rel"
+      printf 'go:%s/rules/group_test.go:42-67\n' "$repo_rel"
+      ;;
   esac
 }
 
