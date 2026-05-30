@@ -4,11 +4,15 @@ Baseline date: 2026-05-30.
 
 Latest full release gate:
 `FULL=1 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `2ed438f`.
+passed on 2026-05-30 at commit `cd96227`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
 passed on 2026-05-30 at commit `2ed438f`.
+
+Latest default CI gate:
+GitHub Actions `release-gate`
+passed on 2026-05-30 at commit `cd96227`.
 
 Default gate:
 
