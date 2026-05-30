@@ -2,13 +2,27 @@ use super::{
     Cli, FileConfig, Mode, Options, apply_config, normalize_reporters, parse_format_mappings,
     parse_size, resolve_config_ignore,
 };
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 
 #[test]
 fn parses_size_suffixes() {
     assert_eq!(parse_size("1b").unwrap(), 1);
     assert_eq!(parse_size("100kb").unwrap(), 102400);
     assert_eq!(parse_size("2mb").unwrap(), 2 * 1024 * 1024);
+}
+
+#[test]
+fn help_output_keeps_upstream_cli_contract_text() {
+    let mut command = Cli::command();
+    let mut output = Vec::new();
+    command.write_long_help(&mut output).unwrap();
+    let help = String::from_utf8(output).unwrap();
+
+    assert!(help.contains("detector of copy/paste in files"));
+    assert!(help.contains("Usage: jscpd [options] <path ...>"));
+    assert!(help.contains("min size of duplication in code lines (Default is 5)"));
+    assert!(help.contains("reporters or list of reporters separated with comma"));
+    assert!(help.contains("ignore comments during detection (alias for --mode weak)"));
 }
 
 #[test]

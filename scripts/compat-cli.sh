@@ -156,6 +156,13 @@ XCODE_RELATIVE_WARNING="$TARGET_FILE_ABS:18:3: warning: Found 10 lines (18-28) d
 printf 'target: %s\n' "$TARGET_REL"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
 
+run_case "help output" 0 --help
+require_both_contain stdout "detector of copy/paste in files"
+require_both_contain stdout "Usage: jscpd [options] <path ...>"
+require_both_contain stdout "min size of duplication in code lines"
+require_both_contain stdout "ignore comments during detection"
+require_both_contain stdout "alias for --mode"
+
 run_case "list formats" 0 --list --silent --format abcdefghijklmnopqrstuvwxyz
 require_both_contain stdout "Supported formats:"
 require_both_contain stdout "typescript"

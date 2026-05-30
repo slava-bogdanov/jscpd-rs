@@ -19,102 +19,227 @@ use config::{apply_config, read_config, read_package_json_config};
 use parsing::{compile_patterns, parse_format_mappings, parse_size, split_csv};
 
 #[derive(Debug, Parser)]
-#[command(name = "jscpd-rs", version, about = "Fast Rust clone of jscpd")]
+#[command(
+    name = "jscpd",
+    version,
+    about = "detector of copy/paste in files",
+    override_usage = "jscpd [options] <path ...>"
+)]
 pub struct Cli {
-    #[arg(value_name = "path")]
+    #[arg(value_name = "path", hide = true)]
     pub paths: Vec<PathBuf>,
 
-    #[arg(short = 'l', long = "min-lines")]
+    #[arg(
+        short = 'l',
+        long = "min-lines",
+        value_name = "number",
+        help = "min size of duplication in code lines (Default is 5)"
+    )]
     pub min_lines: Option<usize>,
 
-    #[arg(short = 'k', long = "min-tokens")]
+    #[arg(
+        short = 'k',
+        long = "min-tokens",
+        value_name = "number",
+        help = "min size of duplication in code tokens (Default is 50)"
+    )]
     pub min_tokens: Option<usize>,
 
-    #[arg(short = 'x', long = "max-lines")]
+    #[arg(
+        short = 'x',
+        long = "max-lines",
+        value_name = "number",
+        help = "max size of source in lines (Default is 1000)"
+    )]
     pub max_lines: Option<usize>,
 
-    #[arg(short = 'z', long = "max-size")]
+    #[arg(
+        short = 'z',
+        long = "max-size",
+        value_name = "string",
+        help = "max size of source in bytes, examples: 1kb, 1mb, 120kb (Default is 100kb)"
+    )]
     pub max_size: Option<String>,
 
-    #[arg(short = 't', long = "threshold")]
+    #[arg(
+        short = 't',
+        long = "threshold",
+        value_name = "number",
+        help = "threshold for duplication, in case duplications >= threshold jscpd will exit with error"
+    )]
     pub threshold: Option<f64>,
 
-    #[arg(short = 'c', long = "config")]
+    #[arg(
+        short = 'c',
+        long = "config",
+        value_name = "string",
+        help = "path to config file (Default is .jscpd.json in <path>)"
+    )]
     pub config: Option<PathBuf>,
 
-    #[arg(short = 'i', long = "ignore")]
+    #[arg(
+        short = 'i',
+        long = "ignore",
+        value_name = "string",
+        help = "glob pattern for files what should be excluded from duplication detection"
+    )]
     pub ignore: Option<String>,
 
-    #[arg(short = 'r', long = "reporters")]
+    #[arg(
+        short = 'r',
+        long = "reporters",
+        value_name = "string",
+        help = "reporters or list of reporters separated with comma to use (Default is time,console)"
+    )]
     pub reporters: Option<String>,
 
-    #[arg(short = 'o', long = "output")]
+    #[arg(
+        short = 'o',
+        long = "output",
+        value_name = "string",
+        help = "reporters to use (Default is ./report/)"
+    )]
     pub output: Option<PathBuf>,
 
-    #[arg(short = 'm', long = "mode")]
+    #[arg(
+        short = 'm',
+        long = "mode",
+        value_name = "string",
+        help = "mode of quality of search, can be \"strict\", \"mild\" and \"weak\""
+    )]
     pub mode: Option<Mode>,
 
-    #[arg(short = 'f', long = "format")]
+    #[arg(
+        short = 'f',
+        long = "format",
+        value_name = "string",
+        help = "format or formats separated by comma (Example php,javascript,python)"
+    )]
     pub format: Option<String>,
 
-    #[arg(short = 'p', long = "pattern")]
+    #[arg(
+        short = 'p',
+        long = "pattern",
+        value_name = "string",
+        help = "glob pattern to file search (Example **/*.txt)"
+    )]
     pub pattern: Option<String>,
 
-    #[arg(short = 'b', long = "blame")]
+    #[arg(
+        short = 'b',
+        long = "blame",
+        help = "blame authors of duplications (get information about authors from git)"
+    )]
     pub blame: bool,
 
-    #[arg(short = 's', long = "silent")]
+    #[arg(
+        short = 's',
+        long = "silent",
+        help = "do not write detection progress and result to a console"
+    )]
     pub silent: bool,
 
-    #[arg(long = "store")]
+    #[arg(
+        long = "store",
+        value_name = "string",
+        help = "use for define custom store (e.g. --store leveldb used for big codebase)"
+    )]
     pub store: Option<String>,
 
-    #[arg(long = "store-path")]
+    #[arg(
+        long = "store-path",
+        value_name = "string",
+        help = "directory to use for store cache (e.g. --store-path /tmp/jscpd-cache, useful when running multiple instances in parallel)"
+    )]
     pub store_path: Option<PathBuf>,
 
-    #[arg(short = 'a', long = "absolute")]
+    #[arg(short = 'a', long = "absolute", help = "use absolute path in reports")]
     pub absolute: bool,
 
-    #[arg(short = 'n', long = "noSymlinks")]
+    #[arg(
+        short = 'n',
+        long = "noSymlinks",
+        help = "dont use symlinks for detection in files"
+    )]
     pub no_symlinks: bool,
 
-    #[arg(long = "ignoreCase")]
+    #[arg(
+        long = "ignoreCase",
+        help = "ignore case of symbols in code (experimental)"
+    )]
     pub ignore_case: bool,
 
-    #[arg(short = 'g', long = "gitignore")]
+    #[arg(
+        short = 'g',
+        long = "gitignore",
+        help = "respect .gitignore files (default: enabled, use --no-gitignore to disable)"
+    )]
     pub gitignore: bool,
 
-    #[arg(long = "no-gitignore")]
+    #[arg(long = "no-gitignore", help = "do not respect .gitignore files")]
     pub no_gitignore: bool,
 
-    #[arg(short = 'd', long = "debug")]
+    #[arg(
+        short = 'd',
+        long = "debug",
+        help = "show debug information, not run detection process(options list and selected files)"
+    )]
     pub debug: bool,
 
-    #[arg(short = 'v', long = "verbose")]
+    #[arg(
+        short = 'v',
+        long = "verbose",
+        help = "show full information during detection process"
+    )]
     pub verbose: bool,
 
-    #[arg(long = "list")]
+    #[arg(long = "list", help = "show list of total supported formats")]
     pub list: bool,
 
-    #[arg(long = "skipLocal")]
+    #[arg(
+        long = "skipLocal",
+        help = "skip duplicates in local folders, just detect cross folders duplications"
+    )]
     pub skip_local: bool,
 
-    #[arg(long = "exitCode")]
+    #[arg(
+        long = "exitCode",
+        value_name = "number",
+        help = "exit code to use when code duplications are detected"
+    )]
     pub exit_code: Option<i32>,
 
-    #[arg(long = "noTips")]
+    #[arg(
+        long = "noTips",
+        help = "do not print tips and promotional messages after detection"
+    )]
     pub no_tips: bool,
 
-    #[arg(long = "skipComments")]
+    #[arg(
+        long = "skipComments",
+        help = "ignore comments during detection (alias for --mode weak)"
+    )]
     pub skip_comments: bool,
 
-    #[arg(long = "ignore-pattern")]
+    #[arg(
+        long = "ignore-pattern",
+        value_name = "string",
+        help = "Ignore code blocks matching the regexp patterns"
+    )]
     pub ignore_pattern: Option<String>,
 
-    #[arg(long = "formats-exts")]
+    #[arg(
+        long = "formats-exts",
+        value_name = "string",
+        help = "list of formats with file extensions (javascript:es,es6;dart:dt)"
+    )]
     pub formats_exts: Option<String>,
 
-    #[arg(long = "formats-names")]
+    #[arg(
+        long = "formats-names",
+        value_name = "string",
+        help = "list of formats with specific filenames (makefile:Makefile,GNUmakefile;docker:Dockerfile)"
+    )]
     pub formats_names: Option<String>,
 }
 
