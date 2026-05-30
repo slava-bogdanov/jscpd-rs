@@ -464,6 +464,22 @@ fn astro_sfc_emits_frontmatter_script_style_and_markup_maps() {
 }
 
 #[test]
+fn astro_markup_trims_blanked_frontmatter_whitespace() {
+    let content = "---\nconst title = 'Hello';\n---\n\n<main>{title}</main>\n";
+    let maps = tokenize_maps_for_detection(content, "astro", &Options::default());
+    let markup = maps
+        .iter()
+        .find(|map| map.format == "markup")
+        .expect("markup map");
+
+    assert_eq!(markup.tokens[0].start.line, 5);
+    assert_eq!(
+        &content[markup.tokens[0].range[0]..markup.tokens[0].range[1]],
+        "<"
+    );
+}
+
+#[test]
 fn apex_soql_blocks_emit_sql_map() {
     let content = "public class A {\n  Account acc = [\n    SELECT Id\n    FROM Account\n  ];\n}\n";
     let maps = tokenize_maps_for_detection(content, "apex", &Options::default());

@@ -142,6 +142,7 @@ fn tokenize_astro_maps(
     let sanitized = blank_ranges_preserve_newlines(content, &blank_ranges);
     let mut markup_tokens =
         tokenize_generic_with_whitespace(&sanitized, "markup", options, ignore_regions);
+    trim_edge_whitespace_tokens(&mut markup_tokens, &sanitized);
     grouped
         .entry("markup".to_string())
         .or_default()
