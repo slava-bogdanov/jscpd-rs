@@ -42,6 +42,13 @@ upstream average, and speedup. Set `UPDATE=1` to refresh existing clones.
 Set `MIN_SPEEDUP` to make the suite fail when any selected case falls below the
 required upstream/Rust speedup.
 
+When `CHECK_COMPAT=1` is enabled, the suite runs the same coverage-first report
+comparison used by the fixture gates. `react` and `next` include narrow
+allowlists for upstream overextended ranges documented in
+`docs/upstream-bugs.md`; those entries are printed as ignored line-coverage
+exceptions in the comparison output. New public benchmark misses should be fixed
+or documented before they are added to this allowlist.
+
 Initial measurements on May 30, 2026:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup |

@@ -92,6 +92,32 @@ print_cases() {
   done
 }
 
+compat_allow_missing_coverage() {
+  local name="$1"
+
+  case "$name" in
+    react)
+      cat <<'EOF'
+javascript:../.cache/jscpd-rs/public-bench/repos/react/packages/react-dom/src/events/__tests__/SyntheticMouseEvent-test.js:21-38
+javascript:../.cache/jscpd-rs/public-bench/repos/react/packages/react-dom/src/server/ReactDOMFizzServerNode.js:179-229
+javascript:../.cache/jscpd-rs/public-bench/repos/react/packages/react-dom/src/__tests__/ReactDOMViewTransition-test.js:39-135
+EOF
+      ;;
+    next)
+      cat <<'EOF'
+typescript:../.cache/jscpd-rs/public-bench/repos/next/packages/next/src/build/webpack/loaders/next-style-loader/index.ts:221-229
+typescript:../.cache/jscpd-rs/public-bench/repos/next/test/e2e/app-dir/non-root-project-monorepo/non-root-project-monorepo.test.ts:284-303
+typescript:../.cache/jscpd-rs/public-bench/repos/next/test/e2e/app-dir/non-root-project-monorepo/non-root-project-monorepo.test.ts:221-240
+typescript:../.cache/jscpd-rs/public-bench/repos/next/packages/next-routing/src/__tests__/normalize-next-data.test.ts:185-681
+typescript:../.cache/jscpd-rs/public-bench/repos/next/test/e2e/edge-runtime-module-errors/edge-runtime-module-errors.test.ts:314-459
+typescript:../.cache/jscpd-rs/public-bench/repos/next/test/e2e/edge-runtime-module-errors/edge-runtime-module-errors.test.ts:745-892
+typescript:../.cache/jscpd-rs/public-bench/repos/next/test/development/basic/next-rs-api.test.ts:327-356
+typescript:../.cache/jscpd-rs/public-bench/repos/next/test/development/basic/next-rs-api.test.ts:175-203
+EOF
+      ;;
+  esac
+}
+
 parse_avg() {
   local file="$1"
   local label="$2"
@@ -186,8 +212,10 @@ for spec in "${SUITE_CASES[@]}"; do
 
   if [[ "$CHECK_COMPAT" == "1" ]]; then
     printf '\n== %s coverage compatibility ==\n' "$name"
+    allowed_missing_coverage="$(compat_allow_missing_coverage "$name")"
     FORMAT="$format" \
       STRICT=coverage \
+      ALLOW_MISSING_COVERAGE="$allowed_missing_coverage" \
       MIN_TOKENS="$MIN_TOKENS" \
       MIN_LINES="$MIN_LINES" \
       MAX_SIZE="$MAX_SIZE" \
