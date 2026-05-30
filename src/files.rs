@@ -637,6 +637,72 @@ mod tests {
     }
 
     #[test]
+    fn discovers_custom_extension_mappings() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "jscpd-rs-custom-exts-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("component.foo"), "const answer = 42;\n").unwrap();
+
+        let options = Options {
+            paths: vec![dir.clone()],
+            min_lines: 1,
+            reporters: vec!["json".to_string()],
+            silent: true,
+            gitignore: false,
+            formats_exts: crate::cli::FormatMappings::from_pairs(vec![(
+                "javascript".to_string(),
+                vec!["foo".to_string()],
+            )]),
+            ..Options::default()
+        };
+
+        let files = discover(&options).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].format, "javascript");
+    }
+
+    #[test]
+    fn discovers_custom_extensionless_name_mappings() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "jscpd-rs-custom-names-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("Recipe"), "target:\n\tprintf ok\n").unwrap();
+
+        let options = Options {
+            paths: vec![dir.clone()],
+            min_lines: 1,
+            reporters: vec!["json".to_string()],
+            silent: true,
+            gitignore: false,
+            formats_names: crate::cli::FormatMappings::from_pairs(vec![(
+                "makefile".to_string(),
+                vec!["Recipe".to_string()],
+            )]),
+            ..Options::default()
+        };
+
+        let files = discover(&options).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].format, "makefile");
+    }
+
+    #[test]
     fn reporter_uses_report_paths_when_silent() {
         let nonce = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

@@ -87,6 +87,86 @@ fn generic_tokenizer_handles_common_non_native_formats() {
 }
 
 #[test]
+fn markdown_fenced_javascript_emits_embedded_map() {
+    let content = "# Demo\n\n```js\nfunction alpha() {\n  return 42;\n}\n```\n";
+    let maps = tokenize_maps_for_detection(content, "markdown", &Options::default());
+
+    assert!(maps.iter().any(|map| map.format == "markdown"));
+    let javascript = maps
+        .iter()
+        .find(|map| map.format == "javascript")
+        .expect("embedded javascript map");
+
+    assert_eq!(javascript.tokens[0].start.line, 4);
+    assert_eq!(javascript.tokens[0].start.column, 1);
+    assert_eq!(
+        &content[javascript.tokens[0].range[0]..javascript.tokens[0].range[1]],
+        "function"
+    );
+}
+
+#[test]
+fn markdown_fenced_code_is_removed_from_markdown_map() {
+    let content = "before\n\n```ts\nconst hidden = true;\n```\n\nafter\n";
+    let maps = tokenize_maps_for_detection(content, "markdown", &Options::default());
+    let markdown = maps
+        .iter()
+        .find(|map| map.format == "markdown")
+        .expect("markdown map");
+    let markdown_values = markdown
+        .tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert!(markdown_values.contains(&"before"));
+    assert!(markdown_values.contains(&"after"));
+    assert!(!markdown_values.contains(&"hidden"));
+}
+
+#[test]
+fn markdown_fenced_typescript_uses_language_name() {
+    let content = "```typescript\ntype Answer = number;\n```\n";
+    let maps = tokenize_maps_for_detection(content, "markdown", &Options::default());
+
+    assert!(maps.iter().any(|map| map.format == "typescript"));
+}
+
+#[test]
+fn markdown_front_matter_emits_yaml_map() {
+    let content = "---\ntitle: Demo\ntags:\n  - docs\n---\n# Demo\n";
+    let maps = tokenize_maps_for_detection(content, "markdown", &Options::default());
+    let yaml = maps
+        .iter()
+        .find(|map| map.format == "yaml")
+        .expect("front matter yaml map");
+
+    assert_eq!(yaml.tokens[0].start.line, 2);
+    assert_eq!(
+        &content[yaml.tokens[0].range[0]..yaml.tokens[0].range[1]],
+        "title:"
+    );
+}
+
+#[test]
+fn markdown_embedded_generic_blocks_keep_whitespace_tokens() {
+    let content =
+        "```coffeescript\njscpd = require 'jscpd'\nresult = jscpd::run\n  reporter: json\n```\n";
+    let maps = tokenize_maps_for_detection(content, "markdown", &Options::default());
+    let coffeescript = maps
+        .iter()
+        .find(|map| map.format == "coffeescript")
+        .expect("coffeescript map");
+
+    assert!(
+        coffeescript
+            .tokens
+            .iter()
+            .any(|token| &content[token.range[0]..token.range[1]] == "\n")
+    );
+}
+
+#[test]
 fn weak_mode_skips_generic_comments() {
     let content = "# first comment\nalpha beta\n// second comment\ngamma\n";
     let weak_options = Options {

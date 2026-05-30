@@ -1,3 +1,5 @@
+mod markdown;
+
 use std::path::Path;
 
 use oxc_allocator::Allocator;
@@ -87,7 +89,9 @@ pub fn tokenize_maps_for_detection(
     options: &Options,
 ) -> Vec<TokenMap> {
     let ignore_regions = find_ignore_regions(content, options);
-    let mut maps = if is_oxc_format(format) {
+    let mut maps = if format == "markdown" {
+        markdown::tokenize_maps(content, options, &ignore_regions)
+    } else if is_oxc_format(format) {
         tokenize_oxc_maps(content, format, options, &ignore_regions)
     } else {
         vec![TokenMap {

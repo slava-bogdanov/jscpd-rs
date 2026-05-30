@@ -49,8 +49,9 @@ Known MVP gaps:
   use generic tokenization rather than Prism-compatible tokenization.
 - `strict/mild/weak` are only approximated.
 - Terminal timing/tips/progress polish is still approximate.
-- No blame, persistent stores, custom format mappings, or embedded block
-  tokenization yet.
+- No blame, persistent stores, or Vue/Svelte/Astro block tokenization yet.
+- Markdown front matter and fenced code blocks are extracted into embedded
+  format maps, but full Markdown fixture parity is not claimed yet.
 
 ## Growth Plan
 
@@ -63,7 +64,7 @@ Known MVP gaps:
    language-aware token streams. Prefer existing parsers/tokenizers over custom
    grammars.
 4. Reporters: polish remaining report details and terminal UX.
-5. Advanced sources: shebang detection, Vue/Svelte/Astro/Markdown block splitting,
+5. Advanced sources: Vue/Svelte/Astro block splitting, full Markdown parity,
    ignore blocks, ignore regex patterns, and weak-mode comment stripping.
 6. Performance work: parallel file reads/tokenization, compact hash storage,
    faster hashers where compatible, memory profiling, and optional persistent
