@@ -78,7 +78,13 @@ pub(super) fn generic_comment_span_end(
     if rest.starts_with(b"//") {
         return Some(scan_to_line_end(bytes, start, limit));
     }
+    if rest.starts_with(b"--") && generic_double_dash_comment_format(format) {
+        return Some(scan_to_line_end(bytes, start, limit));
+    }
     if bytes[start] == b'#' && generic_hash_comment_format(format) {
+        return Some(scan_to_line_end(bytes, start, limit));
+    }
+    if bytes[start] == b';' && generic_semicolon_comment_format(format) {
         return Some(scan_to_line_end(bytes, start, limit));
     }
     None
@@ -88,6 +94,7 @@ fn generic_hash_comment_format(format: &str) -> bool {
     matches!(
         format,
         "apacheconf"
+            | "applescript"
             | "bash"
             | "cmake"
             | "docker"
@@ -110,6 +117,29 @@ fn generic_hash_comment_format(format: &str) -> bool {
             | "toml"
             | "vim"
             | "yaml"
+    )
+}
+
+fn generic_double_dash_comment_format(format: &str) -> bool {
+    matches!(
+        format,
+        "ada" | "applescript" | "elm" | "haskell" | "lua" | "plsql" | "sql"
+    )
+}
+
+fn generic_semicolon_comment_format(format: &str) -> bool {
+    matches!(
+        format,
+        "asm6502"
+            | "autoit"
+            | "autohotkey"
+            | "clojure"
+            | "ini"
+            | "lisp"
+            | "llvm"
+            | "nasm"
+            | "racket"
+            | "scheme"
     )
 }
 

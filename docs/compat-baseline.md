@@ -44,7 +44,9 @@ range while compatibility is converging.
   regions into format maps. Their fixtures are line-covered, with expected
   wider ranges from generic markup/style tokenization.
 - Non-native generic formats use coarse whitespace tokenization; weak mode
-  strips only best-effort common comment spans.
+  strips best-effort common comment spans, including `#`, `//`, `/* */`,
+  `<!-- -->`, SQL-style `--`, and Lisp/INI-style `;` comments where those
+  prefixes are comments in the upstream Prism grammar.
 - Extensionless names such as `Makefile` and `Dockerfile` require
   `--formats-names`, matching upstream behavior.
 - Custom extension and filename mappings are supported through

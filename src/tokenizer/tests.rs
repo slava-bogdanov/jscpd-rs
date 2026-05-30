@@ -241,6 +241,44 @@ fn weak_mode_skips_generic_comments() {
 }
 
 #[test]
+fn weak_mode_skips_generic_double_dash_comments() {
+    let content = "-- first comment\nselect one\n-- second comment\nfrom table\n";
+    let weak_options = Options {
+        mode: crate::cli::Mode::Weak,
+        ..Options::default()
+    };
+
+    let strong = tokenize_for_detection(content, "sql", &Options::default());
+    let weak = tokenize_for_detection(content, "sql", &weak_options);
+    let token_values = weak
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(strong.len(), 6);
+    assert_eq!(token_values, vec!["select", "one", "from", "table"]);
+}
+
+#[test]
+fn weak_mode_skips_generic_semicolon_comments() {
+    let content = "; first comment\n[main]\nkey=value\n  ; second comment\nother=value\n";
+    let weak_options = Options {
+        mode: crate::cli::Mode::Weak,
+        ..Options::default()
+    };
+
+    let strong = tokenize_for_detection(content, "ini", &Options::default());
+    let weak = tokenize_for_detection(content, "ini", &weak_options);
+    let token_values = weak
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(strong.len(), 5);
+    assert_eq!(token_values, vec!["[main]", "key=value", "other=value"]);
+}
+
+#[test]
 fn generic_css_ids_are_not_treated_as_hash_comments() {
     let options = Options {
         mode: crate::cli::Mode::Weak,
