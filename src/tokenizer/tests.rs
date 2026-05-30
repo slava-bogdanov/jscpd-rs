@@ -348,6 +348,29 @@ fn vue_sfc_emits_template_script_and_style_maps() {
 }
 
 #[test]
+fn vue_template_emits_inline_style_attr_css_map() {
+    let content = "<template>\n  <div style=\"color: red\">{{ title }}</div>\n</template>\n";
+    let maps = tokenize_maps_for_detection(content, "vue", &Options::default());
+
+    let css = maps
+        .iter()
+        .find(|map| map.format == "css")
+        .expect("inline style css map");
+    let values = css
+        .tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        values,
+        vec![" ", "style", "=\"", "color", ":", " red", "\""]
+    );
+    assert_eq!(css.tokens[0].start.line, 2);
+    assert_eq!(css.tokens[0].start.column, 7);
+}
+
+#[test]
 fn svelte_sfc_emits_markup_script_and_style_maps() {
     let content = "<script>\nlet title = 'Demo';\n</script>\n<h1>{title}</h1>\n<style>\nh1 { color: red; }\n</style>\n";
     let maps = tokenize_maps_for_detection(content, "svelte", &Options::default());

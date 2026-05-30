@@ -6,6 +6,7 @@ mod hash;
 mod ignore;
 mod line_index;
 mod markdown;
+mod markup_attrs;
 mod oxc;
 mod scan;
 
