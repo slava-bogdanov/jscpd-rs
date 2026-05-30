@@ -8,7 +8,8 @@ use crate::cli::{Mode, Options};
 
 use super::scan::{has_code_in_gap, scan_block_comment, scan_line_comment};
 use super::{
-    ByteSpan, DetectionToken, LineIndex, TokenContext, TokenKind, TokenMap, hash_token, push_token,
+    ByteSpan, DetectionToken, LineIndex, TokenContext, TokenKind, TokenMap, hash_token,
+    push_strict_whitespace_tokens, push_token,
 };
 
 mod fallback;
@@ -323,13 +324,31 @@ fn push_comments_in_gap(
     gap_end: usize,
     line_index: &LineIndex,
 ) {
-    if context.options.mode == Mode::Weak || gap_start >= gap_end {
+    if gap_start >= gap_end {
         return;
     }
 
     let bytes = context.content.as_bytes();
     let mut idx = gap_start;
-    while idx + 1 < gap_end {
+    while idx < gap_end {
+        let ch = context.content[idx..].chars().next().unwrap_or('\0');
+        if ch.is_whitespace() {
+            let whitespace_end = scan_whitespace(context.content, idx, gap_end);
+            push_strict_whitespace_tokens(
+                tokens,
+                context,
+                ByteSpan {
+                    start: idx,
+                    end: whitespace_end,
+                },
+                line_index,
+            );
+            idx = whitespace_end.max(idx + ch.len_utf8());
+            continue;
+        }
+        if idx + 1 >= gap_end {
+            break;
+        }
         let is_line_comment = (idx == 0 && bytes[idx] == b'#' && bytes[idx + 1] == b'!')
             || (bytes[idx] == b'/' && bytes[idx + 1] == b'/')
             || bytes[idx..gap_end].starts_with(b"<!--");
@@ -342,20 +361,34 @@ fn push_comments_in_gap(
         };
 
         if let Some(comment_end) = comment_end {
-            push_comment_token(
-                tokens,
-                context,
-                ByteSpan {
-                    start: idx,
-                    end: comment_end,
-                },
-                line_index,
-            );
+            if context.options.mode != Mode::Weak {
+                push_comment_token(
+                    tokens,
+                    context,
+                    ByteSpan {
+                        start: idx,
+                        end: comment_end,
+                    },
+                    line_index,
+                );
+            }
             idx = comment_end.max(idx + 1);
         } else {
-            idx += 1;
+            idx += ch.len_utf8();
         }
     }
+}
+
+fn scan_whitespace(content: &str, start: usize, limit: usize) -> usize {
+    let mut end = start;
+    while end < limit {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        if !ch.is_whitespace() {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+    end
 }
 
 fn push_comment_token(

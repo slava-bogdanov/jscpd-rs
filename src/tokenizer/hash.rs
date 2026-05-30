@@ -6,7 +6,9 @@ pub(super) fn hash_token(kind: TokenKind, value: &str, ignore_case: bool) -> u64
     let kind_hash = match kind {
         TokenKind::Comment => 0x01_u64,
         TokenKind::Constant => 0x08_u64,
+        TokenKind::Empty => 0x09_u64,
         TokenKind::Keyword => 0x02_u64,
+        TokenKind::NewLine => 0x0a_u64,
         TokenKind::Number => 0x03_u64,
         TokenKind::Operator => 0x04_u64,
         TokenKind::Punctuation => 0x05_u64,

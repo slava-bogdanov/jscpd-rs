@@ -1,5 +1,8 @@
 use super::super::scan::{scan_block_comment, scan_line_comment};
-use super::super::{ByteSpan, DetectionToken, LineIndex, TokenContext, TokenKind, push_token};
+use super::super::{
+    ByteSpan, DetectionToken, LineIndex, TokenContext, TokenKind, push_strict_whitespace_tokens,
+    push_token,
+};
 use super::lexical::{is_js_constant, is_js_keyword};
 
 pub(super) fn tokenize_js_like_range(
@@ -15,7 +18,17 @@ pub(super) fn tokenize_js_like_range(
     while idx < range_end {
         let ch = context.content[idx..].chars().next().unwrap_or('\0');
         if ch.is_whitespace() {
-            idx += ch.len_utf8();
+            let whitespace_end = scan_whitespace(context.content, idx, range_end);
+            push_strict_whitespace_tokens(
+                tokens,
+                context,
+                ByteSpan {
+                    start: idx,
+                    end: whitespace_end,
+                },
+                line_index,
+            );
+            idx = whitespace_end.max(idx + ch.len_utf8());
             continue;
         }
 
@@ -73,6 +86,18 @@ fn scan_string(bytes: &[u8], start: usize, quote: u8, limit: usize) -> usize {
         idx += 1;
     }
     limit
+}
+
+fn scan_whitespace(content: &str, start: usize, limit: usize) -> usize {
+    let mut end = start;
+    while end < limit {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        if !ch.is_whitespace() {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+    end
 }
 
 fn scan_identifier(content: &str, start: usize, limit: usize) -> usize {

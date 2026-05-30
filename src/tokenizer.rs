@@ -45,7 +45,9 @@ pub struct TokenMap {
 enum TokenKind {
     Comment,
     Constant,
+    Empty,
     Keyword,
+    NewLine,
     Number,
     Operator,
     Punctuation,
@@ -162,6 +164,47 @@ fn push_token(
         end,
         range: [span.start, span.end],
     });
+}
+
+fn push_strict_whitespace_tokens(
+    tokens: &mut Vec<DetectionToken>,
+    context: &TokenContext<'_>,
+    span: ByteSpan,
+    line_index: &LineIndex,
+) {
+    if context.options.mode != Mode::Strict {
+        return;
+    }
+    let mut start = span.start;
+    while start < span.end {
+        let (end, kind) = scan_whitespace_token(context.content, start, span.end);
+        push_token(
+            tokens,
+            context,
+            kind,
+            ByteSpan { start, end },
+            line_index.location(start),
+            line_index.location(end),
+        );
+        start = end.max(start + 1);
+    }
+}
+
+fn scan_whitespace_token(content: &str, start: usize, limit: usize) -> (usize, TokenKind) {
+    let bytes = content.as_bytes();
+    if bytes[start] == b'\n' {
+        return (start + 1, TokenKind::NewLine);
+    }
+
+    let mut end = start;
+    while end < limit {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        if ch == '\n' || !ch.is_whitespace() {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+    (end, TokenKind::Empty)
 }
 
 #[cfg(test)]

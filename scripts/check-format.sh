@@ -17,6 +17,7 @@ Environment:
   MIN_LINES   minimum clone lines (default: 3)
   MAX_SIZE    max file size (default: 10mb)
   STRICT      compare-reports strictness when MODE=compat (default: coverage)
+  DETECTION_MODE strict | mild | weak (default: upstream/Rust default)
 
 Examples:
   scripts/check-format.sh css jscpd/fixtures/css
@@ -40,6 +41,7 @@ mode="${MODE:-smoke}"
 min_tokens="${MIN_TOKENS:-20}"
 min_lines="${MIN_LINES:-3}"
 max_size="${MAX_SIZE:-10mb}"
+detect_mode="${DETECTION_MODE:-}"
 tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/jscpd-rs-format.XXXXXX")"
 
 cleanup() {
@@ -58,15 +60,23 @@ cd "$ROOT"
 cargo test
 
 mkdir -p "$tmp_root/report"
-cargo run --quiet -- "$target" \
-  --format "$format" \
-  --reporters json \
-  --output "$tmp_root/report" \
-  --silent \
-  --min-tokens "$min_tokens" \
-  --min-lines "$min_lines" \
-  --max-size "$max_size" \
+rust_cmd=(
+  cargo run --quiet --
+  "$target"
+  --format "$format"
+  --reporters json
+  --output "$tmp_root/report"
+  --silent
+  --min-tokens "$min_tokens"
+  --min-lines "$min_lines"
+  --max-size "$max_size"
   --exitCode 0
+)
+if [[ -n "$detect_mode" ]]; then
+  rust_cmd+=(--mode "$detect_mode")
+fi
+
+"${rust_cmd[@]}"
 
 node - <<'NODE' "$tmp_root/report/jscpd-report.json"
 const fs = require('fs');

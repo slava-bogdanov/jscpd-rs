@@ -1,7 +1,10 @@
-use crate::cli::Options;
+use crate::cli::{Mode, Options};
 
 use super::scan::scan_block_comment;
-use super::{ByteSpan, DetectionToken, LineIndex, TokenContext, TokenKind, push_token};
+use super::{
+    ByteSpan, DetectionToken, LineIndex, TokenContext, TokenKind, push_strict_whitespace_tokens,
+    push_token,
+};
 
 pub(super) fn tokenize_generic(
     content: &str,
@@ -21,7 +24,19 @@ pub(super) fn tokenize_generic(
     while start_byte < content.len() {
         let ch = content[start_byte..].chars().next().unwrap_or('\0');
         if ch.is_whitespace() {
-            start_byte += ch.len_utf8();
+            let whitespace_end = scan_whitespace(content, start_byte);
+            if options.mode == Mode::Strict {
+                push_strict_whitespace_tokens(
+                    &mut tokens,
+                    &context,
+                    ByteSpan {
+                        start: start_byte,
+                        end: whitespace_end,
+                    },
+                    &line_index,
+                );
+            }
+            start_byte = whitespace_end.max(start_byte + ch.len_utf8());
             continue;
         }
 
@@ -54,6 +69,18 @@ pub(super) fn scan_generic_token(content: &str, start: usize) -> usize {
     while end < content.len() {
         let ch = content[end..].chars().next().unwrap_or('\0');
         if ch.is_whitespace() {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+    end
+}
+
+pub(super) fn scan_whitespace(content: &str, start: usize) -> usize {
+    let mut end = start;
+    while end < content.len() {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        if !ch.is_whitespace() {
             break;
         }
         end += ch.len_utf8();

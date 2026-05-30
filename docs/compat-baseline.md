@@ -47,6 +47,9 @@ range while compatibility is converging.
   strips best-effort common comment spans, including `#`, `//`, `/* */`,
   `<!-- -->`, SQL-style `--`, and Lisp/INI-style `;` comments where those
   prefixes are comments in the upstream Prism grammar.
+- `--mode strict` now preserves Prism-style `empty` and `new_line` whitespace
+  tokens in the native JS/TS/Oxc path and the generic tokenizer. The
+  JavaScript fixture has exact strict-mode summary parity.
 - Extensionless names such as `Makefile` and `Dockerfile` require
   `--formats-names`, matching upstream behavior.
 - Custom extension and filename mappings are supported through
@@ -90,3 +93,13 @@ Recent local sanity checks:
 | --- | --- | ---: | ---: | ---: |
 | `/home/dev/dream` | `tsx` | `0.0358s` | `0.568s` | `16x` |
 | `jscpd/packages` | `typescript` | `0.0143s` | `0.831s` | `58x` |
+
+## Additional Mode Checks
+
+```bash
+DETECTION_MODE=strict FORMAT=javascript MIN_TOKENS=20 MIN_LINES=3 MAX_SIZE=1mb \
+  STRICT=coverage scripts/compat.sh jscpd/fixtures/javascript
+```
+
+This strict-mode JavaScript fixture check currently has exact summary parity
+with upstream.

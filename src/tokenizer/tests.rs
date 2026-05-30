@@ -241,6 +241,46 @@ fn weak_mode_skips_generic_comments() {
 }
 
 #[test]
+fn strict_mode_keeps_generic_whitespace_tokens() {
+    let content = "alpha beta\ngamma";
+    let strict_options = Options {
+        mode: crate::cli::Mode::Strict,
+        ..Options::default()
+    };
+
+    let mild = tokenize_for_detection(content, "yaml", &Options::default());
+    let strict = tokenize_for_detection(content, "yaml", &strict_options);
+    let token_values = strict
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(mild.len(), 3);
+    assert_eq!(token_values, vec!["alpha", " ", "beta", "\n", "gamma"]);
+}
+
+#[test]
+fn strict_mode_keeps_js_whitespace_tokens() {
+    let content = "let a = 1;\nlet b = 2;";
+    let strict_options = Options {
+        mode: crate::cli::Mode::Strict,
+        ..Options::default()
+    };
+
+    let mild = tokenize_for_detection(content, "javascript", &Options::default());
+    let strict = tokenize_for_detection(content, "javascript", &strict_options);
+    let token_values = strict
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(mild.len(), 10);
+    assert!(strict.len() > mild.len());
+    assert!(token_values.contains(&" "));
+    assert!(token_values.contains(&"\n"));
+}
+
+#[test]
 fn weak_mode_skips_generic_double_dash_comments() {
     let content = "-- first comment\nselect one\n-- second comment\nfrom table\n";
     let weak_options = Options {

@@ -47,7 +47,9 @@ Known MVP gaps:
 - Tokenization is not language-compatible with upstream yet.
 - The upstream format registry is synchronized, but most long-tail formats still
   use generic tokenization rather than Prism-compatible tokenization.
-- `strict/mild/weak` are only approximated.
+- `strict/mild/weak` are still converging overall. `strict` now preserves
+  whitespace tokens in the native JS/TS/Oxc path and the generic tokenizer;
+  `weak` strips common comment spans for generic formats.
 - Terminal timing/tips/progress/verbose behavior is partially aligned with
   upstream, including clone progress and detector event output.
 - Blame data is populated from native `git blame -w`. Store options currently
