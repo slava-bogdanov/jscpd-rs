@@ -444,9 +444,15 @@ require_both_contain stdout "$BARE_CONFIG_TYPE_ERROR"
 run_case "debug listing" 0 "$TARGET_REL" --debug --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "Options:"
 require_both_contain stdout "path: ["
+require_both_contain stdout "ignore: ["
+require_both_contain stdout "target/**"
 require_both_contain stdout "mode: [Function: mild]"
 require_both_contain stdout "maxSize: '1mb'"
 require_both_contain stdout "Found 1 files to detect."
+
+run_case "debug selected format order" 0 "$TARGET_REL" --debug --noTips --format typescript,javascript "${COMMON_ARGS[@]}"
+require_both_contain stdout "format: [ 'typescript', 'javascript' ]"
+require_both_contain stdout "Found 0 files to detect."
 
 run_case "relative ignore absolute path" 0 "$IGNORE_ABS_DIR" --debug --noTips --format javascript --ignore "patches/**" --min-tokens 1 --min-lines 1 --max-size 1mb
 require_both_contain stdout "Found 1 files to detect."

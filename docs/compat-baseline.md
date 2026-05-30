@@ -50,6 +50,8 @@ contracts for `--help`, `--version`, `--list`, `--debug`, `--exitCode`,
 `--formats-names`, `--ignore-pattern`, `--ignoreCase`, unknown reporters,
 explicit `time` reporter fallback, terminal footer/tips, `xcode`, `ai`,
 `consoleFull`, and `--verbose`.
+The debug checks include cwd `.gitignore` expansion in the printed `ignore`
+option and user-order preservation for explicit `--format` lists.
 
 Config gate:
 

@@ -279,6 +279,10 @@ fn debug_reporter_options_field(options: &Options) -> String {
 }
 
 fn debug_formats(options: &Options) -> Vec<String> {
+    if let Some(formats) = &options.format_order {
+        return formats.clone();
+    }
+
     let supported = formats::supported_formats();
     match &options.formats {
         Some(selected) => supported
@@ -329,6 +333,7 @@ mod tests {
             debug: true,
             config: Some(std::path::PathBuf::from("/repo/.jscpd.json")),
             formats: Some(std::collections::HashSet::from(["typescript".to_string()])),
+            format_order: Some(vec!["typescript".to_string(), "javascript".to_string()]),
             ..Options::default()
         };
         let files = vec![
@@ -354,7 +359,7 @@ mod tests {
         assert!(output.contains("config: '/repo/.jscpd.json'"));
         assert!(output.contains("mode: [Function: mild]"));
         assert!(output.contains("maxSize: '100kb'"));
-        assert!(output.contains("format: [ 'typescript' ]"));
+        assert!(output.contains("format: [ 'typescript', 'javascript' ]"));
         assert!(output.contains("src/a.ts\nsrc/b.ts"));
         assert!(output.ends_with("Found 2 files to detect.\n"));
         assert!(!output.contains("const a = 1"));

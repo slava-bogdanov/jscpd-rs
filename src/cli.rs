@@ -7,6 +7,8 @@ use regex::Regex;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
+use crate::files::collect_cwd_gitignore_patterns;
+
 mod config;
 mod parsing;
 #[cfg(test)]
@@ -311,6 +313,7 @@ pub struct Options {
     pub reporters_options: serde_json::Map<String, serde_json::Value>,
     pub output: PathBuf,
     pub formats: Option<HashSet<String>>,
+    pub format_order: Option<Vec<String>>,
     pub formats_exts: FormatMappings,
     pub formats_names: FormatMappings,
     pub ignore_pattern: Vec<Regex>,
@@ -377,6 +380,7 @@ impl Default for Options {
             reporters_options: serde_json::Map::new(),
             output: PathBuf::from("./report"),
             formats: None,
+            format_order: None,
             formats_exts: FormatMappings::default(),
             formats_names: FormatMappings::default(),
             ignore_pattern: Vec::new(),
@@ -447,7 +451,9 @@ impl Options {
             options.output = output;
         }
         if let Some(format) = cli.format {
-            options.formats = Some(split_csv(&format).into_iter().collect());
+            let formats = split_csv(&format);
+            options.formats = Some(formats.iter().cloned().collect());
+            options.format_order = Some(formats);
         }
         if let Some(formats_exts) = cli.formats_exts {
             options.formats_exts = parse_format_mappings(&formats_exts);
@@ -523,6 +529,7 @@ impl Options {
             options.no_tips = true;
         }
 
+        apply_cwd_gitignore_patterns(&mut options)?;
         normalize_reporters(&mut options);
 
         Ok(options)
@@ -551,5 +558,17 @@ fn normalize_reporters(options: &mut Options) {
     }
     if options.threshold.is_some() {
         options.reporters.push("threshold".to_string());
+    }
+}
+
+fn apply_cwd_gitignore_patterns(options: &mut Options) -> Result<()> {
+    let cwd = std::env::current_dir().context("failed to resolve current directory")?;
+    apply_gitignore_patterns_from(options, &cwd);
+    Ok(())
+}
+
+fn apply_gitignore_patterns_from(options: &mut Options, cwd: &std::path::Path) {
+    if options.gitignore {
+        options.ignore.extend(collect_cwd_gitignore_patterns(cwd));
     }
 }

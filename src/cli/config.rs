@@ -230,7 +230,9 @@ pub(super) fn apply_config(
         options.output = output;
     }
     if let Some(format) = config.format {
-        options.formats = Some(format.into_vec().into_iter().collect());
+        let formats = format.into_vec();
+        options.formats = Some(formats.iter().cloned().collect());
+        options.format_order = Some(formats);
     }
     if let Some(formats_exts) = config.formats_exts {
         options.formats_exts = formats_exts.into_mappings();

@@ -1,7 +1,7 @@
 use super::{
-    BARE_CONFIG_VALUE, Cli, ExitCode, FileConfig, Mode, Options, apply_config, normalize_reporters,
-    parse_format_mappings, parse_js_number, parse_js_usize, parse_size, resolve_config_ignore,
-    resolve_node_exit_code,
+    BARE_CONFIG_VALUE, Cli, ExitCode, FileConfig, Mode, Options, apply_config,
+    apply_gitignore_patterns_from, normalize_reporters, parse_format_mappings, parse_js_number,
+    parse_js_usize, parse_size, resolve_config_ignore, resolve_node_exit_code,
 };
 use clap::{CommandFactory, Parser};
 
@@ -180,6 +180,48 @@ fn parses_format_mappings() {
 }
 
 #[test]
+fn preserves_cli_format_order_for_debug_output_like_upstream() {
+    let cli = Cli::parse_from(["jscpd-rs", "--format", "typescript,javascript", "."]);
+    let options = Options::from_cli(cli).unwrap();
+
+    assert_eq!(
+        options.format_order.as_deref(),
+        Some(["typescript".to_string(), "javascript".to_string()].as_slice())
+    );
+    assert!(options.formats.as_ref().unwrap().contains("typescript"));
+    assert!(options.formats.as_ref().unwrap().contains("javascript"));
+}
+
+#[test]
+fn appends_cwd_gitignore_patterns_to_debug_option_surface_like_upstream() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-cli-cwd-gitignore-{}-{nonce}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join(".gitignore"), "/target/\nreport\n").unwrap();
+
+    let mut options = Options::default();
+    apply_gitignore_patterns_from(&mut options, &dir);
+
+    assert_eq!(
+        options.ignore,
+        vec![
+            "target".to_string(),
+            "target/**".to_string(),
+            "**/report".to_string(),
+            "**/report/**".to_string()
+        ]
+    );
+
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn config_format_mappings_preserve_upstream_object_order() {
     let config: FileConfig = serde_json::from_str(
         r#"{
@@ -205,6 +247,20 @@ fn config_format_mappings_preserve_upstream_object_order() {
     assert_eq!(
         options.formats_names.find_format_for_value("Samefile"),
         Some("name-first")
+    );
+}
+
+#[test]
+fn config_format_order_is_preserved_for_debug_output_like_upstream() {
+    let config: FileConfig =
+        serde_json::from_str(r#"{ "format": "typescript,javascript" }"#).unwrap();
+    let mut options = Options::default();
+
+    apply_config(&mut options, config, std::path::Path::new(".")).unwrap();
+
+    assert_eq!(
+        options.format_order.as_deref(),
+        Some(["typescript".to_string(), "javascript".to_string()].as_slice())
     );
 }
 

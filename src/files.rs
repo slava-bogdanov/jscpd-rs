@@ -7,6 +7,7 @@ mod shebang;
 mod tests;
 
 pub use discovery::discover;
+pub(crate) use gitignore::collect_cwd_gitignore_patterns;
 
 #[derive(Clone, Debug)]
 pub struct SourceFile {
