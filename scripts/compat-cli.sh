@@ -246,6 +246,9 @@ require_both_contain stdout "report/file.js"
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
 
+run_case "hex exit code on clones" 16 "$TARGET_REL" --exitCode 0x10 --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$SUMMARY"
+
 run_case "decimal max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1.5kb
 require_both_contain stdout "$SUMMARY"
 

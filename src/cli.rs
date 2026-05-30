@@ -16,7 +16,8 @@ mod tests;
 use config::{FileConfig, resolve_config_ignore};
 use config::{apply_config, read_config, read_package_json_config};
 use parsing::{
-    compile_patterns, parse_format_mappings, parse_js_number, parse_js_usize, parse_size, split_csv,
+    compile_patterns, parse_format_mappings, parse_js_number, parse_js_usize, parse_node_exit_code,
+    parse_size, split_csv,
 };
 
 #[derive(Debug, Parser)]
@@ -226,6 +227,7 @@ pub struct Cli {
     #[arg(
         long = "exitCode",
         value_name = "number",
+        value_parser = parse_node_exit_code,
         help = "exit code to use when code duplications are detected"
     )]
     pub exit_code: Option<i32>,

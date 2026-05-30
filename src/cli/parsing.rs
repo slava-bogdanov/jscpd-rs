@@ -108,6 +108,14 @@ pub(super) fn parse_js_number(value: &str) -> std::result::Result<f64, String> {
     Ok(trimmed.parse::<f64>().unwrap_or(f64::NAN))
 }
 
+pub(super) fn parse_node_exit_code(value: &str) -> std::result::Result<i32, String> {
+    let number = parse_js_number(value)?;
+    if !number.is_finite() || number.fract() != 0.0 || number < 0.0 || number > i32::MAX as f64 {
+        return Err(format!("invalid exit code `{value}`"));
+    }
+    Ok(number as i32)
+}
+
 pub(super) fn parse_size(value: &str) -> Result<u64> {
     let trimmed = value.trim();
     if let Some(bytes) = parse_bytes_unit(trimmed) {

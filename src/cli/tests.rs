@@ -1,6 +1,6 @@
 use super::{
     Cli, FileConfig, Mode, Options, apply_config, normalize_reporters, parse_format_mappings,
-    parse_js_number, parse_js_usize, parse_size, resolve_config_ignore,
+    parse_js_number, parse_js_usize, parse_node_exit_code, parse_size, resolve_config_ignore,
 };
 use clap::{CommandFactory, Parser};
 
@@ -49,6 +49,16 @@ fn parses_threshold_like_upstream_number() {
     assert_eq!(parse_js_number("").unwrap(), 0.0);
     assert!(parse_js_number("nope").unwrap().is_nan());
     assert!(parse_js_number("true").unwrap().is_nan());
+}
+
+#[test]
+fn parses_exit_code_values_like_node_process_exit() {
+    assert_eq!(parse_node_exit_code("7").unwrap(), 7);
+    assert_eq!(parse_node_exit_code("007").unwrap(), 7);
+    assert_eq!(parse_node_exit_code("0x10").unwrap(), 16);
+    assert_eq!(parse_node_exit_code("0b10").unwrap(), 2);
+    assert!(parse_node_exit_code("7.5").is_err());
+    assert!(parse_node_exit_code("nope").is_err());
 }
 
 #[test]

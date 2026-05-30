@@ -278,6 +278,7 @@ coverage-first compatibility matrix and is required before publication.
   continues instead of failing during CLI parsing.
 - CLI `--threshold` follows JavaScript `Number(...)` parsing for values such as
   `0x10` and `nope`, matching upstream threshold reporter behavior.
+- CLI `--exitCode` accepts Node-compatible integer strings such as `0x10`.
 - If discovery, size, or line filters leave no files to detect, reporters are
   not run, matching upstream's `InFilesDetector` early return. Silent mode
   stays quiet; non-silent mode only prints the terminal footer.
