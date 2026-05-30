@@ -36,7 +36,7 @@ current implementation status.
 | Terminal cosmetics | practical parity | Important messages are gated; exact wrapping/order remains lower priority. |
 | Upstream JavaScript API parity | follow-up | Native Rust API exists; exact JS package API compatibility is not implemented in the Rust crate. |
 | Server snippet matching | follow-up | Native `/api/check` and MCP `check_duplication` are functional; optimize toward upstream's indexed hybrid-store behavior if server benchmarks require it. |
-| Latest full publication gate | ready | `scripts/release-candidate.sh` passed on `14c7eca`, including clippy, the default gate, the full coverage matrix, and the public benchmark/coverage suite. |
+| Latest full publication gate | ready | `scripts/release-candidate.sh` passed on `13c9cf8`, including clippy, the default gate, the full coverage matrix, and the public benchmark/coverage suite. |
 
 ## Post-MVP
 
