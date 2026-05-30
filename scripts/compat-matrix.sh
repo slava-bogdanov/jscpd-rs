@@ -52,6 +52,13 @@ run_case "fixtures yaml" "jscpd/fixtures/yaml" "yaml" 20 3
 run_case "fixtures sql" "jscpd/fixtures/sql" "sql" 20 3
 run_case "fixtures toml" "jscpd/fixtures/toml" "toml" 20 3
 run_case "fixtures bash" "jscpd/fixtures/shell" "bash" 20 3
+run_case "fixtures swift" "jscpd/fixtures/swift" "swift" 20 3
+run_case "fixtures powershell" "jscpd/fixtures/powershell" "powershell" 20 3
+run_case "fixtures lua" "jscpd/fixtures/lua" "lua" 20 3
+run_case "fixtures haskell" "jscpd/fixtures/haskell" "haskell" 20 3
+run_case "fixtures clojure" "jscpd/fixtures/clojure" "clojure" 20 3
+run_case "fixtures sass" "jscpd/fixtures/sass" "sass" 20 3
+run_case "fixtures stylus" "jscpd/fixtures/stylus" "stylus" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5

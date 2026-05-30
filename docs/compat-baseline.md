@@ -37,6 +37,13 @@ range while compatibility is converging.
 | `jscpd/fixtures/sql` | `sql` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/toml` | `toml` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/shell` | `bash` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/swift` | `swift` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/powershell` | `powershell` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/lua` | `lua` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/haskell` | `haskell` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/clojure` | `clojure` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/sass` | `sass` | pass | 6/6 upstream fragments line-covered |
+| `jscpd/fixtures/stylus` | `stylus` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
