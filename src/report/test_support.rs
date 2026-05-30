@@ -49,12 +49,14 @@ pub(super) fn make_test_clone(source_a: &str, source_b: &str) -> CloneMatch {
             start: location(2, 3, 0),
             end: location(5, 1, 18),
             range: [0, 18],
+            blame: None,
         },
         duplication_b: Fragment {
             source_id: source_b.to_string(),
             start: location(8, 1, 0),
             end: location(11, 1, 18),
             range: [0, 18],
+            blame: None,
         },
         tokens: 6,
     }

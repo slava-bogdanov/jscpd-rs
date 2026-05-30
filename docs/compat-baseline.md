@@ -54,8 +54,9 @@ range while compatibility is converging.
 - The upstream workflow option surface for `blame`, `store`, `storePath`,
   `cache`, `executionId`, `noTips`, `listeners`, and `tokensToSkip` is parsed
   from CLI/config where applicable. The default `executionId` is generated as a
-  UTC RFC3339 timestamp, matching the upstream workflow shape. Blame
-  attribution, persistent stores, listener plugins, custom token skipping, and
+  UTC RFC3339 timestamp, matching the upstream workflow shape. `--blame`
+  populates clone fragment blame data from native `git blame -w` output when
+  available. Persistent stores, listener plugins, custom token skipping, and
   cache workflows are still implementation gaps.
 - `--store <name>` currently follows the upstream missing-store fallback shape:
   it warns that the store package is not installed and continues with in-memory

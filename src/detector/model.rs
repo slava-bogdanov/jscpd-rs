@@ -4,6 +4,16 @@ use serde::Serialize;
 
 use crate::tokenizer::Location;
 
+pub type BlamedLines = HashMap<String, BlamedLine>;
+
+#[derive(Clone, Debug, Serialize)]
+pub struct BlamedLine {
+    pub rev: String,
+    pub author: String,
+    pub date: String,
+    pub line: String,
+}
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(super) struct SourceId(pub(super) usize);
 
@@ -17,6 +27,8 @@ pub struct Fragment {
     pub start: Location,
     pub end: Location,
     pub range: [usize; 2],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blame: Option<BlamedLines>,
 }
 
 #[derive(Clone, Debug, Serialize)]

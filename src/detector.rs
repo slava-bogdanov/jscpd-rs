@@ -15,7 +15,10 @@ mod tests;
 
 #[cfg(test)]
 pub use model::FormatStatistic;
-pub use model::{CloneMatch, DetectionResult, Fragment, SourceSummary, StatisticRow, Statistics};
+pub use model::{
+    BlamedLine, BlamedLines, CloneMatch, DetectionResult, Fragment, SourceSummary, StatisticRow,
+    Statistics,
+};
 pub use statistics::clone_lines;
 
 use matching::detect_format;

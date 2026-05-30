@@ -175,6 +175,7 @@ fn fragment_from_occurrence(
         start: start_span.start.clone(),
         end: end_span.end.clone(),
         range: [start_span.range[0], end_span.range[1]],
+        blame: None,
     }
 }
 

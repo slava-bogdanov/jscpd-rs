@@ -1,3 +1,4 @@
+mod blame;
 mod cli;
 mod detector;
 mod files;
@@ -37,7 +38,10 @@ fn run() -> Result<()> {
     print_store_warning(&options);
 
     let started = Instant::now();
-    let result = detector::detect(files, &options);
+    let mut result = detector::detect(files, &options);
+    if options.blame {
+        blame::apply_blame(&mut result);
+    }
 
     report::write_reports(&result, &options)?;
     print_terminal_footer(&options, started.elapsed());

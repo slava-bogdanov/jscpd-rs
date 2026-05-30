@@ -74,3 +74,38 @@ contains later ordinary module code and localeConfig data
 Expected behavior: the `//` text inside the template literal should remain a
 template string segment and should not comment out the rest of the generated
 line.
+
+## `--blame` fails for files inside a nested Git repository when run from the parent repo
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+Repro from the Rust clone repository root, where `jscpd/` is a Git submodule:
+
+```sh
+node jscpd/apps/jscpd/bin/jscpd jscpd/fixtures/javascript \
+  --format javascript \
+  --reporters json \
+  --output /tmp/jscpd-upstream-blame \
+  --silent \
+  --noTips \
+  --blame \
+  --min-tokens 20 \
+  --min-lines 3 \
+  --max-size 1mb \
+  --exitCode 0
+```
+
+Observed failure:
+
+```text
+Error: Command failed with exit code 128: /usr/bin/git blame -w jscpd/fixtures/javascript/file_4.js
+fatal: no such path 'jscpd/fixtures/javascript/file_4.js' in HEAD
+```
+
+The failure comes from `blamer@1.0.7`, which invokes `git blame -w <path>` from
+the current process directory. When the scanned path is inside a nested Git
+repository or submodule, the parent repository does not track the nested file
+path as a regular file, so `git blame` exits with 128.
+
+Expected behavior: blame should run from the file's own repository/worktree, or
+fail per file without aborting the entire detection run.

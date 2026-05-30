@@ -37,13 +37,44 @@ fn fragment_table(result: &DetectionResult, clone: &CloneMatch) -> String {
         }
         let line_a = clone.duplication_a.start.line + idx;
         let line_b = clone.duplication_b.start.line + idx;
-        output.push_str(&format!(
-            " {line_a:>width_a$} {GREY}│{RESET_COLOR} {line_b:<width_b$} {GREY}│{RESET_COLOR} {GREY}{line}{RESET_COLOR} ",
-        ));
+        if let (Some(blame_a), Some(blame_b)) =
+            (&clone.duplication_a.blame, &clone.duplication_b.blame)
+        {
+            let key_a = line_a.to_string();
+            let key_b = line_b.to_string();
+            let author_a = blame_a
+                .get(&key_a)
+                .map(|line| line.author.as_str())
+                .unwrap_or("");
+            let author_b = blame_b
+                .get(&key_b)
+                .map(|line| line.author.as_str())
+                .unwrap_or("");
+            let date_cmp = blame_a
+                .get(&key_a)
+                .zip(blame_b.get(&key_b))
+                .map(|(left, right)| compare_dates(&left.date, &right.date))
+                .unwrap_or("");
+            output.push_str(&format!(
+                " {line_a:>width_a$} {GREY}│{RESET_COLOR} {author_a} {GREY}│{RESET_COLOR} {date_cmp} {GREY}│{RESET_COLOR} {line_b:<width_b$} {GREY}│{RESET_COLOR} {author_b} {GREY}│{RESET_COLOR} {GREY}{line}{RESET_COLOR} ",
+            ));
+        } else {
+            output.push_str(&format!(
+                " {line_a:>width_a$} {GREY}│{RESET_COLOR} {line_b:<width_b$} {GREY}│{RESET_COLOR} {GREY}{line}{RESET_COLOR} ",
+            ));
+        }
     }
 
     output.push('\n');
     output
+}
+
+fn compare_dates(first: &str, second: &str) -> &'static str {
+    match first.cmp(second) {
+        std::cmp::Ordering::Less => "=>",
+        std::cmp::Ordering::Greater => "<=",
+        std::cmp::Ordering::Equal => "==",
+    }
 }
 
 #[cfg(test)]
@@ -72,6 +103,43 @@ mod tests {
         assert!(table.contains(" 2 "));
         assert!(table.contains(" 8 "));
         assert!(table.contains("alpha <beta> ]]>"));
+    }
+
+    #[test]
+    fn console_full_fragment_table_uses_blame_columns_when_available() {
+        let mut result = make_test_result_with_clone("src/a.js", "src/b.js");
+        result.clones[0].duplication_a.blame = Some(
+            [(
+                "2".to_string(),
+                crate::detector::BlamedLine {
+                    rev: "a".to_string(),
+                    author: "Alice".to_string(),
+                    date: "2024-01-01 00:00:00 +0000".to_string(),
+                    line: "2".to_string(),
+                },
+            )]
+            .into_iter()
+            .collect(),
+        );
+        result.clones[0].duplication_b.blame = Some(
+            [(
+                "8".to_string(),
+                crate::detector::BlamedLine {
+                    rev: "b".to_string(),
+                    author: "Bob".to_string(),
+                    date: "2024-01-02 00:00:00 +0000".to_string(),
+                    line: "8".to_string(),
+                },
+            )]
+            .into_iter()
+            .collect(),
+        );
+
+        let table = fragment_table(&result, &result.clones[0]);
+
+        assert!(table.contains("Alice"));
+        assert!(table.contains("Bob"));
+        assert!(table.contains("=>"));
     }
 
     #[test]
