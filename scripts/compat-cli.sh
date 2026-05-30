@@ -234,6 +234,11 @@ require_both_contain stdout "Found 1 files to detect."
 require_both_not_contain stdout "target/file.js"
 require_both_not_contain stdout "report/file.js"
 
+run_case "no gitignore disables cwd ignore" 0 "$CWD_GITIGNORE_DIR" --debug --noTips --format javascript --no-gitignore --min-tokens 1 --min-lines 1 --max-size 1mb
+require_both_contain stdout "Found 5 files to detect."
+require_both_contain stdout "target/file.js"
+require_both_contain stdout "report/file.js"
+
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
 
