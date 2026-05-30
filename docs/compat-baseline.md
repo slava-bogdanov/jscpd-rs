@@ -262,6 +262,8 @@ coverage-first compatibility matrix and is required before publication.
 - Relative `ignore`/`--ignore` patterns are normalized against each configured
   scan root and the current working directory, matching upstream behavior for
   absolute scan paths outside `cwd`.
+- `--noSymlinks` skips symlink scan roots as well as symlinks found during tree
+  walking, matching upstream's pre-glob path filtering.
 - File discovery respects `.gitignore`, `.git/info/exclude`, and the global
   Git excludes file from `git config --global core.excludesFile`.
 - `--max-size`/`maxSize` follows upstream `bytes.parse` semantics, including

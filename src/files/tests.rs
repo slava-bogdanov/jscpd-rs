@@ -384,6 +384,74 @@ fn dot_relative_ignore_pattern_matches_absolute_scan_root_like_upstream() {
     assert!(paths[0].ends_with("src/main.js"));
 }
 
+#[cfg(unix)]
+#[test]
+fn no_symlinks_skips_symlink_scan_directory_like_upstream() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-no-symlink-dir-{}-{nonce}",
+        std::process::id()
+    ));
+    let real_dir = dir.join("real");
+    let link_dir = dir.join("linkdir");
+    std::fs::create_dir_all(&real_dir).unwrap();
+    std::fs::write(real_dir.join("file.js"), "const linked = 1;\n").unwrap();
+    std::os::unix::fs::symlink(&real_dir, &link_dir).unwrap();
+
+    let options = Options {
+        paths: vec![link_dir],
+        formats: Some(HashSet::from(["javascript".to_string()])),
+        no_symlinks: true,
+        min_lines: 1,
+        reporters: vec!["json".to_string()],
+        silent: true,
+        gitignore: false,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(files.is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn no_symlinks_skips_symlink_scan_file_like_upstream() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-no-symlink-file-{}-{nonce}",
+        std::process::id()
+    ));
+    let real_file = dir.join("real.js");
+    let link_file = dir.join("link.js");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(&real_file, "const linked = 1;\n").unwrap();
+    std::os::unix::fs::symlink(&real_file, &link_file).unwrap();
+
+    let options = Options {
+        paths: vec![link_file],
+        formats: Some(HashSet::from(["javascript".to_string()])),
+        no_symlinks: true,
+        min_lines: 1,
+        reporters: vec!["json".to_string()],
+        silent: true,
+        gitignore: false,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(files.is_empty());
+}
+
 #[test]
 fn empty_file_counts_as_one_line_like_upstream() {
     let nonce = std::time::SystemTime::now()

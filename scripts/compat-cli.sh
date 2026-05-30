@@ -182,6 +182,14 @@ const beta = 2;
 const gamma = 3;
 EOF_JS
 cp "$IGNORE_ABS_DIR/patches/patch.js" "$IGNORE_ABS_DIR/src/main.js"
+SYMLINK_ROOT_DIR="$TMP_ROOT/no-symlink-root"
+mkdir -p "$SYMLINK_ROOT_DIR/real"
+cat >"$SYMLINK_ROOT_DIR/real/file.js" <<'EOF_JS'
+const alpha = 1;
+const beta = 2;
+const gamma = 3;
+EOF_JS
+ln -s "$SYMLINK_ROOT_DIR/real" "$SYMLINK_ROOT_DIR/linkdir"
 
 printf 'target: %s\n' "$TARGET_REL"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -207,6 +215,10 @@ require_both_contain stdout "Found 1 files to detect."
 run_case "relative ignore absolute path" 0 "$IGNORE_ABS_DIR" --debug --noTips --format javascript --ignore "patches/**" --min-tokens 1 --min-lines 1 --max-size 1mb
 require_both_contain stdout "Found 1 files to detect."
 require_both_not_contain stdout "patches/patch.js"
+
+run_case "no symlinks root" 0 "$SYMLINK_ROOT_DIR/linkdir" --debug --noTips --format javascript --noSymlinks --min-tokens 1 --min-lines 1 --max-size 1mb
+require_both_contain stdout "Found 0 files to detect."
+require_both_not_contain stdout "file.js"
 
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"

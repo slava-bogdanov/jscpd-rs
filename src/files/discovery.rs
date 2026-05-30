@@ -39,6 +39,9 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
     let mut candidates = Vec::new();
 
     for root in &options.paths {
+        if options.no_symlinks && is_symlink(root) {
+            continue;
+        }
         let metadata = fs::metadata(root)
             .with_context(|| format!("failed to inspect path `{}`", root.display()))?;
         if metadata.is_file() {
@@ -115,6 +118,9 @@ fn collect_candidate(
     cwd: &Path,
     candidates: &mut Vec<CandidateFile>,
 ) -> Result<()> {
+    if options.no_symlinks && is_symlink(path) {
+        return Ok(());
+    }
     if is_ignored(path, ignore_set, cwd) {
         return Ok(());
     }
@@ -204,6 +210,12 @@ fn read_candidate(
         format: candidate.format,
         content,
     }))
+}
+
+fn is_symlink(path: &Path) -> bool {
+    fs::symlink_metadata(path)
+        .map(|metadata| metadata.file_type().is_symlink())
+        .unwrap_or(false)
 }
 
 fn reporter_needs_report_paths(reporter: &str) -> bool {
