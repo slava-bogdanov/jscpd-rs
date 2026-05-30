@@ -87,6 +87,25 @@ run_case "fixtures ada" "jscpd/fixtures/ada" "ada" 20 3
 run_case "fixtures apex" "jscpd/fixtures/apex" "apex" 20 3
 run_case "fixtures haxe" "jscpd/fixtures/haxe" "haxe" 20 3
 run_case "fixtures r" "jscpd/fixtures/r" "r" 20 3
+run_case "fixtures csv" "jscpd/fixtures/csv" "csv" 20 3
+run_case "fixtures diff" "jscpd/fixtures/diff" "diff" 20 3
+run_case "fixtures cmake" "jscpd/fixtures/cmake" "cmake" 20 3
+run_case "fixtures hcl" "jscpd/fixtures/hcl" "hcl" 20 3
+run_case "fixtures json5" "jscpd/fixtures/json5" "json5" 20 3
+run_case "fixtures latex" "jscpd/fixtures/latex" "latex" 20 3
+run_case "fixtures puppet" "jscpd/fixtures/puppet" "puppet" 20 3
+run_case "fixtures qsharp" "jscpd/fixtures/qsharp" "qsharp" 20 3
+run_case "fixtures racket" "jscpd/fixtures/racket" "racket" 20 3
+run_case "fixtures sas" "jscpd/fixtures/sas" "sas" 20 3
+run_case "fixtures scheme" "jscpd/fixtures/scheme" "scheme" 20 3
+run_case "fixtures vhdl" "jscpd/fixtures/vhdl" "vhdl" 20 3
+run_case "fixtures xquery" "jscpd/fixtures/xquery" "xquery" 20 3
+run_case "fixtures verilog" "jscpd/fixtures/verilog" "verilog" 20 3
+run_case "fixtures wgsl" "jscpd/fixtures/wgsl" "wgsl" 20 3
+run_case "fixtures zig" "jscpd/fixtures/zig" "zig" 20 3
+run_case "fixtures tcl" "jscpd/fixtures/tcl" "tcl" 20 3
+run_case "fixtures turtle" "jscpd/fixtures/turtle" "turtle" 20 3
+run_case "fixtures twig" "jscpd/fixtures/twig" "twig" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5

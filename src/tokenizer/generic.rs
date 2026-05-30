@@ -251,6 +251,12 @@ fn code_like_format(format: &str) -> bool {
             | "scala"
             | "solidity"
             | "swift"
+            | "tcl"
+            | "turtle"
+            | "twig"
+            | "verilog"
+            | "wgsl"
+            | "zig"
     )
 }
 

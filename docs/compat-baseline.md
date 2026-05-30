@@ -72,6 +72,25 @@ range while compatibility is converging.
 | `jscpd/fixtures/apex` | `apex` | pass | exact summary parity; includes embedded SOQL as `sql` |
 | `jscpd/fixtures/haxe` | `haxe` | pass | exact summary parity; 8/8 upstream fragments line-covered |
 | `jscpd/fixtures/r` | `r` | pass | exact summary parity; 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/csv` | `csv` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/diff` | `diff` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/cmake` | `cmake` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/hcl` | `hcl` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/json5` | `json5` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/latex` | `latex` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/puppet` | `puppet` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/qsharp` | `qsharp` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/racket` | `racket` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/sas` | `sas` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/scheme` | `scheme` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/vhdl` | `vhdl` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/xquery` | `xquery` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/verilog` | `verilog` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/wgsl` | `wgsl` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/zig` | `zig` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/tcl` | `tcl` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/turtle` | `turtle` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/twig` | `twig` | pass | 6/6 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
