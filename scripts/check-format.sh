@@ -90,6 +90,7 @@ case "$mode" in
     ;;
   compat)
     STRICT="${STRICT:-coverage}" \
+      DETECTION_MODE="$detect_mode" \
       FORMAT="$format" \
       MIN_TOKENS="$min_tokens" \
       MIN_LINES="$min_lines" \
