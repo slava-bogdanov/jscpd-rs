@@ -70,6 +70,19 @@ run_case "fixtures csharp" "jscpd/fixtures/clike" "csharp" 20 3
 run_case "fixtures kotlin" "jscpd/fixtures/clike" "kotlin" 20 3
 run_case "fixtures scala" "jscpd/fixtures/clike" "scala" 20 3
 run_case "fixtures groovy" "jscpd/fixtures/groovy" "groovy" 20 3
+run_case "fixtures actionscript" "jscpd/fixtures/actionscript" "actionscript" 20 3
+run_case "fixtures awk" "jscpd/fixtures/awk" "awk" 20 3
+run_case "fixtures basic" "jscpd/fixtures/basic" "basic" 20 3
+run_case "fixtures coffeescript" "jscpd/fixtures/coffeescript" "coffeescript" 20 3
+run_case "fixtures crystal" "jscpd/fixtures/crystal" "crystal" 20 3
+run_case "fixtures d" "jscpd/fixtures/d" "d" 20 3
+run_case "fixtures elm" "jscpd/fixtures/elm" "elm" 20 3
+run_case "fixtures erlang" "jscpd/fixtures/erlang" "erlang" 20 3
+run_case "fixtures fortran" "jscpd/fixtures/fortran" "fortran" 20 3
+run_case "fixtures gdscript" "jscpd/fixtures/gdscript" "gdscript" 20 3
+run_case "fixtures graphql" "jscpd/fixtures/graphql" "graphql" 20 3
+run_case "fixtures julia" "jscpd/fixtures/julia" "julia" 20 3
+run_case "fixtures protobuf" "jscpd/fixtures/protobuf" "protobuf" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5

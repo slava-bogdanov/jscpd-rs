@@ -55,6 +55,19 @@ range while compatibility is converging.
 | `jscpd/fixtures/clike` | `kotlin` | pass | 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/clike` | `scala` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/groovy` | `groovy` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/actionscript` | `actionscript` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/awk` | `awk` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/basic` | `basic` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/coffeescript` | `coffeescript` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/crystal` | `crystal` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/d` | `d` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/elm` | `elm` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/erlang` | `erlang` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/fortran` | `fortran` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/gdscript` | `gdscript` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/graphql` | `graphql` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/julia` | `julia` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/protobuf` | `protobuf` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |
