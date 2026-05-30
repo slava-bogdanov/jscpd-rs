@@ -55,6 +55,8 @@ range while compatibility is converging.
   `cache`, `executionId`, and `noTips` is parsed from CLI/config where
   applicable. Blame attribution, persistent stores, and cache workflows are
   still implementation gaps.
+- `--debug` is a dry run like upstream: it prints options and discovered files,
+  then exits before clone detection and reporter execution.
 - Known upstream bug candidates are tracked in `docs/upstream-bugs.md`.
 
 ## Benchmark Sanity

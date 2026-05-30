@@ -32,10 +32,6 @@ struct CandidateFile {
 }
 
 pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
-    if options.debug {
-        eprintln!("options: {options:#?}");
-    }
-
     let pattern_set = build_glob_set(std::slice::from_ref(&options.pattern))
         .with_context(|| format!("invalid pattern `{}`", options.pattern))?;
     let needs_compat_discovery = options
