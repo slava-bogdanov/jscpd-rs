@@ -48,6 +48,13 @@ range while compatibility is converging.
 | `jscpd/fixtures/dart` | `dart` | pass | exact summary parity; 4/4 upstream fragments line-covered |
 | `jscpd/fixtures/solidity` | `solidity` | pass | 4/4 upstream fragments line-covered; Rust reports one extra clone |
 | `jscpd/fixtures/perl` | `perl` | pass | exact summary parity; 8/8 upstream fragments line-covered |
+| `jscpd/fixtures/clike` | `c` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/clike` | `cpp` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/clike` | `java` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/clike` | `csharp` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/clike` | `kotlin` | pass | 4/4 upstream fragments line-covered |
+| `jscpd/fixtures/clike` | `scala` | pass | 2/2 upstream fragments line-covered |
+| `jscpd/fixtures/groovy` | `groovy` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/packages` | `javascript` | pass | no clones in either implementation |
 | `jscpd/packages` | `typescript` | pass | 66/66 upstream fragments line-covered |
 | `/home/dev/dream` | `javascript` | pass | 154/154 upstream fragments line-covered; one exact pair differs in generated `.next` chunks |

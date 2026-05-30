@@ -63,6 +63,13 @@ run_case "fixtures rust" "jscpd/fixtures/rust" "rust" 20 3
 run_case "fixtures dart" "jscpd/fixtures/dart" "dart" 20 3
 run_case "fixtures solidity" "jscpd/fixtures/solidity" "solidity" 20 3
 run_case "fixtures perl" "jscpd/fixtures/perl" "perl" 20 3
+run_case "fixtures c" "jscpd/fixtures/clike" "c" 20 3
+run_case "fixtures cpp" "jscpd/fixtures/clike" "cpp" 20 3
+run_case "fixtures java" "jscpd/fixtures/clike" "java" 20 3
+run_case "fixtures csharp" "jscpd/fixtures/clike" "csharp" 20 3
+run_case "fixtures kotlin" "jscpd/fixtures/clike" "kotlin" 20 3
+run_case "fixtures scala" "jscpd/fixtures/clike" "scala" 20 3
+run_case "fixtures groovy" "jscpd/fixtures/groovy" "groovy" 20 3
 run_case "jscpd packages js" "jscpd/packages" "javascript" 50 5
 run_case "jscpd packages ts" "jscpd/packages" "typescript" 50 5
 run_case "dream javascript" "/home/dev/dream" "javascript" 50 5
