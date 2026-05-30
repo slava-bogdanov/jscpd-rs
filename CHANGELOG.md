@@ -37,13 +37,14 @@ The first release is intentionally coverage-first: Rust must not miss duplicated
 upstream lines on the same inputs/options. Additional Rust findings are allowed
 while compatibility converges and remain visible in comparison output.
 
-Latest release-candidate public benchmark measurements:
+Latest release-candidate public benchmark measurements from
+`scripts/release-candidate.sh`:
 
-| Case | Format | Rust avg | Upstream avg | Speedup |
-| --- | --- | ---: | ---: | ---: |
-| React | JavaScript | 0.190676s | 9.912614s | 51.99x |
-| Next.js | TypeScript | 0.245604s | 14.449576s | 58.83x |
-| Prometheus | Go | 0.077489s | 4.575891s | 59.05x |
+| Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| React | `f0dfee3` | JavaScript | 0.187801s | 9.912557s | 52.78x | pass |
+| Next.js | `2bbb67b9` | TypeScript | 0.244143s | 14.149038s | 57.95x | pass |
+| Prometheus | `a0524ee` | Go | 0.077125s | 4.575644s | 59.33x | pass |
 
 ### Known First-Release Deviations
 
