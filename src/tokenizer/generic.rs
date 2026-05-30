@@ -40,7 +40,11 @@ pub(super) fn tokenize_generic(
             continue;
         }
 
-        let (end_byte, kind) = if let Some(comment_end) =
+        let (end_byte, kind) = if let Some((special_end, special_kind)) =
+            generic_multiline_span_end(content, format, start_byte, content.len())
+        {
+            (special_end, special_kind)
+        } else if let Some(comment_end) =
             generic_comment_span_end(content, format, start_byte, content.len())
         {
             (comment_end, TokenKind::Comment)
@@ -111,6 +115,92 @@ fn scan_operator_token(content: &str, start: usize) -> usize {
         end += ch.len_utf8();
     }
     end
+}
+
+fn generic_multiline_span_end(
+    content: &str,
+    format: &str,
+    start: usize,
+    limit: usize,
+) -> Option<(usize, TokenKind)> {
+    match format {
+        "haml" => haml_multiline_comment_span_end(content, start, limit)
+            .map(|end| (end, TokenKind::Comment)),
+        "pug" => pug_dot_block_span_end(content, start, limit).map(|end| (end, TokenKind::Default)),
+        _ => None,
+    }
+}
+
+fn haml_multiline_comment_span_end(content: &str, start: usize, limit: usize) -> Option<usize> {
+    let bytes = content.as_bytes();
+    let line_start = line_start(bytes, start);
+    if !line_prefix_is_indent(bytes, line_start, start) {
+        return None;
+    }
+
+    let rest = &bytes[start..limit];
+    if !(rest.starts_with(b"-#") || rest.starts_with(b"/")) {
+        return None;
+    }
+
+    Some(scan_indented_block_end(
+        bytes, line_start, start, limit, false,
+    ))
+}
+
+fn pug_dot_block_span_end(content: &str, start: usize, limit: usize) -> Option<usize> {
+    let bytes = content.as_bytes();
+    let line_start = line_start(bytes, start);
+    if !line_prefix_is_indent(bytes, line_start, start) {
+        return None;
+    }
+
+    let line_end = line_content_end(bytes, start, limit);
+    if !is_pug_dot_block_opener(&content[start..line_end]) {
+        return None;
+    }
+
+    let end = scan_indented_block_end(bytes, line_start, start, limit, true);
+    (end > line_end).then_some(end)
+}
+
+fn scan_indented_block_end(
+    bytes: &[u8],
+    line_start: usize,
+    start: usize,
+    limit: usize,
+    include_blank_lines: bool,
+) -> usize {
+    let base_indent = start.saturating_sub(line_start);
+    let mut end = line_content_end(bytes, start, limit);
+    let mut next_start = next_line_start(bytes, end, limit);
+
+    while next_start < limit {
+        let line_end = line_content_end(bytes, next_start, limit);
+        let indent_end = scan_indent(bytes, next_start, line_end);
+        let is_blank = indent_end == line_end;
+        let is_child = indent_end.saturating_sub(next_start) > base_indent;
+        if is_child || (include_blank_lines && is_blank) {
+            end = line_end;
+            next_start = next_line_start(bytes, line_end, limit);
+        } else {
+            break;
+        }
+    }
+
+    end
+}
+
+fn is_pug_dot_block_opener(line: &str) -> bool {
+    let trimmed = line.trim_end_matches([' ', '\t']);
+    let Some(head) = trimmed.strip_suffix('.') else {
+        return false;
+    };
+    !head.eq_ignore_ascii_case("script")
+        && !head.is_empty()
+        && head
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'#' | b'.'))
 }
 
 fn is_split_punctuation(format: &str, ch: char) -> bool {
@@ -274,6 +364,47 @@ fn code_like_format(format: &str) -> bool {
 fn scan_to_line_end(bytes: &[u8], start: usize, limit: usize) -> usize {
     let mut idx = start;
     while idx < limit && bytes[idx] != b'\n' {
+        idx += 1;
+    }
+    idx
+}
+
+fn line_start(bytes: &[u8], start: usize) -> usize {
+    let mut idx = start;
+    while idx > 0 && !matches!(bytes[idx - 1], b'\n' | b'\r') {
+        idx -= 1;
+    }
+    idx
+}
+
+fn line_prefix_is_indent(bytes: &[u8], line_start: usize, start: usize) -> bool {
+    bytes[line_start..start]
+        .iter()
+        .all(|byte| matches!(byte, b' ' | b'\t'))
+}
+
+fn line_content_end(bytes: &[u8], start: usize, limit: usize) -> usize {
+    let mut idx = start;
+    while idx < limit && !matches!(bytes[idx], b'\n' | b'\r') {
+        idx += 1;
+    }
+    idx
+}
+
+fn next_line_start(bytes: &[u8], line_end: usize, limit: usize) -> usize {
+    if line_end >= limit {
+        return limit;
+    }
+    if bytes[line_end] == b'\r' && line_end + 1 < limit && bytes[line_end + 1] == b'\n' {
+        line_end + 2
+    } else {
+        line_end + 1
+    }
+}
+
+fn scan_indent(bytes: &[u8], start: usize, limit: usize) -> usize {
+    let mut idx = start;
+    while idx < limit && matches!(bytes[idx], b' ' | b'\t') {
         idx += 1;
     }
     idx

@@ -40,6 +40,8 @@ compatibility is converging.
 | `jscpd/fixtures` | `vue` | pass | 18/18 upstream fragments line-covered; exact starts differ for wider markup/scss ranges |
 | `jscpd/fixtures` | `svelte` | pass | 6/6 upstream fragments line-covered; exact start differs for wider css range |
 | `jscpd/fixtures` | `astro` | pass | 8/8 upstream fragments line-covered; exact starts differ for wider markup/css ranges |
+| `jscpd/fixtures/pug` | `pug` | pass | exact clone and line summary parity; upstream overextended `style.` range is mirrored |
+| `jscpd/fixtures/haml` | `haml` | pass | exact clone and line summary parity; upstream overextended silent-comment range is mirrored |
 | `jscpd/fixtures/css` | `css` | pass | exact clone coverage; token totals differ |
 | `jscpd/fixtures/css` | `less` | pass | exact clone and line summary parity |
 | `jscpd/fixtures/css` | `scss` | pass | exact clone and line summary parity |
@@ -181,6 +183,10 @@ compatibility is converging.
 - Plain `markup` now extracts top-level `<script>` and `<style>` blocks into
   embedded JavaScript/TypeScript/CSS-like maps. This covers upstream mixed HTML
   fixture clones, though Rust may report a wider equivalent embedded range.
+- Pug and HAML mirror Prism's multiline block behavior for fixture parity:
+  `pug` keeps non-`script` dot blocks as one token, and `haml` keeps silent
+  comment blocks as one token. The overextended upstream report ranges remain
+  listed in `docs/upstream-bugs.md`.
 - Non-native generic formats use coarse whitespace tokenization; weak mode
   strips best-effort common comment spans, including `#`, `//`, `/* */`,
   `<!-- -->`, SQL-style `--`, and Lisp/INI-style `;` comments where those
@@ -195,8 +201,6 @@ compatibility is converging.
 - Several upstream fixture directories are gated through upstream aliases:
   `gitignore` as `ignore`, `mathematica` as `wolfram`, `idl` as `prolog`, and
   `z80` as `c`.
-- The remaining upstream `formats.test.ts` fixture formats not in the green
-  matrix are `pug` and `haml`; both are tracked as upstream bug candidates.
 - ASP.NET uses the code-like generic splitter and is gated with a narrow
   documented upstream range exception for `file2.aspx:18-43`, where upstream
   reports through an inserted email field block that is not present in the

@@ -112,7 +112,8 @@ fail per file without aborting the entire detection run.
 
 ## Pug report overextends a clone into a non-matching `style.` block
 
-Status: observed on the `jscpd` submodule during compatibility work.
+Status: observed on the `jscpd` submodule during compatibility work. The Rust
+clone currently mirrors this range behavior for compatibility.
 
 Repro target:
 
@@ -143,7 +144,8 @@ matching CSS ranges are reported.
 
 ## HAML report overextends a clone into a non-matching comment block
 
-Status: observed on the `jscpd` submodule during compatibility work.
+Status: observed on the `jscpd` submodule during compatibility work. The Rust
+clone currently mirrors this range behavior for compatibility.
 
 Repro target:
 

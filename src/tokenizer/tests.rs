@@ -87,6 +87,40 @@ fn generic_tokenizer_handles_common_non_native_formats() {
 }
 
 #[test]
+fn haml_comment_block_is_single_comment_token() {
+    let content = "%section\n  %p Same\n-# File-specific comment\n  .settings\n    %h2 Title\n";
+    let tokens = tokenize_for_detection(content, "haml", &Options::default());
+    let comment = tokens
+        .iter()
+        .find(|token| content[token.range[0]..token.range[1]].starts_with("-#"))
+        .expect("haml comment token");
+
+    assert_eq!(comment.start.line, 3);
+    assert_eq!(comment.end.line, 5);
+    assert_eq!(
+        &content[comment.range[0]..comment.range[1]],
+        "-# File-specific comment\n  .settings\n    %h2 Title"
+    );
+}
+
+#[test]
+fn pug_dot_block_is_single_plain_text_token() {
+    let content = "style.\n  .panel {\n    color: red;\n  }\nbody\n";
+    let tokens = tokenize_for_detection(content, "pug", &Options::default());
+    let block = tokens
+        .iter()
+        .find(|token| content[token.range[0]..token.range[1]].starts_with("style."))
+        .expect("pug dot block token");
+
+    assert_eq!(block.start.line, 1);
+    assert_eq!(block.end.line, 4);
+    assert_eq!(
+        &content[block.range[0]..block.range[1]],
+        "style.\n  .panel {\n    color: red;\n  }"
+    );
+}
+
+#[test]
 fn markdown_fenced_javascript_emits_embedded_map() {
     let content = "# Demo\n\n```js\nfunction alpha() {\n  return 42;\n}\n```\n";
     let maps = tokenize_maps_for_detection(content, "markdown", &Options::default());
