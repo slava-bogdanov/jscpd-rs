@@ -232,6 +232,24 @@ check_server_http() {
     -d 'invalid-json' \
     "http://127.0.0.1:$port/api/check"
   http_json "$dir/not-found.json" 404 "http://127.0.0.1:$port/api/unknown?ignored=true"
+  http_json "$dir/wrong-method-get-check.json" 404 \
+    -X GET \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/wrong-method-get-recheck.json" 404 \
+    -X GET \
+    "http://127.0.0.1:$port/api/recheck"
+  http_json "$dir/wrong-method-post-stats.json" 404 \
+    -X POST \
+    "http://127.0.0.1:$port/api/stats"
+  http_json "$dir/wrong-method-post-health.json" 404 \
+    -X POST \
+    "http://127.0.0.1:$port/api/health"
+  http_json "$dir/wrong-method-put-check.json" 404 \
+    -X PUT \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/wrong-method-delete-stats.json" 404 \
+    -X DELETE \
+    "http://127.0.0.1:$port/api/stats"
 
   local mcp_headers="$dir/mcp-headers.txt"
   http_json "$dir/mcp-init.json" 200 \
@@ -318,6 +336,20 @@ const notFound = read('not-found.json');
 assert(notFound.error === 'NotFound', `${label} not found error`);
 assert(notFound.statusCode === 404, `${label} not found statusCode`);
 assert(notFound.message === 'Route GET /api/unknown not found', `${label} not found message`);
+
+for (const [file, method, route] of [
+  ['wrong-method-get-check.json', 'GET', '/api/check'],
+  ['wrong-method-get-recheck.json', 'GET', '/api/recheck'],
+  ['wrong-method-post-stats.json', 'POST', '/api/stats'],
+  ['wrong-method-post-health.json', 'POST', '/api/health'],
+  ['wrong-method-put-check.json', 'PUT', '/api/check'],
+  ['wrong-method-delete-stats.json', 'DELETE', '/api/stats'],
+]) {
+  const body = read(file);
+  assert(body.error === 'NotFound', `${label} ${method} ${route} error`);
+  assert(body.statusCode === 404, `${label} ${method} ${route} statusCode`);
+  assert(body.message === `Route ${method} ${route} not found`, `${label} ${method} ${route} message`);
+}
 
 const init = read('mcp-init.json');
 assert(init.result?.serverInfo?.name === 'jscpd-server', `${label} mcp initialize`);

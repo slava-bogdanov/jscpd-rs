@@ -200,10 +200,10 @@ fn scan_project(options: &Options) -> Result<(Vec<SourceFile>, DetectionResult)>
 pub fn create_router(service: ServerService) -> Router {
     Router::new()
         .route("/", get(api_info))
-        .route("/api/check", post(check_snippet))
-        .route("/api/recheck", post(recheck))
-        .route("/api/stats", get(stats))
-        .route("/api/health", get(health))
+        .route("/api/check", post(check_snippet).fallback(not_found))
+        .route("/api/recheck", post(recheck).fallback(not_found))
+        .route("/api/stats", get(stats).fallback(not_found))
+        .route("/api/health", get(health).fallback(not_found))
         .route("/mcp", post(mcp::post_mcp).get(mcp::method_not_allowed))
         .fallback(not_found)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
@@ -815,6 +815,44 @@ mod tests {
         assert_eq!(body["error"], "NotFound");
         assert_eq!(body["message"], "Route GET /api/unknown not found");
         assert_eq!(body["statusCode"], 404);
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn server_wrong_api_methods_return_upstream_style_not_found() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        let app = create_router(service);
+
+        for (method, uri) in [
+            ("GET", "/api/check"),
+            ("GET", "/api/recheck"),
+            ("POST", "/api/stats"),
+            ("POST", "/api/health"),
+            ("PUT", "/api/check"),
+            ("DELETE", "/api/stats"),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method(method)
+                        .uri(uri)
+                        .body(Body::empty())
+                        .expect("request"),
+                )
+                .await
+                .expect("response");
+
+            assert_eq!(response.status(), StatusCode::NOT_FOUND);
+            let body = to_bytes(response.into_body(), usize::MAX)
+                .await
+                .expect("body");
+            let body: Value = serde_json::from_slice(&body).expect("json body");
+            assert_eq!(body["error"], "NotFound");
+            assert_eq!(body["message"], format!("Route {method} {uri} not found"));
+            assert_eq!(body["statusCode"], 404);
+        }
         fs::remove_dir_all(path).ok();
     }
 }
