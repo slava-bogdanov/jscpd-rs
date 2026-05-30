@@ -43,6 +43,11 @@ fn run() -> Result<()> {
     print_store_warning(&options);
 
     let started = Instant::now();
+    if files.is_empty() {
+        print_terminal_footer(&options, started.elapsed());
+        return Ok(());
+    }
+
     let mut result = detector::detect(files, &options);
     if options.blame {
         blame::apply_blame(&mut result);

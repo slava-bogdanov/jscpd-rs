@@ -206,10 +206,13 @@ run_case "terabyte max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MI
 require_both_contain stdout "$SUMMARY"
 
 run_case "short suffix max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1k
-require_both_not_contain stdout "$SUMMARY"
+require_both_not_contain stdout "Duplications detection:"
 
 run_case "invalid max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size nope
-require_both_not_contain stdout "$SUMMARY"
+require_both_not_contain stdout "Duplications detection:"
+
+run_case "line filter no files" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines 999999 --max-size "$MAX_SIZE"
+require_both_not_contain stdout "Duplications detection:"
 
 run_case "store fallback warning" 0 "$TARGET_REL" --store leveldb --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
