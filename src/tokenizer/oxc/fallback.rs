@@ -47,7 +47,12 @@ pub(super) fn tokenize_js_like_range(
                 scan_block_comment(bytes, idx, range_end),
                 TokenKind::Comment,
             )
-        } else if matches!(bytes[idx], b'\'' | b'"' | b'`') {
+        } else if bytes[idx] == b'`' {
+            (
+                scan_template_literal(bytes, idx, range_end).unwrap_or(range_end),
+                TokenKind::String,
+            )
+        } else if matches!(bytes[idx], b'\'' | b'"') {
             if let Some(end) = scan_closed_string(bytes, idx, bytes[idx], range_end) {
                 (end, TokenKind::String)
             } else {
@@ -96,6 +101,21 @@ fn scan_closed_string(bytes: &[u8], start: usize, quote: u8, limit: usize) -> Op
             return None;
         }
         if bytes[idx] == quote {
+            return Some(idx + 1);
+        }
+        idx += 1;
+    }
+    None
+}
+
+fn scan_template_literal(bytes: &[u8], start: usize, limit: usize) -> Option<usize> {
+    let mut idx = start + 1;
+    while idx < limit {
+        if bytes[idx] == b'\\' {
+            idx = (idx + 2).min(limit);
+            continue;
+        }
+        if bytes[idx] == b'`' {
             return Some(idx + 1);
         }
         idx += 1;
@@ -207,4 +227,42 @@ fn is_identifier_start(ch: char) -> bool {
 
 fn is_identifier_continue(ch: char) -> bool {
     is_identifier_start(ch) || ch.is_ascii_digit()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cli::Options;
+    use crate::tokenizer::hash_token;
+
+    use super::*;
+
+    #[test]
+    fn multiline_template_literals_are_single_string_tokens() {
+        let content = "expect(store).toMatchInlineSnapshot(`\n  [root]\n`);\n";
+        let options = Options::default();
+        let line_index = LineIndex::new(content);
+        let context = TokenContext {
+            content,
+            options: &options,
+            ignore_regions: &[],
+        };
+        let mut tokens = Vec::new();
+
+        tokenize_js_like_range(&mut tokens, &context, 0, content.len(), &line_index);
+
+        let template = tokens
+            .iter()
+            .find(|token| content[token.range[0]..token.range[1]].starts_with('`'))
+            .expect("template token");
+        assert_eq!(
+            &content[template.range[0]..template.range[1]],
+            "`\n  [root]\n`"
+        );
+        assert_eq!(template.start.line, 1);
+        assert_eq!(template.end.line, 3);
+        assert_eq!(
+            template.hash,
+            hash_token(TokenKind::String, "`\n  [root]\n`", false)
+        );
+    }
 }
