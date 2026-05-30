@@ -158,9 +158,9 @@ Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.183395s | 9.873147s | 53.84x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.242307s | 14.270050s | 58.89x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.073140s | 4.488724s | 61.37x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.189693s | 9.718442s | 51.23x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.237825s | 14.498516s | 60.96x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.087638s | 4.518582s | 51.56x | pass |
 
 ## Current Matrix
 
@@ -448,9 +448,9 @@ project tree:
 
 | Target | Commit | Format | Rust avg | Upstream avg | Approx speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `facebook/react` | `f0dfee3` | `javascript` | `0.183395s` | `9.873147s` | `54x` |
-| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.242307s` | `14.270050s` | `59x` |
-| `prometheus/prometheus` | `a0524ee` | `go` | `0.073140s` | `4.488724s` | `61x` |
+| `facebook/react` | `f0dfee3` | `javascript` | `0.189693s` | `9.718442s` | `51x` |
+| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.237825s` | `14.498516s` | `61x` |
+| `prometheus/prometheus` | `a0524ee` | `go` | `0.087638s` | `4.518582s` | `52x` |
 
 ## Additional Mode Checks
 
