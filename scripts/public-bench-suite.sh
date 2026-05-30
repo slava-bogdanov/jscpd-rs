@@ -10,6 +10,8 @@ MIN_TOKENS="${MIN_TOKENS:-50}"
 MIN_LINES="${MIN_LINES:-5}"
 MAX_SIZE="${MAX_SIZE:-1mb}"
 MIN_SPEEDUP="${MIN_SPEEDUP:-0}"
+RUST_TIMEOUT="${RUST_TIMEOUT-}"
+UPSTREAM_TIMEOUT="${UPSTREAM_TIMEOUT-600s}"
 FETCH="${FETCH:-1}"
 UPDATE="${UPDATE:-0}"
 CHECK_COMPAT="${CHECK_COMPAT:-0}"
@@ -36,6 +38,8 @@ Environment:
   UPDATE       Fetch/reset existing repositories, default 0.
   CHECK_COMPAT Run coverage compat after each benchmark, default 0.
   MIN_SPEEDUP  Fail when upstream/Rust speedup is below this value, default 0.
+  RUST_TIMEOUT Timeout for each Rust timing run, default none.
+  UPSTREAM_TIMEOUT Timeout for each upstream timing run, default 600s.
   LIST         Print configured cases and exit, default 0.
   BENCH_ROOT   Root for generated clones/results, default ~/.cache/jscpd-rs/public-bench.
   REPOS_DIR    Clone directory, default $BENCH_ROOT/repos.
@@ -212,6 +216,8 @@ for spec in "${SUITE_CASES[@]}"; do
     MIN_TOKENS="$MIN_TOKENS" \
     MIN_LINES="$MIN_LINES" \
     MAX_SIZE="$MAX_SIZE" \
+    RUST_TIMEOUT="$RUST_TIMEOUT" \
+    UPSTREAM_TIMEOUT="$UPSTREAM_TIMEOUT" \
     "$ROOT/scripts/bench.sh" "$target_path" | tee "$result_file"
 
   rust_avg="$(parse_avg "$result_file" "rust mvp")"

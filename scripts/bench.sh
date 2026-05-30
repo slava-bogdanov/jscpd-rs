@@ -8,6 +8,8 @@ MIN_TOKENS="${MIN_TOKENS:-20}"
 MIN_LINES="${MIN_LINES:-3}"
 MAX_SIZE="${MAX_SIZE:-10mb}"
 FORMAT="${FORMAT:-}"
+RUST_TIMEOUT="${RUST_TIMEOUT:-}"
+UPSTREAM_TIMEOUT="${UPSTREAM_TIMEOUT:-}"
 
 if [[ -f "$HOME/.cargo/env" ]]; then
   # shellcheck source=/dev/null
@@ -39,6 +41,8 @@ fi
 
 measure() {
   local label="$1"
+  local timeout_seconds="$2"
+  shift
   shift
   local total="0"
   printf '%s\n' "$label"
@@ -47,11 +51,24 @@ measure() {
     local end_ns
     local seconds
     start_ns="$(date +%s%N)"
-    "$@" >/tmp/jscpd-rs-bench.out 2>/tmp/jscpd-rs-bench.err || {
-      cat /tmp/jscpd-rs-bench.out >&2 || true
-      cat /tmp/jscpd-rs-bench.err >&2 || true
-      return 1
-    }
+    if [[ -n "$timeout_seconds" ]]; then
+      timeout "$timeout_seconds" "$@" >/tmp/jscpd-rs-bench.out 2>/tmp/jscpd-rs-bench.err || {
+        local code="$?"
+        cat /tmp/jscpd-rs-bench.out >&2 || true
+        cat /tmp/jscpd-rs-bench.err >&2 || true
+        if [[ "$code" == "124" ]]; then
+          printf '%s timed out after %s\n' "$label" "$timeout_seconds" >&2
+        fi
+        return "$code"
+      }
+    else
+      "$@" >/tmp/jscpd-rs-bench.out 2>/tmp/jscpd-rs-bench.err || {
+        local code="$?"
+        cat /tmp/jscpd-rs-bench.out >&2 || true
+        cat /tmp/jscpd-rs-bench.err >&2 || true
+        return "$code"
+      }
+    fi
     end_ns="$(date +%s%N)"
     seconds="$(awk -v start="$start_ns" -v end="$end_ns" 'BEGIN { printf "%.6f", (end - start) / 1000000000 }')"
     printf '  run %s: %ss\n' "$run" "$seconds"
@@ -67,6 +84,6 @@ if [[ -n "$FORMAT" ]]; then
   printf 'format: %s\n\n' "$FORMAT"
 fi
 
-measure "rust mvp" "${rust_cmd[@]}"
+measure "rust mvp" "$RUST_TIMEOUT" "${rust_cmd[@]}"
 printf '\n'
-measure "upstream jscpd" "${node_cmd[@]}"
+measure "upstream jscpd" "$UPSTREAM_TIMEOUT" "${node_cmd[@]}"

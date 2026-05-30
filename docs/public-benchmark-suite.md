@@ -32,6 +32,7 @@ LIST=1 scripts/public-bench-suite.sh
 CASES=react,next RUNS=3 scripts/public-bench-suite.sh
 CHECK_COMPAT=1 CASES=react scripts/public-bench-suite.sh
 MIN_SPEEDUP=10 CASES=react,next RUNS=3 scripts/public-bench-suite.sh
+UPSTREAM_TIMEOUT=600s CASES=vscode RUNS=1 scripts/public-bench-suite.sh
 PUBLIC=1 PUBLIC_CASES=react,next PUBLIC_RUNS=3 scripts/release-gate.sh
 ```
 
@@ -41,7 +42,10 @@ upstream `jscpd` through `scripts/bench.sh`, and writes raw benchmark output to
 `$BENCH_ROOT/results/summary.tsv` with case, commit, format, Rust average,
 upstream average, speedup, and compatibility status. Set `UPDATE=1` to refresh
 existing clones. Set `MIN_SPEEDUP` to make the suite fail when any selected
-case falls below the required upstream/Rust speedup.
+case falls below the required upstream/Rust speedup. Each upstream timing run is
+bounded by `UPSTREAM_TIMEOUT` (`600s` by default) so optional stress cases cannot
+hang a release gate indefinitely; set `RUST_TIMEOUT` or `UPSTREAM_TIMEOUT` to an
+empty value to disable that side's timeout.
 
 When `CHECK_COMPAT=1` is enabled, the suite runs the same coverage-first report
 comparison used by the fixture gates. `react`, `next`, and `prometheus` include
@@ -65,6 +69,13 @@ PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh
 `kubernetes` was also checked as a Go stress case, but upstream `jscpd` ran out
 of memory with the default Node heap, so it is intentionally not part of the
 default release suite.
+
+`vscode` is configured as an optional TypeScript stress case, but it is not part
+of the default release suite yet. On May 31, 2026, Rust completed the timing run
+in `1.464358s` at commit `e4074382`, while upstream was still running after
+more than nine minutes and the exploratory run was stopped before compatibility
+comparison. Keep it behind an explicit `CASES=vscode` run until we decide on a
+separate slow-suite policy.
 
 Before publication, rerun the suite on the selected cases and copy the measured
 averages into `docs/compat-baseline.md` or release notes with commit hashes.
