@@ -1,0 +1,232 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use anyhow::{Context, Result};
+use globset::{Glob, GlobSet, GlobSetBuilder};
+use ignore::WalkBuilder;
+use rayon::prelude::*;
+
+use crate::cli::Options;
+use crate::formats;
+
+use super::SourceFile;
+use super::gitignore::collect_gitignore_patterns;
+use super::paths::{display_relative_to, fast_glob_like_path_cmp};
+use super::shebang::shebang_format_for_path;
+
+#[derive(Clone, Debug)]
+struct CandidateFile {
+    path: PathBuf,
+    format: String,
+}
+
+pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
+    let pattern_set = build_glob_set(std::slice::from_ref(&options.pattern))
+        .with_context(|| format!("invalid pattern `{}`", options.pattern))?;
+    let needs_compat_discovery = options
+        .reporters
+        .iter()
+        .any(|reporter| reporter_needs_report_paths(reporter))
+        || !options.silent;
+    let mut ignore_patterns = options.ignore.clone();
+    if options.gitignore && needs_compat_discovery {
+        ignore_patterns.extend(collect_gitignore_patterns(&options.paths));
+    }
+    let ignore_set = Arc::new(build_glob_set(&ignore_patterns).context("invalid ignore pattern")?);
+    let mut candidates = Vec::new();
+    let cwd = std::env::current_dir().context("failed to resolve current directory")?;
+
+    for root in &options.paths {
+        let metadata = fs::metadata(root)
+            .with_context(|| format!("failed to inspect path `{}`", root.display()))?;
+        if metadata.is_file() {
+            collect_candidate(root, options, &ignore_set, &cwd, &mut candidates)?;
+            continue;
+        }
+
+        let mut builder = WalkBuilder::new(root);
+        builder
+            .hidden(false)
+            .ignore(!needs_compat_discovery)
+            .git_ignore(options.gitignore && !needs_compat_discovery)
+            .git_exclude(options.gitignore)
+            .git_global(options.gitignore)
+            .follow_links(!options.no_symlinks);
+
+        if needs_compat_discovery {
+            let root_path = root.clone();
+            let walk_ignore_set = Arc::clone(&ignore_set);
+            let walk_cwd = cwd.clone();
+            builder.filter_entry(move |entry| {
+                entry.path() == root_path
+                    || !entry
+                        .file_type()
+                        .is_some_and(|file_type| file_type.is_dir())
+                    || !is_ignored(entry.path(), &walk_ignore_set, &walk_cwd)
+            });
+        }
+
+        for entry in builder.build() {
+            let entry =
+                entry.with_context(|| format!("failed to walk path `{}`", root.display()))?;
+            let Some(file_type) = entry.file_type() else {
+                continue;
+            };
+            if !file_type.is_file() {
+                continue;
+            }
+            let path = entry.path();
+            let relative = path.strip_prefix(root).unwrap_or(path);
+            if !pattern_set.is_match(relative) {
+                continue;
+            }
+            collect_candidate(path, options, &ignore_set, &cwd, &mut candidates)?;
+        }
+    }
+
+    candidates.sort_by(|left, right| fast_glob_like_path_cmp(&left.path, &right.path));
+
+    let mut files = candidates
+        .into_par_iter()
+        .enumerate()
+        .map(|(idx, candidate)| {
+            read_candidate(candidate, options, &cwd).map(|file| file.map(|file| (idx, file)))
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+
+    files.sort_by_key(|(idx, _)| *idx);
+
+    Ok(files.into_iter().map(|(_, file)| file).collect())
+}
+
+fn collect_candidate(
+    path: &Path,
+    options: &Options,
+    ignore_set: &GlobSet,
+    cwd: &Path,
+    candidates: &mut Vec<CandidateFile>,
+) -> Result<()> {
+    if is_ignored(path, ignore_set, cwd) {
+        return Ok(());
+    }
+
+    let metadata = fs::metadata(path)
+        .with_context(|| format!("failed to inspect file `{}`", path.display()))?;
+    let format = if let Some(format) =
+        formats::format_for_path(path, &options.formats_exts, &options.formats_names)
+    {
+        Some(format.to_string())
+    } else {
+        shebang_format_for_path(path, &metadata)?.map(str::to_string)
+    };
+    let Some(format) = format else {
+        if options.verbose {
+            eprintln!("skipped unsupported format: {}", path.display());
+        }
+        return Ok(());
+    };
+    if let Some(formats) = &options.formats
+        && !formats.contains(format.as_str())
+    {
+        return Ok(());
+    }
+
+    if metadata.len() > options.max_size_bytes {
+        if options.verbose {
+            eprintln!(
+                "skipped large file: {} ({} > {})",
+                path.display(),
+                metadata.len(),
+                options.max_size_bytes
+            );
+        }
+        return Ok(());
+    }
+
+    candidates.push(CandidateFile {
+        path: path.to_path_buf(),
+        format,
+    });
+
+    Ok(())
+}
+
+fn read_candidate(
+    candidate: CandidateFile,
+    options: &Options,
+    cwd: &Path,
+) -> Result<Option<SourceFile>> {
+    let bytes = fs::read(&candidate.path)
+        .with_context(|| format!("failed to read `{}`", candidate.path.display()))?;
+    let content = String::from_utf8_lossy(&bytes).into_owned();
+    let lines = if content.is_empty() {
+        0
+    } else {
+        content
+            .as_bytes()
+            .iter()
+            .filter(|byte| **byte == b'\n')
+            .count()
+            + 1
+    };
+    if lines < options.min_lines || lines > options.max_lines {
+        return Ok(None);
+    }
+
+    let needs_report_paths = options
+        .reporters
+        .iter()
+        .any(|reporter| reporter_needs_report_paths(reporter))
+        || !options.silent;
+    let source_id = if options.absolute {
+        candidate
+            .path
+            .canonicalize()
+            .unwrap_or_else(|_| candidate.path.clone())
+            .display()
+            .to_string()
+    } else if !needs_report_paths {
+        candidate.path.display().to_string()
+    } else {
+        display_relative_to(&candidate.path, cwd)
+    };
+
+    Ok(Some(SourceFile {
+        source_id,
+        format: candidate.format,
+        content,
+    }))
+}
+
+fn reporter_needs_report_paths(reporter: &str) -> bool {
+    matches!(reporter, "json" | "xml" | "html" | "sarif" | "xcode")
+}
+
+fn is_ignored(path: &Path, ignore_set: &GlobSet, cwd: &Path) -> bool {
+    if ignore_set.is_empty() {
+        return false;
+    }
+    if ignore_set.is_match(path) {
+        return true;
+    }
+    path.strip_prefix(cwd)
+        .map(|relative| ignore_set.is_match(relative))
+        .unwrap_or(false)
+}
+
+fn build_glob_set(patterns: &[String]) -> Result<GlobSet> {
+    let mut builder = GlobSetBuilder::new();
+    if patterns.is_empty() {
+        return Ok(builder.build()?);
+    }
+    for pattern in patterns {
+        builder.add(Glob::new(pattern)?);
+    }
+    Ok(builder.build()?)
+}
