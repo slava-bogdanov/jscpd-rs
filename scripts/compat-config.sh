@@ -12,6 +12,8 @@ INVALID_PACKAGE_RUST_PROJECT="$TMP_ROOT/rust-invalid-package"
 INVALID_PACKAGE_UPSTREAM_PROJECT="$TMP_ROOT/upstream-invalid-package"
 NAMES_RUST_PROJECT="$TMP_ROOT/rust-formats-names"
 NAMES_UPSTREAM_PROJECT="$TMP_ROOT/upstream-formats-names"
+EXPLICIT_RUST_PROJECT="$TMP_ROOT/rust-explicit-config"
+EXPLICIT_UPSTREAM_PROJECT="$TMP_ROOT/upstream-explicit-config"
 
 cleanup() {
   if [[ "${KEEP:-0}" != "1" ]]; then
@@ -84,6 +86,28 @@ make_package_project() {
       "typescript": ["dup"],
       "javascript": ["dup"]
     }
+  }
+}
+JSON
+}
+
+make_explicit_config_project() {
+  local project="$1"
+  mkdir -p "$project/configs/src"
+  cp "$TARGET_FIXTURE" "$project/configs/src/one.dup"
+  cat >"$project/configs/jscpd.custom.json" <<'JSON'
+{
+  "path": ["src"],
+  "minTokens": 50,
+  "minLines": 5,
+  "maxSize": "1mb",
+  "reporters": ["json"],
+  "silent": true,
+  "noTips": true,
+  "output": "explicit-report",
+  "formatsExts": {
+    "typescript": ["dup"],
+    "javascript": ["dup"]
   }
 }
 JSON
@@ -232,6 +256,8 @@ make_project "$RUST_PROJECT"
 make_project "$UPSTREAM_PROJECT"
 make_package_project "$PACKAGE_RUST_PROJECT"
 make_package_project "$PACKAGE_UPSTREAM_PROJECT"
+make_explicit_config_project "$EXPLICIT_RUST_PROJECT"
+make_explicit_config_project "$EXPLICIT_UPSTREAM_PROJECT"
 make_invalid_package_project "$INVALID_PACKAGE_RUST_PROJECT"
 make_invalid_package_project "$INVALID_PACKAGE_UPSTREAM_PROJECT"
 make_formats_names_project "$NAMES_RUST_PROJECT"
@@ -276,6 +302,25 @@ compare_reports \
   "$PACKAGE_RUST_PROJECT/report/jscpd-report.json" \
   "$PACKAGE_UPSTREAM_PROJECT/report/jscpd-report.json"
 
+printf '\nexplicit --config fixture\n\n'
+
+(
+  cd "$EXPLICIT_RUST_PROJECT"
+  "$ROOT/target/release/jscpd-rs" --config configs/jscpd.custom.json
+)
+(
+  cd "$EXPLICIT_UPSTREAM_PROJECT"
+  node "$ROOT/jscpd/apps/jscpd/bin/jscpd" --config configs/jscpd.custom.json
+)
+
+check_typescript_mapping \
+  "$EXPLICIT_RUST_PROJECT/explicit-report/jscpd-report.json" \
+  "$EXPLICIT_UPSTREAM_PROJECT/explicit-report/jscpd-report.json"
+
+compare_reports \
+  "$EXPLICIT_RUST_PROJECT/explicit-report/jscpd-report.json" \
+  "$EXPLICIT_UPSTREAM_PROJECT/explicit-report/jscpd-report.json"
+
 printf '\ninvalid package.json fixture\n\n'
 
 run_invalid_package_case "$INVALID_PACKAGE_RUST_PROJECT" rust
@@ -309,6 +354,8 @@ if [[ "${KEEP:-0}" == "1" ]]; then
   printf 'upstream project: %s\n' "$UPSTREAM_PROJECT"
   printf 'rust package project: %s\n' "$PACKAGE_RUST_PROJECT"
   printf 'upstream package project: %s\n' "$PACKAGE_UPSTREAM_PROJECT"
+  printf 'rust explicit config project: %s\n' "$EXPLICIT_RUST_PROJECT"
+  printf 'upstream explicit config project: %s\n' "$EXPLICIT_UPSTREAM_PROJECT"
   printf 'rust invalid package project: %s\n' "$INVALID_PACKAGE_RUST_PROJECT"
   printf 'upstream invalid package project: %s\n' "$INVALID_PACKAGE_UPSTREAM_PROJECT"
   printf 'rust formatsNames project: %s\n' "$NAMES_RUST_PROJECT"

@@ -51,9 +51,10 @@ scripts/compat-config.sh
 This smoke check runs both implementations from real `.jscpd.json` and
 `package.json#jscpd` configs, including relative `path`, config `output`,
 `silent`, JSON reporter setup, `exitCode`, and order-sensitive `formatsExts`
-object mappings. It also verifies `formatsNames` mappings for extensionless
-filenames, and checks that malformed `package.json` files emit a warning and do
-not prevent detection from continuing.
+object mappings. It also verifies explicit `--config` files outside `cwd`,
+`formatsNames` mappings for extensionless filenames, and checks that malformed
+`package.json` files emit a warning and do not prevent detection from
+continuing.
 
 Blame gate:
 
