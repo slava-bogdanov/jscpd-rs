@@ -17,6 +17,9 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
     if should_write_report("csv", options) {
         write_csv(result, options)?;
     }
+    if should_write_report("markdown", options) {
+        write_markdown(result, options)?;
+    }
     Ok(())
 }
 
@@ -71,6 +74,18 @@ fn write_csv(result: &DetectionResult, options: &Options) -> Result<()> {
     fs::write(&path, csv).with_context(|| format!("failed to write `{}`", path.display()))?;
     if !options.silent {
         println!("CSV report saved to {}", path.display());
+    }
+    Ok(())
+}
+
+fn write_markdown(result: &DetectionResult, options: &Options) -> Result<()> {
+    fs::create_dir_all(&options.output)
+        .with_context(|| format!("failed to create output dir `{}`", options.output.display()))?;
+    let path = options.output.join("jscpd-report.md");
+    let md = MarkdownReport::from_detection(result).to_string();
+    fs::write(&path, md).with_context(|| format!("failed to write `{}`", path.display()))?;
+    if !options.silent {
+        println!("Markdown report saved to {}", path.display());
     }
     Ok(())
 }
@@ -167,9 +182,9 @@ impl CsvReport {
         let mut formats = statistics.formats.iter().collect::<Vec<_>>();
         formats.sort_by(|(left, _), (right, _)| left.cmp(right));
         for (format, statistic) in formats {
-            rows.push(statistic_to_csv_row(format, &statistic.total));
+            rows.push(statistic_to_summary_row(format, &statistic.total));
         }
-        rows.push(statistic_to_csv_row("Total:", &statistics.total));
+        rows.push(statistic_to_summary_row("Total:", &statistics.total));
 
         Self { rows }
     }
@@ -187,7 +202,10 @@ impl std::fmt::Display for CsvReport {
     }
 }
 
-fn statistic_to_csv_row(format: &str, statistic: &crate::detector::StatisticRow) -> [String; 7] {
+fn statistic_to_summary_row(
+    format: &str,
+    statistic: &crate::detector::StatisticRow,
+) -> [String; 7] {
     [
         format.to_string(),
         statistic.sources.to_string(),
@@ -200,6 +218,96 @@ fn statistic_to_csv_row(format: &str, statistic: &crate::detector::StatisticRow)
             statistic.duplicated_tokens, statistic.percentage_tokens
         ),
     ]
+}
+
+struct MarkdownReport {
+    summary_line: String,
+    rows: Vec<[String; 7]>,
+}
+
+impl MarkdownReport {
+    fn from_detection(result: &DetectionResult) -> Self {
+        let stats = &result.statistics;
+        let clone_count = result.clones.len();
+        let total = &stats.total;
+        let format_count = stats.formats.len();
+
+        let summary_line = format!(
+            "> Duplications detection: Found {} exact clones with {}({}%) duplicated lines in {} ({} formats) files.",
+            clone_count, total.duplicated_lines, total.percentage, total.sources, format_count,
+        );
+
+        let mut rows: Vec<[String; 7]> = vec![[
+            "Format".to_string(),
+            "Files analyzed".to_string(),
+            "Total lines".to_string(),
+            "Total tokens".to_string(),
+            "Clones found".to_string(),
+            "Duplicated lines".to_string(),
+            "Duplicated tokens".to_string(),
+        ]];
+
+        let mut formats: Vec<_> = stats.formats.iter().collect();
+        formats.sort_by(|(a, _), (b, _)| a.cmp(b));
+        for (format, statistic) in formats {
+            rows.push(statistic_to_summary_row(format, &statistic.total));
+        }
+        rows.push(
+            statistic_to_summary_row("Total:", &stats.total).map(|cell| format!("**{cell}**")),
+        );
+
+        Self { summary_line, rows }
+    }
+}
+
+impl std::fmt::Display for MarkdownReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "# Copy/paste detection report")?;
+        writeln!(f)?;
+        writeln!(f, "{}", self.summary_line)?;
+        writeln!(f)?;
+        let widths = markdown_column_widths(&self.rows);
+        for (row_idx, row) in self.rows.iter().enumerate() {
+            write_markdown_row(f, row, &widths)?;
+            if row_idx == 0 {
+                write_markdown_separator(f, &widths)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+fn markdown_column_widths(rows: &[[String; 7]]) -> [usize; 7] {
+    let mut widths = [0usize; 7];
+    for row in rows {
+        for (idx, cell) in row.iter().enumerate() {
+            widths[idx] = widths[idx].max(cell.len());
+        }
+    }
+    widths
+}
+
+fn write_markdown_row(
+    f: &mut std::fmt::Formatter<'_>,
+    row: &[String; 7],
+    widths: &[usize; 7],
+) -> std::fmt::Result {
+    write!(f, "|")?;
+    for (idx, cell) in row.iter().enumerate() {
+        write!(f, " {cell:<width$} |", width = widths[idx])?;
+    }
+    writeln!(f)
+}
+
+fn write_markdown_separator(
+    f: &mut std::fmt::Formatter<'_>,
+    widths: &[usize; 7],
+) -> std::fmt::Result {
+    write!(f, "|")?;
+    for width in widths {
+        write!(f, " {:-<width$} |", "", width = *width)?;
+    }
+    writeln!(f)
 }
 
 fn slice_range(content: &str, range: [usize; 2]) -> String {
@@ -302,5 +410,64 @@ mod tests {
         let _ = std::fs::remove_dir_all(output);
 
         assert!(csv.starts_with("Format,Files analyzed,Total lines"));
+    }
+
+    #[test]
+    fn write_reports_writes_markdown_report() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let output = std::env::temp_dir().join(format!(
+            "jscpd-rs-markdown-report-{}-{nonce}",
+            std::process::id()
+        ));
+        let options = Options {
+            output: output.clone(),
+            reporters: vec!["markdown".to_string()],
+            silent: true,
+            ..Options::default()
+        };
+        let result = DetectionResult {
+            clones: Vec::new(),
+            statistics: make_test_statistics(),
+            sources: Vec::new(),
+            source_contents: HashMap::new(),
+        };
+
+        write_reports(&result, &options).unwrap();
+        let md = std::fs::read_to_string(output.join("jscpd-report.md")).unwrap();
+        let _ = std::fs::remove_dir_all(output);
+
+        assert!(md.starts_with("# Copy/paste detection report"));
+        assert!(md.contains("| javascript | 2"));
+    }
+
+    #[test]
+    fn markdown_report_matches_upstream_summary_shape() {
+        let stats = make_test_statistics();
+        let report = MarkdownReport::from_detection(&DetectionResult {
+            clones: Vec::new(),
+            statistics: stats,
+            sources: Vec::new(),
+            source_contents: HashMap::new(),
+        });
+        let md = report.to_string();
+
+        assert_eq!(
+            md,
+            [
+                "# Copy/paste detection report",
+                "",
+                "> Duplications detection: Found 0 exact clones with 5(25%) duplicated lines in 2 (1 formats) files.",
+                "",
+                "| Format     | Files analyzed | Total lines | Total tokens | Clones found | Duplicated lines | Duplicated tokens |",
+                "| ---------- | -------------- | ----------- | ------------ | ------------ | ---------------- | ----------------- |",
+                "| javascript | 2              | 20          | 100          | 1            | 5 (25%)          | 30 (30%)          |",
+                "| **Total:** | **2**          | **20**      | **100**      | **1**        | **5 (25%)**      | **30 (30%)**      |",
+                "",
+            ]
+            .join("\n")
+        );
     }
 }
