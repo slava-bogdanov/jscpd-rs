@@ -63,6 +63,12 @@ Fast local gate:
 scripts/release-gate.sh
 ```
 
+Package/install gate:
+
+```bash
+scripts/package-check.sh
+```
+
 Full compatibility matrix:
 
 ```bash

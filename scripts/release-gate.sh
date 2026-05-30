@@ -14,6 +14,9 @@ cargo test
 printf '\n== bash -n scripts/*.sh ==\n'
 bash -n scripts/*.sh
 
+printf '\n== package/install check ==\n'
+scripts/package-check.sh
+
 printf '\n== CLI compatibility ==\n'
 scripts/compat-cli.sh
 

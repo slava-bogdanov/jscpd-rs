@@ -74,6 +74,18 @@ runs both implementations with `--blame --reporters json`, verifies that both
 JSON reports include matching blame data on both duplicate fragments, and then
 compares the reports with the default coverage rule.
 
+Package/install gate:
+
+```bash
+scripts/package-check.sh
+```
+
+This release-surface check verifies the crate package file list, rejects
+accidental publication of the upstream `jscpd/` submodule, `target/`,
+`node_modules`, and internal scripts, runs `cargo package --locked`, installs
+the `jscpd` binary into a temporary Cargo root, and checks the installed
+binary's version and upstream-compatible command name.
+
 Upstream CI fixture gate:
 
 ```bash
@@ -93,13 +105,13 @@ FULL=1 scripts/release-gate.sh
 PUBLIC=1 scripts/release-gate.sh
 ```
 
-The default run covers formatting, unit tests, shell syntax, and fast
-CLI/config/reporter compatibility checks. `FULL=1` also runs the full
-coverage-first compatibility matrix. `PUBLIC=1` runs the project-owned public
-benchmark suite with coverage compatibility enabled, using `PUBLIC_CASES`,
-`PUBLIC_RUNS`, `PUBLIC_CHECK_COMPAT`, and `PUBLIC_MIN_SPEEDUP` to override its
-defaults. `FULL=1 PUBLIC=1 scripts/release-gate.sh` is required before
-publication.
+The default run covers formatting, unit tests, shell syntax, package/install
+verification, and fast CLI/config/reporter compatibility checks. `FULL=1` also
+runs the full coverage-first compatibility matrix. `PUBLIC=1` runs the
+project-owned public benchmark suite with coverage compatibility enabled, using
+`PUBLIC_CASES`, `PUBLIC_RUNS`, `PUBLIC_CHECK_COMPAT`, and `PUBLIC_MIN_SPEEDUP`
+to override its defaults. `FULL=1 PUBLIC=1 scripts/release-gate.sh` is required
+before publication.
 
 Latest public benchmark measurements:
 
