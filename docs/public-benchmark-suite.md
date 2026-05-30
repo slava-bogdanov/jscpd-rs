@@ -58,9 +58,9 @@ PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `react` | `f0dfee3` | `javascript` | 0.189693s | 9.718442s | 51.23x |
-| `next` | `2bbb67b9` | `typescript` | 0.237825s | 14.498516s | 60.96x |
-| `prometheus` | `a0524ee` | `go` | 0.087638s | 4.518582s | 51.56x |
+| `react` | `f0dfee3` | `javascript` | 0.184965s | 9.798689s | 52.98x |
+| `next` | `2bbb67b9` | `typescript` | 0.243170s | 14.392520s | 59.19x |
+| `prometheus` | `a0524ee` | `go` | 0.077913s | 4.489508s | 57.62x |
 
 `kubernetes` was also checked as a Go stress case, but upstream `jscpd` ran out
 of memory with the default Node heap, so it is intentionally not part of the

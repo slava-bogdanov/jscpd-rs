@@ -4,12 +4,12 @@ Baseline date: 2026-05-30.
 
 Latest full release gate:
 `FULL=1 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `ccdf5dc` as part of
+passed on 2026-05-30 at commit `1fa9c90` as part of
 `scripts/release-candidate.sh`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
-passed on 2026-05-30 at commit `ccdf5dc` as part of
+passed on 2026-05-30 at commit `1fa9c90` as part of
 `scripts/release-candidate.sh`.
 
 Default gate:
@@ -150,7 +150,7 @@ workflow dispatch exposes `full`, `public`, `release_candidate`, and
 release-candidate gates.
 
 Latest local release-candidate check: `scripts/release-candidate.sh` passed on
-2026-05-30 at `ccdf5dc`, covering
+2026-05-30 at `1fa9c90`, covering
 `cargo clippy --all-targets -- -D warnings`, the default release gate, the full
 coverage matrix, and the public benchmark/coverage suite.
 
@@ -158,9 +158,9 @@ Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.189693s | 9.718442s | 51.23x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.237825s | 14.498516s | 60.96x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.087638s | 4.518582s | 51.56x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.184965s | 9.798689s | 52.98x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.243170s | 14.392520s | 59.19x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.077913s | 4.489508s | 57.62x | pass |
 
 ## Current Matrix
 
@@ -448,9 +448,9 @@ project tree:
 
 | Target | Commit | Format | Rust avg | Upstream avg | Approx speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `facebook/react` | `f0dfee3` | `javascript` | `0.189693s` | `9.718442s` | `51x` |
-| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.237825s` | `14.498516s` | `61x` |
-| `prometheus/prometheus` | `a0524ee` | `go` | `0.087638s` | `4.518582s` | `52x` |
+| `facebook/react` | `f0dfee3` | `javascript` | `0.184965s` | `9.798689s` | `53x` |
+| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.243170s` | `14.392520s` | `59x` |
+| `prometheus/prometheus` | `a0524ee` | `go` | `0.077913s` | `4.489508s` | `58x` |
 
 ## Additional Mode Checks
 
