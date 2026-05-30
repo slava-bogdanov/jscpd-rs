@@ -1,6 +1,6 @@
 use super::{
     Cli, FileConfig, Mode, Options, apply_config, normalize_reporters, parse_format_mappings,
-    parse_size, resolve_config_ignore,
+    parse_js_usize, parse_size, resolve_config_ignore,
 };
 use clap::{CommandFactory, Parser};
 
@@ -27,6 +27,17 @@ fn parses_size_suffixes() {
     assert_eq!(parse_size(".5kb").unwrap(), 0);
     assert_eq!(parse_size("nope").unwrap(), 0);
     assert_eq!(parse_size("-1mb").unwrap(), 0);
+}
+
+#[test]
+fn parses_cli_integer_flags_like_upstream_parse_int() {
+    assert_eq!(parse_js_usize("1.5").unwrap(), 1);
+    assert_eq!(parse_js_usize("20.9tokens").unwrap(), 20);
+    assert_eq!(parse_js_usize("+1000.9").unwrap(), 1000);
+    assert_eq!(parse_js_usize("0x10").unwrap(), 16);
+    assert!(parse_js_usize(".5").is_err());
+    assert!(parse_js_usize("nope").is_err());
+    assert!(parse_js_usize("-1").is_err());
 }
 
 #[test]

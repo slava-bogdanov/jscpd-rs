@@ -32,6 +32,40 @@ pub(super) fn compile_patterns(patterns: Vec<String>) -> Result<Vec<Regex>> {
         .collect()
 }
 
+pub(super) fn parse_js_usize(value: &str) -> std::result::Result<usize, String> {
+    let trimmed = value.trim_start();
+    let rest = trimmed.strip_prefix('+').unwrap_or(trimmed);
+    if rest.starts_with('-') {
+        return Err(format!("invalid integer `{value}`"));
+    }
+
+    let (digits, radix) =
+        if let Some(hex) = rest.strip_prefix("0x").or_else(|| rest.strip_prefix("0X")) {
+            let digits = hex
+                .chars()
+                .take_while(|ch| ch.is_ascii_hexdigit())
+                .collect::<String>();
+            (digits, 16)
+        } else {
+            let digits = rest
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit())
+                .collect::<String>();
+            (digits, 10)
+        };
+    if digits.is_empty() {
+        return Err(format!("invalid integer `{value}`"));
+    }
+
+    let mut parsed = 0usize;
+    for digit in digits.chars().filter_map(|ch| ch.to_digit(radix)) {
+        parsed = parsed
+            .saturating_mul(radix as usize)
+            .saturating_add(digit as usize);
+    }
+    Ok(parsed)
+}
+
 pub(super) fn parse_size(value: &str) -> Result<u64> {
     let trimmed = value.trim();
     if let Some(bytes) = parse_bytes_unit(trimmed) {

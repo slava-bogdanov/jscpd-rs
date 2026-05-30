@@ -16,7 +16,7 @@ mod tests;
 #[cfg(test)]
 use config::{FileConfig, resolve_config_ignore};
 use config::{apply_config, read_config, read_package_json_config};
-use parsing::{compile_patterns, parse_format_mappings, parse_size, split_csv};
+use parsing::{compile_patterns, parse_format_mappings, parse_js_usize, parse_size, split_csv};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -33,6 +33,7 @@ pub struct Cli {
         short = 'l',
         long = "min-lines",
         value_name = "number",
+        value_parser = parse_js_usize,
         help = "min size of duplication in code lines (Default is 5)"
     )]
     pub min_lines: Option<usize>,
@@ -41,6 +42,7 @@ pub struct Cli {
         short = 'k',
         long = "min-tokens",
         value_name = "number",
+        value_parser = parse_js_usize,
         help = "min size of duplication in code tokens (Default is 50)"
     )]
     pub min_tokens: Option<usize>,
@@ -49,6 +51,7 @@ pub struct Cli {
         short = 'x',
         long = "max-lines",
         value_name = "number",
+        value_parser = parse_js_usize,
         help = "max size of source in lines (Default is 1000)"
     )]
     pub max_lines: Option<usize>,

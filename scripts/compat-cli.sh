@@ -245,6 +245,9 @@ require_both_contain stdout "$SUMMARY"
 run_case "decimal max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1.5kb
 require_both_contain stdout "$SUMMARY"
 
+run_case "decimal numeric limits" 0 "$TARGET_REL" --silent --noTips --min-tokens 20.9 --min-lines 3.9 --max-lines 1000.9 --max-size 1mb
+require_both_contain stdout "$SUMMARY"
+
 run_case "terabyte max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1tb
 require_both_contain stdout "$SUMMARY"
 
