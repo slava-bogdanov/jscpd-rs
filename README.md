@@ -164,4 +164,6 @@ STRICT=coverage scripts/compat-matrix.sh
 ```
 
 Known upstream bug candidates and intentional compatibility exceptions are
-tracked in [docs/upstream-bugs.md](docs/upstream-bugs.md).
+tracked in [docs/upstream-bugs.md](docs/upstream-bugs.md). GitHub-ready issue
+drafts are prepared in
+[docs/upstream-issue-drafts.md](docs/upstream-issue-drafts.md).
