@@ -346,6 +346,18 @@ NODE
     -H "mcp-session-id: $session_id" \
     -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_statistics","arguments":{}},"id":3}' \
     "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-check-duplication-recheck.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"check_duplication","arguments":{"code":"function test() { console.log('\''hello'\''); }","format":"javascript","recheck":true}},"id":15}' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-check-current-directory.json" 200 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: application/json' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"check_current_directory","arguments":{}},"id":16}' \
+    "http://127.0.0.1:$port/mcp"
   http_json "$dir/mcp-resource.json" 200 \
     -H 'Accept: application/json, text/event-stream' \
     -H 'Content-Type: application/json' \
@@ -528,6 +540,14 @@ const resourcesList = read('mcp-resources-list.json');
 assert(resourcesList.result?.resources?.some((resource) => resource.uri === 'jscpd://statistics'), `${label} mcp resources list`);
 const statsTool = read('mcp-stats-tool.json');
 assert(statsTool.result?.content?.[0]?.text?.includes('statistics'), `${label} mcp stats tool`);
+const checkDuplicationRecheck = read('mcp-check-duplication-recheck.json');
+assert(checkDuplicationRecheck.id === 15, `${label} mcp check_duplication recheck id`);
+assert(checkDuplicationRecheck.result?.content?.[0]?.text?.includes('duplications'), `${label} mcp check_duplication recheck duplications`);
+assert(checkDuplicationRecheck.result?.content?.[0]?.text?.includes('totalDuplications'), `${label} mcp check_duplication recheck statistics`);
+const checkCurrentDirectory = read('mcp-check-current-directory.json');
+assert(checkCurrentDirectory.id === 16, `${label} mcp check_current_directory id`);
+assert(checkCurrentDirectory.result?.content?.[0]?.text?.includes('statistics'), `${label} mcp check_current_directory statistics`);
+assert(checkCurrentDirectory.result?.content?.[0]?.text?.includes('timestamp'), `${label} mcp check_current_directory timestamp`);
 const resource = read('mcp-resource.json');
 assert(resource.result?.contents?.[0]?.uri === 'jscpd://statistics', `${label} mcp resource`);
 assert(!Object.hasOwn(resource.result?.contents?.[0] ?? {}, 'mimeType'), `${label} mcp resource read content mimeType`);
