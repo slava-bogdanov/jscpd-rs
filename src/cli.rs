@@ -49,8 +49,17 @@ pub struct Cli {
     #[arg(short = 'p', long = "pattern")]
     pub pattern: Option<String>,
 
+    #[arg(short = 'b', long = "blame")]
+    pub blame: bool,
+
     #[arg(short = 's', long = "silent")]
     pub silent: bool,
+
+    #[arg(long = "store")]
+    pub store: Option<String>,
+
+    #[arg(long = "store-path")]
+    pub store_path: Option<PathBuf>,
 
     #[arg(short = 'a', long = "absolute")]
     pub absolute: bool,
@@ -108,6 +117,7 @@ pub enum Mode {
 
 #[derive(Debug, Clone)]
 pub struct Options {
+    pub execution_id: Option<String>,
     pub paths: Vec<PathBuf>,
     pub pattern: String,
     pub ignore: Vec<String>,
@@ -123,6 +133,10 @@ pub struct Options {
     pub max_size_bytes: u64,
     pub threshold: Option<f64>,
     pub mode: Mode,
+    pub store: Option<String>,
+    pub store_path: Option<PathBuf>,
+    pub blame: bool,
+    pub cache: bool,
     pub silent: bool,
     pub absolute: bool,
     pub no_symlinks: bool,
@@ -132,11 +146,13 @@ pub struct Options {
     pub verbose: bool,
     pub skip_local: bool,
     pub exit_code: i32,
+    pub no_tips: bool,
 }
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct FileConfig {
+    execution_id: Option<String>,
     path: Option<OneOrMany>,
     pattern: Option<String>,
     ignore: Option<OneOrMany>,
@@ -152,6 +168,10 @@ struct FileConfig {
     max_size: Option<String>,
     threshold: Option<f64>,
     mode: Option<Mode>,
+    store: Option<String>,
+    store_path: Option<PathBuf>,
+    blame: Option<bool>,
+    cache: Option<bool>,
     silent: Option<bool>,
     absolute: Option<bool>,
     no_symlinks: Option<bool>,
@@ -161,6 +181,7 @@ struct FileConfig {
     verbose: Option<bool>,
     skip_local: Option<bool>,
     exit_code: Option<i32>,
+    no_tips: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -225,6 +246,7 @@ impl FormatMappingsConfig {
 impl Default for Options {
     fn default() -> Self {
         Self {
+            execution_id: None,
             paths: vec![PathBuf::from(".")],
             pattern: "**/*".to_string(),
             ignore: Vec::new(),
@@ -240,6 +262,10 @@ impl Default for Options {
             max_size_bytes: 100 * 1024,
             threshold: None,
             mode: Mode::Mild,
+            store: None,
+            store_path: None,
+            blame: false,
+            cache: true,
             silent: false,
             absolute: false,
             no_symlinks: false,
@@ -249,6 +275,7 @@ impl Default for Options {
             verbose: false,
             skip_local: false,
             exit_code: 0,
+            no_tips: std::env::var_os("CI").is_some(),
         }
     }
 }
@@ -314,6 +341,15 @@ impl Options {
         if cli.skip_comments && cli.mode.is_none() {
             options.mode = Mode::Weak;
         }
+        if let Some(store) = cli.store {
+            options.store = Some(store);
+        }
+        if let Some(store_path) = cli.store_path {
+            options.store_path = Some(store_path);
+        }
+        if cli.blame {
+            options.blame = true;
+        }
         if cli.silent {
             options.silent = true;
         }
@@ -342,6 +378,9 @@ impl Options {
         }
         if let Some(exit_code) = cli.exit_code {
             options.exit_code = exit_code;
+        }
+        if cli.no_tips {
+            options.no_tips = true;
         }
 
         normalize_reporters(&mut options);
@@ -424,6 +463,9 @@ fn read_package_json_config() -> Result<Option<(FileConfig, PathBuf)>> {
 }
 
 fn apply_config(options: &mut Options, config: FileConfig, config_dir: &Path) -> Result<()> {
+    if let Some(execution_id) = config.execution_id {
+        options.execution_id = Some(execution_id);
+    }
     if let Some(paths) = config.path {
         options.paths = paths
             .into_vec()
@@ -479,6 +521,18 @@ fn apply_config(options: &mut Options, config: FileConfig, config_dir: &Path) ->
     if let Some(mode) = config.mode {
         options.mode = mode;
     }
+    if let Some(store) = config.store {
+        options.store = Some(store);
+    }
+    if let Some(store_path) = config.store_path {
+        options.store_path = Some(store_path);
+    }
+    if let Some(blame) = config.blame {
+        options.blame = blame;
+    }
+    if let Some(cache) = config.cache {
+        options.cache = cache;
+    }
     if let Some(silent) = config.silent {
         options.silent = silent;
     }
@@ -505,6 +559,9 @@ fn apply_config(options: &mut Options, config: FileConfig, config_dir: &Path) ->
     }
     if let Some(exit_code) = config.exit_code {
         options.exit_code = exit_code;
+    }
+    if let Some(no_tips) = config.no_tips {
+        options.no_tips = no_tips;
     }
     Ok(())
 }
@@ -584,8 +641,8 @@ fn parse_size(value: &str) -> Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::{
-        Cli, Mode, Options, normalize_reporters, parse_format_mappings, parse_size,
-        resolve_config_ignore,
+        Cli, FileConfig, Mode, Options, apply_config, normalize_reporters, parse_format_mappings,
+        parse_size, resolve_config_ignore,
     };
     use clap::Parser;
 
@@ -629,6 +686,53 @@ mod tests {
         normalize_reporters(&mut options);
 
         assert_eq!(options.reporters, vec!["json", "threshold"]);
+    }
+
+    #[test]
+    fn parses_upstream_workflow_options() {
+        let cli = Cli::parse_from(&[
+            "jscpd-rs",
+            "--blame",
+            "--store",
+            "leveldb",
+            "--store-path",
+            ".jscpd-cache",
+            "--noTips",
+            ".",
+        ]);
+        let options = Options::from_cli(cli).unwrap();
+
+        assert!(options.blame);
+        assert_eq!(options.store.as_deref(), Some("leveldb"));
+        assert_eq!(
+            options.store_path.as_deref(),
+            Some(std::path::Path::new(".jscpd-cache"))
+        );
+        assert!(options.no_tips);
+
+        let config: FileConfig = serde_json::from_str(
+            r#"{
+                "executionId": "run-1",
+                "store": "leveldb",
+                "storePath": "cache",
+                "blame": true,
+                "cache": false,
+                "noTips": true
+            }"#,
+        )
+        .unwrap();
+        let mut options = Options::default();
+        apply_config(&mut options, config, std::path::Path::new(".")).unwrap();
+
+        assert_eq!(options.execution_id.as_deref(), Some("run-1"));
+        assert_eq!(options.store.as_deref(), Some("leveldb"));
+        assert_eq!(
+            options.store_path.as_deref(),
+            Some(std::path::Path::new("cache"))
+        );
+        assert!(options.blame);
+        assert!(!options.cache);
+        assert!(options.no_tips);
     }
 
     #[test]

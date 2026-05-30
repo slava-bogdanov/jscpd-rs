@@ -51,6 +51,10 @@ range while compatibility is converging.
   `--formats-exts`/`formatsExts` and `--formats-names`/`formatsNames`.
 - `skipLocal` follows the upstream configured-root validator: clones are skipped
   only when both fragments are inside the same input path.
+- The upstream workflow option surface for `blame`, `store`, `storePath`,
+  `cache`, `executionId`, and `noTips` is parsed from CLI/config where
+  applicable. Blame attribution, persistent stores, and cache workflows are
+  still implementation gaps.
 - Known upstream bug candidates are tracked in `docs/upstream-bugs.md`.
 
 ## Benchmark Sanity

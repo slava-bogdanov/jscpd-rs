@@ -49,8 +49,9 @@ Known MVP gaps:
   use generic tokenization rather than Prism-compatible tokenization.
 - `strict/mild/weak` are only approximated.
 - Terminal timing/tips/progress polish is still approximate.
-- No blame, persistent stores, or full parity for non-native syntax-specific
-  token streams yet.
+- Blame, persistent store, and cache workflow options are parsed, but the
+  workflows themselves are not implemented yet.
+- No full parity for non-native syntax-specific token streams yet.
 - Markdown front matter and fenced code blocks are extracted into embedded
   format maps, but full Markdown fixture parity is not claimed yet.
 
