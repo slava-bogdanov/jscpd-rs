@@ -3,9 +3,11 @@ use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use serde::Deserialize;
-use serde::de::{MapAccess, Visitor};
+use serde::de::{Error as DeError, MapAccess, Visitor};
 
-use super::parsing::{compile_patterns, parse_format_mappings, parse_size, split_csv};
+use super::parsing::{
+    compile_patterns, parse_format_mappings, parse_js_number, parse_size, split_csv,
+};
 use super::{ExitCode, FormatMappings, Options};
 
 #[derive(Debug, Default, Deserialize)]
@@ -23,10 +25,13 @@ pub(super) struct FileConfig {
     formats_exts: Option<FormatMappingsConfig>,
     formats_names: Option<FormatMappingsConfig>,
     ignore_pattern: Option<OneOrMany>,
+    #[serde(default, deserialize_with = "deserialize_optional_usize_or_string")]
     min_lines: Option<usize>,
     min_tokens: Option<usize>,
+    #[serde(default, deserialize_with = "deserialize_optional_usize_or_string")]
     max_lines: Option<usize>,
     max_size: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_f64_or_string")]
     threshold: Option<f64>,
     mode: Option<String>,
     store: Option<String>,
@@ -77,6 +82,75 @@ impl From<ExitCodeConfig> for ExitCode {
             ExitCodeConfig::Number(value) => Self::Number(value),
             ExitCodeConfig::String(value) => Self::String(value),
         }
+    }
+}
+
+fn deserialize_optional_usize_or_string<'de, D>(
+    deserializer: D,
+) -> std::result::Result<Option<usize>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<serde_json::Value>::deserialize(deserializer)?;
+    match value {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(serde_json::Value::Number(number)) => number
+            .as_u64()
+            .and_then(|value| usize::try_from(value).ok())
+            .map(Some)
+            .ok_or_else(|| D::Error::custom("expected a non-negative integer")),
+        Some(serde_json::Value::String(value)) => parse_config_usize_string(&value)
+            .map(Some)
+            .map_err(D::Error::custom),
+        Some(value) => Err(D::Error::custom(format!(
+            "invalid type: {}, expected integer or string",
+            json_type_name(&value)
+        ))),
+    }
+}
+
+fn parse_config_usize_string(value: &str) -> std::result::Result<usize, String> {
+    let number = parse_js_number(value)?;
+    if !number.is_finite() || number < 0.0 || number.fract() != 0.0 {
+        return Err(format!("invalid integer `{value}`"));
+    }
+    if number > usize::MAX as f64 {
+        return Err(format!("integer `{value}` is too large"));
+    }
+    Ok(number as usize)
+}
+
+fn deserialize_optional_f64_or_string<'de, D>(
+    deserializer: D,
+) -> std::result::Result<Option<f64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<serde_json::Value>::deserialize(deserializer)?;
+    match value {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(serde_json::Value::Number(number)) => number
+            .as_f64()
+            .map(Some)
+            .ok_or_else(|| D::Error::custom("expected a finite number")),
+        Some(serde_json::Value::String(value)) => {
+            parse_js_number(&value).map(Some).map_err(D::Error::custom)
+        }
+        Some(value) => Err(D::Error::custom(format!(
+            "invalid type: {}, expected number or string",
+            json_type_name(&value)
+        ))),
+    }
+}
+
+fn json_type_name(value: &serde_json::Value) -> &'static str {
+    match value {
+        serde_json::Value::Null => "null",
+        serde_json::Value::Bool(_) => "boolean",
+        serde_json::Value::Number(_) => "number",
+        serde_json::Value::String(_) => "string",
+        serde_json::Value::Array(_) => "array",
+        serde_json::Value::Object(_) => "object",
     }
 }
 

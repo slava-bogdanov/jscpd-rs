@@ -22,6 +22,8 @@ OPTIONS_RUST_PROJECT="$TMP_ROOT/rust-option-surface"
 OPTIONS_UPSTREAM_PROJECT="$TMP_ROOT/upstream-option-surface"
 SYMLINK_RUST_PROJECT="$TMP_ROOT/rust-symlink-config"
 SYMLINK_UPSTREAM_PROJECT="$TMP_ROOT/upstream-symlink-config"
+STRING_NUMBERS_RUST_PROJECT="$TMP_ROOT/rust-string-numbers"
+STRING_NUMBERS_UPSTREAM_PROJECT="$TMP_ROOT/upstream-string-numbers"
 
 cleanup() {
   if [[ "${KEEP:-0}" != "1" ]]; then
@@ -240,6 +242,31 @@ make_option_surface_project() {
     "typescript": ["dup"],
     "javascript": ["dup"]
   }
+}
+JSON
+}
+
+make_string_numbers_project() {
+  local project="$1"
+  mkdir -p "$project/src"
+  cp "$TARGET_FIXTURE" "$project/src/one.dup"
+  cat >"$project/.jscpd.json" <<'JSON'
+{
+  "path": ["src"],
+  "minTokens": 50,
+  "minLines": "5",
+  "maxLines": "1000",
+  "maxSize": "1mb",
+  "threshold": "100",
+  "reporters": ["json"],
+  "silent": true,
+  "noTips": true,
+  "output": "report",
+  "formatsExts": {
+    "typescript": ["dup"],
+    "javascript": ["dup"]
+  },
+  "exitCode": "0"
 }
 JSON
 }
@@ -533,6 +560,8 @@ make_option_surface_project "$OPTIONS_RUST_PROJECT"
 make_option_surface_project "$OPTIONS_UPSTREAM_PROJECT"
 make_symlink_config_project "$SYMLINK_RUST_PROJECT"
 make_symlink_config_project "$SYMLINK_UPSTREAM_PROJECT"
+make_string_numbers_project "$STRING_NUMBERS_RUST_PROJECT"
+make_string_numbers_project "$STRING_NUMBERS_UPSTREAM_PROJECT"
 
 printf 'fixture: %s\n' "$TARGET_FIXTURE"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -658,6 +687,25 @@ printf '\nsymlink --config debug fixture\n\n'
 run_symlink_config_debug_case "$SYMLINK_RUST_PROJECT" rust
 run_symlink_config_debug_case "$SYMLINK_UPSTREAM_PROJECT" upstream
 
+printf '\nstring numeric config fixture\n\n'
+
+(
+  cd "$STRING_NUMBERS_RUST_PROJECT"
+  "$ROOT/target/release/jscpd"
+)
+(
+  cd "$STRING_NUMBERS_UPSTREAM_PROJECT"
+  node "$ROOT/jscpd/apps/jscpd/bin/jscpd"
+)
+
+check_typescript_mapping \
+  "$STRING_NUMBERS_RUST_PROJECT/report/jscpd-report.json" \
+  "$STRING_NUMBERS_UPSTREAM_PROJECT/report/jscpd-report.json"
+
+compare_reports \
+  "$STRING_NUMBERS_RUST_PROJECT/report/jscpd-report.json" \
+  "$STRING_NUMBERS_UPSTREAM_PROJECT/report/jscpd-report.json"
+
 if [[ "${KEEP:-0}" == "1" ]]; then
   printf '\nrust project: %s\n' "$RUST_PROJECT"
   printf 'upstream project: %s\n' "$UPSTREAM_PROJECT"
@@ -677,4 +725,6 @@ if [[ "${KEEP:-0}" == "1" ]]; then
   printf 'upstream option-surface project: %s\n' "$OPTIONS_UPSTREAM_PROJECT"
   printf 'rust symlink config project: %s\n' "$SYMLINK_RUST_PROJECT"
   printf 'upstream symlink config project: %s\n' "$SYMLINK_UPSTREAM_PROJECT"
+  printf 'rust string numeric config project: %s\n' "$STRING_NUMBERS_RUST_PROJECT"
+  printf 'upstream string numeric config project: %s\n' "$STRING_NUMBERS_UPSTREAM_PROJECT"
 fi

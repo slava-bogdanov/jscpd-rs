@@ -297,6 +297,25 @@ fn config_format_order_is_preserved_for_debug_output_like_upstream() {
 }
 
 #[test]
+fn config_accepts_string_numbers_that_upstream_coerces() {
+    let config: FileConfig = serde_json::from_str(
+        r#"{
+            "minLines": "0x3",
+            "maxLines": "1000",
+            "threshold": "0x10"
+        }"#,
+    )
+    .unwrap();
+    let mut options = Options::default();
+
+    apply_config(&mut options, config, std::path::Path::new(".")).unwrap();
+
+    assert_eq!(options.min_lines, 3);
+    assert_eq!(options.max_lines, 1000);
+    assert_eq!(options.threshold, Some(16.0));
+}
+
+#[test]
 fn default_execution_id_matches_upstream_shape() {
     let options = Options::default();
     let execution_id = options.execution_id.as_deref().unwrap();

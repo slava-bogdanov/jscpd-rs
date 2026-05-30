@@ -354,6 +354,23 @@ defaulting:
 Expected behavior: either document these fields as reserved/no-op, remove them
 from the public option surface, or wire them to runtime behavior.
 
+## String `minTokens` in config can corrupt token windows
+
+Status: observed on the `jscpd` submodule during compatibility work.
+
+Runtime config values from `.jscpd.json` and `package.json#jscpd` are merged
+without the CLI numeric parsing step. Some numeric-looking strings still work
+through JavaScript coercion, for example `minLines`, `maxLines`, and
+`threshold`, but `minTokens` is used in token-window indexing with `+` before
+numeric subtraction. A string value such as `"5"` can turn
+`position + minTokens - 1` into indices like `14`, eventually producing an
+undefined token frame and a detector crash.
+
+Rust clone handling: `minLines`, `maxLines`, and `threshold` now accept string
+numeric values where upstream continues. Config `minTokens` remains strict for
+now because accepting that upstream-broken path would silently change visible
+runtime behavior instead of preserving a safe compatibility contract.
+
 ## Bare optional numeric CLI flags produce accidental behavior
 
 Status: observed on the `jscpd` submodule during compatibility work.

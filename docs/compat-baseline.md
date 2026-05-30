@@ -67,7 +67,8 @@ object mappings. It also verifies explicit `--config` files outside `cwd`,
 `formatsNames` mappings for extensionless filenames,
 `reportersOptions.badge` path/subject/status/color overrides, debug
 option-surface preservation for `config`, `cache`, `listeners`, and
-`tokensToSkip`, and checks that
+`tokensToSkip`, upstream-coerced string numeric config values for `minLines`,
+`maxLines`, and `threshold`, and checks that
 malformed `package.json` files emit a warning and do not prevent detection from
 continuing. Malformed `.jscpd.json` files are checked separately: both
 implementations fail before detection with an upstream-style `SyntaxError`
@@ -399,6 +400,11 @@ Latest public benchmark measurements:
   Integer strings such as `0x10` exit with the matching code, while invalid,
   fractional, or bare boolean values emit the same Node-style error after
   reports are written.
+- Config `minLines`, `maxLines`, and `threshold` accept string numeric values
+  that upstream coerces at runtime, including JavaScript-style threshold strings
+  such as `0x10`. Config `minTokens` remains intentionally strict because
+  upstream's string value path can corrupt token-window indexing and crash in
+  detection.
 - Invalid `--mode` values fail after CLI parsing with the upstream-style
   `Error: Mode ... does not supported yet.` message printed to stdout.
 - If discovery, size, or line filters leave no files to detect, reporters are
