@@ -17,7 +17,7 @@ commits may reuse this evidence if they do not change code, scripts, package
 metadata, or benchmark configuration.
 
 Latest GitHub Actions default `release-gate` after the workflow refresh:
-`51793b`, success.
+`44f8ce6`, success, run `26696681243`.
 
 Public benchmark summary from the latest release-candidate run:
 
