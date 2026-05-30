@@ -33,7 +33,7 @@ impl CsvReport {
         ]];
 
         let mut formats = statistics.formats.iter().collect::<Vec<_>>();
-        formats.sort_by(|(left, _), (right, _)| left.cmp(right));
+        formats.sort_by_key(|(format, _)| *format);
         for (format, statistic) in formats {
             rows.push(statistic_to_summary_row(format, &statistic.total));
         }

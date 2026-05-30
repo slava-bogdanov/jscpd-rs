@@ -164,7 +164,7 @@ pub(super) fn tokenize_oxc_maps(
     if matches!(format, "jsx" | "tsx") {
         let parser_tokens = raw_jsx_tokens.as_deref().unwrap_or_default();
         let embedded = tokenize_jsx_attribute_scripts(
-            &parser_tokens,
+            parser_tokens,
             &jsx_script_groups,
             &context,
             &line_index,
@@ -548,9 +548,7 @@ fn push_comments_in_gap(
         let is_hashbang = idx == 0 && bytes[idx] == b'#' && bytes[idx + 1] == b'!';
         let is_line_comment = (bytes[idx] == b'/' && bytes[idx + 1] == b'/')
             || bytes[idx..gap_end].starts_with(b"<!--");
-        let comment_end = if is_line_comment {
-            Some(scan_line_comment(bytes, idx, gap_end))
-        } else if is_hashbang {
+        let comment_end = if is_line_comment || is_hashbang {
             Some(scan_line_comment(bytes, idx, gap_end))
         } else if bytes[idx] == b'/' && bytes[idx + 1] == b'*' {
             Some(scan_block_comment(bytes, idx, gap_end))

@@ -30,7 +30,7 @@ fn console_report(result: &DetectionResult, _options: &Options) -> String {
 fn summary_table(result: &DetectionResult) -> String {
     let mut rows = Vec::new();
     let mut formats = result.statistics.formats.iter().collect::<Vec<_>>();
-    formats.sort_by(|(a, _), (b, _)| a.cmp(b));
+    formats.sort_by_key(|(format, _)| *format);
 
     for (format, statistic) in formats {
         rows.push(statistic_to_summary_row(format, &statistic.total));

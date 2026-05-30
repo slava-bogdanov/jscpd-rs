@@ -279,9 +279,9 @@ fn debug_formats(options: &Options) -> Vec<String> {
 }
 
 fn debug_size(bytes: u64) -> String {
-    if bytes % (1024 * 1024) == 0 {
+    if bytes.is_multiple_of(1024 * 1024) {
         format!("{}mb", bytes / (1024 * 1024))
-    } else if bytes % 1024 == 0 {
+    } else if bytes.is_multiple_of(1024) {
         format!("{}kb", bytes / 1024)
     } else {
         format!("{bytes}b")

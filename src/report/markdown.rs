@@ -44,7 +44,7 @@ impl MarkdownReport {
         ]];
 
         let mut formats: Vec<_> = stats.formats.iter().collect();
-        formats.sort_by(|(a, _), (b, _)| a.cmp(b));
+        formats.sort_by_key(|(format, _)| *format);
         for (format, statistic) in formats {
             rows.push(statistic_to_summary_row(format, &statistic.total));
         }

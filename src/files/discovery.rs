@@ -22,6 +22,15 @@ struct CandidateFile {
     root_index: usize,
 }
 
+struct CandidateCollectionContext<'a> {
+    root: &'a Path,
+    root_index: usize,
+    options: &'a Options,
+    pattern_set: &'a GlobSet,
+    ignore_set: &'a IgnoreMatcher,
+    cwd: &'a Path,
+}
+
 pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
     let pattern_set = build_glob_set(std::slice::from_ref(&options.pattern))
         .with_context(|| format!("invalid pattern `{}`", options.pattern))?;
@@ -85,28 +94,19 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
             });
         }
 
+        let collection_context = CandidateCollectionContext {
+            root,
+            root_index,
+            options,
+            pattern_set: &pattern_set,
+            ignore_set: ignore_set.as_ref(),
+            cwd: &cwd,
+        };
+
         if parallel_walk_enabled(options) {
-            collect_candidates_parallel(
-                &builder,
-                root,
-                root_index,
-                options,
-                &pattern_set,
-                &ignore_set,
-                &cwd,
-                &mut candidates,
-            )?;
+            collect_candidates_parallel(&builder, &collection_context, &mut candidates)?;
         } else {
-            collect_candidates_sequential(
-                &builder,
-                root,
-                root_index,
-                options,
-                &pattern_set,
-                &ignore_set,
-                &cwd,
-                &mut candidates,
-            )?;
+            collect_candidates_sequential(&builder, &collection_context, &mut candidates)?;
         }
     }
 
@@ -141,16 +141,12 @@ fn parallel_walk_enabled(options: &Options) -> bool {
 
 fn collect_candidates_sequential(
     builder: &WalkBuilder,
-    root: &Path,
-    root_index: usize,
-    options: &Options,
-    pattern_set: &GlobSet,
-    ignore_set: &IgnoreMatcher,
-    cwd: &Path,
+    context: &CandidateCollectionContext<'_>,
     candidates: &mut Vec<CandidateFile>,
 ) -> Result<()> {
     for entry in builder.build() {
-        let entry = entry.with_context(|| format!("failed to walk path `{}`", root.display()))?;
+        let entry =
+            entry.with_context(|| format!("failed to walk path `{}`", context.root.display()))?;
         let Some(file_type) = entry.file_type() else {
             continue;
         };
@@ -158,11 +154,18 @@ fn collect_candidates_sequential(
             continue;
         }
         let path = entry.path();
-        let relative = path.strip_prefix(root).unwrap_or(path);
-        if !pattern_set.is_match(relative) {
+        let relative = path.strip_prefix(context.root).unwrap_or(path);
+        if !context.pattern_set.is_match(relative) {
             continue;
         }
-        collect_candidate(path, root_index, options, ignore_set, cwd, candidates)?;
+        collect_candidate(
+            path,
+            context.root_index,
+            context.options,
+            context.ignore_set,
+            context.cwd,
+            candidates,
+        )?;
     }
 
     Ok(())
@@ -170,12 +173,7 @@ fn collect_candidates_sequential(
 
 fn collect_candidates_parallel(
     builder: &WalkBuilder,
-    root: &Path,
-    root_index: usize,
-    options: &Options,
-    pattern_set: &GlobSet,
-    ignore_set: &Arc<IgnoreMatcher>,
-    cwd: &Path,
+    context: &CandidateCollectionContext<'_>,
     candidates: &mut Vec<CandidateFile>,
 ) -> Result<()> {
     let collected = Arc::new(Mutex::new(Vec::new()));
@@ -192,8 +190,10 @@ fn collect_candidates_parallel(
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(err) => {
-                    *error.lock().unwrap() =
-                        Some(anyhow!("failed to walk path `{}`: {err}", root.display()));
+                    *error.lock().unwrap() = Some(anyhow!(
+                        "failed to walk path `{}`: {err}",
+                        context.root.display()
+                    ));
                     return WalkState::Quit;
                 }
             };
@@ -205,18 +205,18 @@ fn collect_candidates_parallel(
                 return WalkState::Continue;
             }
             let path = entry.path();
-            let relative = path.strip_prefix(root).unwrap_or(path);
-            if !pattern_set.is_match(relative) {
+            let relative = path.strip_prefix(context.root).unwrap_or(path);
+            if !context.pattern_set.is_match(relative) {
                 return WalkState::Continue;
             }
 
             let mut local = Vec::with_capacity(1);
             if let Err(err) = collect_candidate(
                 path,
-                root_index,
-                options,
-                ignore_set.as_ref(),
-                cwd,
+                context.root_index,
+                context.options,
+                context.ignore_set,
+                context.cwd,
                 &mut local,
             ) {
                 *error.lock().unwrap() = Some(err);

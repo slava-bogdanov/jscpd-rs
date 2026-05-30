@@ -94,7 +94,7 @@ fn parses_exit_code_values_like_node_process_exit() {
 
 #[test]
 fn accepts_missing_cli_integer_values_like_upstream() {
-    let cli = Cli::parse_from(&[
+    let cli = Cli::parse_from([
         "jscpd-rs",
         ".",
         "--min-lines",
@@ -110,7 +110,7 @@ fn accepts_missing_cli_integer_values_like_upstream() {
 
 #[test]
 fn accepts_bare_optional_cli_values_that_upstream_continues_with() {
-    let cli = Cli::parse_from(&[
+    let cli = Cli::parse_from([
         "jscpd-rs",
         ".",
         "--threshold",
@@ -151,7 +151,7 @@ fn help_output_keeps_upstream_cli_contract_text() {
 
 #[test]
 fn parses_version_flag_for_upstream_output_shape() {
-    let cli = Cli::parse_from(&["jscpd-rs", "--version"]);
+    let cli = Cli::parse_from(["jscpd-rs", "--version"]);
 
     assert!(cli.version);
 }
@@ -257,7 +257,7 @@ fn normalizes_threshold_reporter_like_upstream() {
 
 #[test]
 fn parses_upstream_workflow_options() {
-    let cli = Cli::parse_from(&[
+    let cli = Cli::parse_from([
         "jscpd-rs",
         "--blame",
         "--store",
@@ -349,22 +349,22 @@ fn config_output_stays_cwd_relative_like_upstream() {
 
 #[test]
 fn skip_comments_does_not_override_explicit_mode() {
-    let cli = Cli::parse_from(&["jscpd-rs", "--skipComments", "."]);
+    let cli = Cli::parse_from(["jscpd-rs", "--skipComments", "."]);
     let options = Options::from_cli(cli).unwrap();
     assert_eq!(options.mode, Mode::Weak);
 
-    let cli = Cli::parse_from(&["jscpd-rs", "--mode", "strict", "--skipComments", "."]);
+    let cli = Cli::parse_from(["jscpd-rs", "--mode", "strict", "--skipComments", "."]);
     let options = Options::from_cli(cli).unwrap();
     assert_eq!(options.mode, Mode::Strict);
 
-    let cli = Cli::parse_from(&["jscpd-rs", "--mode", "mild", "--skipComments", "."]);
+    let cli = Cli::parse_from(["jscpd-rs", "--mode", "mild", "--skipComments", "."]);
     let options = Options::from_cli(cli).unwrap();
     assert_eq!(options.mode, Mode::Mild);
 }
 
 #[test]
 fn invalid_mode_reports_upstream_error_after_cli_parsing() {
-    let cli = Cli::parse_from(&["jscpd-rs", "--mode", "zzz", "."]);
+    let cli = Cli::parse_from(["jscpd-rs", "--mode", "zzz", "."]);
     let error = Options::from_cli(cli).unwrap_err();
 
     assert_eq!(error.to_string(), "Mode zzz does not supported yet.");
