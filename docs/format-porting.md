@@ -20,8 +20,11 @@ duplicate fragments on their fixtures.
 
 - `src/formats.rs`: generated format and extension registry. Do not edit by
   hand; run `node scripts/sync-formats.mjs` after upstream tokenizer changes.
-- `src/tokenizer.rs`: native and generic tokenization.
-- `src/files.rs`: discovery and format filtering.
+- `src/tokenizer.rs`: tokenizer entrypoint and format dispatch. Native, generic,
+  embedded-block, hashing, ignore, and position helpers live under
+  `src/tokenizer/`.
+- `src/files.rs`: discovery entrypoint and format filtering. Gitignore, shebang,
+  and path-order helpers live under `src/files/`.
 - `src/detector.rs`: clone detection; do not change for ordinary format work.
 - `scripts/check-format.sh`: one-format smoke/compat checks.
 - `scripts/compat.sh`: Rust vs upstream report comparison.

@@ -34,9 +34,9 @@ measure whether a Rust clone has enough performance upside to continue:
 - CLI with common jscpd flags.
 - Partial `.jscpd.json` support.
 - File discovery with the Rust `ignore` crate for `.gitignore`.
-- Basic extension-to-format mapping for common formats.
+- Upstream-synchronized extension/name format registry.
 - Language-agnostic non-whitespace tokenizer.
-- MD5 window hashing and in-memory per-format store.
+- Numeric rolling window hashing and in-memory per-format store.
 - Clone growth and `minLines` validation.
 - Console, consoleFull, AI, JSON, CSV, Markdown, XML PMD CPD, SARIF, badge,
   HTML, Xcode, silent, and threshold reporters.
@@ -58,15 +58,14 @@ Known MVP gaps:
 
 1. Compatibility harness: run upstream and Rust on shared fixtures, compare clone
    counts, locations, statistics, reports, and exit behavior.
-2. CLI/config parity: finish all flags, config merging rules, exit codes,
-   threshold behavior, ignore patterns, custom extension/name mappings, and list
-   output.
+2. CLI/config parity: harden remaining flags, config merging rules, exit codes,
+   threshold behavior, and list output.
 3. Tokenizer backend: replace the MVP tokenizer with maintained crates and
    language-aware token streams. Prefer existing parsers/tokenizers over custom
    grammars.
 4. Reporters: polish remaining report details and terminal UX.
-5. Advanced sources: full non-native tokenizer parity, ignore blocks, ignore
-   regex patterns, and weak-mode comment stripping.
+5. Advanced sources: full non-native tokenizer parity, persistent stores,
+   blame/cache workflows, and stricter `strict`/`mild`/`weak` parity.
 6. Performance work: parallel file reads/tokenization, compact hash storage,
    faster hashers where compatible, memory profiling, and optional persistent
    cache/store.
