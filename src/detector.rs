@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -464,9 +465,10 @@ fn flush_clone(clone: Option<CloneMatch>, clones: &mut Vec<CloneMatch>, options:
         return;
     };
     if options.skip_local
-        && same_parent(
+        && same_configured_root(
             &clone.duplication_a.source_id,
             &clone.duplication_b.source_id,
+            options,
         )
     {
         return;
@@ -479,10 +481,41 @@ fn flush_clone(clone: Option<CloneMatch>, clones: &mut Vec<CloneMatch>, options:
     clones.push(clone);
 }
 
-fn same_parent(a: &str, b: &str) -> bool {
-    let a = std::path::Path::new(a).parent();
-    let b = std::path::Path::new(b).parent();
-    a.is_some() && a == b
+fn same_configured_root(a: &str, b: &str, options: &Options) -> bool {
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let a = normalize_for_prefix(Path::new(a), &cwd);
+    let b = normalize_for_prefix(Path::new(b), &cwd);
+
+    options.paths.iter().any(|root| {
+        let root = normalize_for_prefix(root, &cwd);
+        is_under_root(&a, &root) && is_under_root(&b, &root)
+    })
+}
+
+fn is_under_root(path: &[PathBuf], root: &[PathBuf]) -> bool {
+    path.len() > root.len() && path.starts_with(root)
+}
+
+fn normalize_for_prefix(path: &Path, cwd: &Path) -> Vec<PathBuf> {
+    let full_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        cwd.join(path)
+    };
+    let mut normalized = Vec::new();
+
+    for component in full_path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                normalized.pop();
+            }
+            std::path::Component::Normal(value) => normalized.push(PathBuf::from(value)),
+            std::path::Component::RootDir | std::path::Component::Prefix(_) => {}
+        }
+    }
+
+    normalized
 }
 
 pub fn clone_lines(clone: &CloneMatch) -> usize {
@@ -618,6 +651,43 @@ mod tests {
             source_with_format("a.css", "css", content),
             source_with_format("b.css", "css", &format!("prefix\n{content}\nsuffix\n")),
         ];
+
+        let result = detect(files, &options);
+
+        assert!(!result.clones.is_empty());
+    }
+
+    #[test]
+    fn skip_local_skips_clones_inside_same_configured_root() {
+        let options = Options {
+            paths: vec!["project".into()],
+            skip_local: true,
+            min_tokens: 3,
+            min_lines: 0,
+            ..Options::default()
+        };
+        let content = "alpha beta gamma delta epsilon\n";
+        let files = vec![
+            source("project/dir1/a.js", content),
+            source("project/dir2/b.js", content),
+        ];
+
+        let result = detect(files, &options);
+
+        assert!(result.clones.is_empty());
+    }
+
+    #[test]
+    fn skip_local_keeps_clones_across_configured_roots() {
+        let options = Options {
+            paths: vec!["left".into(), "right".into()],
+            skip_local: true,
+            min_tokens: 3,
+            min_lines: 0,
+            ..Options::default()
+        };
+        let content = "alpha beta gamma delta epsilon\n";
+        let files = vec![source("left/a.js", content), source("right/b.js", content)];
 
         let result = detect(files, &options);
 

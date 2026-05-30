@@ -49,6 +49,8 @@ range while compatibility is converging.
   `--formats-names`, matching upstream behavior.
 - Custom extension and filename mappings are supported through
   `--formats-exts`/`formatsExts` and `--formats-names`/`formatsNames`.
+- `skipLocal` follows the upstream configured-root validator: clones are skipped
+  only when both fragments are inside the same input path.
 - Known upstream bug candidates are tracked in `docs/upstream-bugs.md`.
 
 ## Benchmark Sanity
