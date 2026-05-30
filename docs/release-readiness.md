@@ -32,7 +32,7 @@ current implementation status.
 | Token totals | diagnostic | Native token streams may differ from Prism. Keep report-visible clone coverage as the gate. |
 | HTML reporter polish | practical parity | Keep self-contained HTML stable. Do not chase pixel-perfect upstream parity for the first release. |
 | Terminal cosmetics | practical parity | Important messages are gated; exact wrapping/order remains lower priority. |
-| Latest full publication gate | partial | `FULL=1 PUBLIC=0 scripts/release-gate.sh` passed on `c3092d9`; full publication still requires `scripts/release-candidate.sh` with the public suite. |
+| Latest full publication gate | ready | `scripts/release-candidate.sh` passed on `4c7e6a5`, including clippy, the default gate, the full coverage matrix, and the public benchmark/coverage suite. |
 
 ## Post-MVP
 
