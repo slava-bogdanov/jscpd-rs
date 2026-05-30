@@ -68,8 +68,8 @@ Known MVP gaps:
 - A native `jscpd-server` binary exposes the first REST surface:
   `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`.
   The MCP endpoint supports initialize/session handling, core tools, and the
-  statistics resource. The current snippet check reuses the native detector
-  against the in-memory project file set; an indexed hybrid-store path can be
+  statistics resource. The current snippet check reuses prepared project token
+  maps after `/api/recheck`; a dedicated indexed hybrid-store path can still be
   added if server-scale benchmarks show this is needed.
 - `cache`, config `listeners`, and `tokensToSkip` are parsed for option-surface
   compatibility, but upstream currently does not consume them in runtime code.

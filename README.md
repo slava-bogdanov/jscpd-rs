@@ -67,7 +67,8 @@ curl http://127.0.0.1:3000/api/health
 
 The current server exposes `/`, `/api/health`, `/api/stats`, `/api/check`,
 `/api/recheck`, and `/mcp`. The MCP endpoint supports the upstream server's core
-tools and statistics resource over native JSON-RPC HTTP.
+tools and statistics resource over native JSON-RPC HTTP. Snippet checks reuse
+the prepared project token maps refreshed by `/api/recheck`.
 
 ## Library API
 

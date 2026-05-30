@@ -16,6 +16,7 @@ mod tests;
 
 #[cfg(test)]
 pub use model::FormatStatistic;
+pub(crate) use model::PreparedSourceDraft;
 pub use model::{
     BlamedLine, BlamedLines, CloneMatch, DetectionResult, Fragment, SkippedClone, SourceSummary,
     StatisticRow, Statistics,
@@ -28,13 +29,26 @@ use prepare::{assign_formats, prepare_file_maps};
 use statistics::{finalize_percentages, update_clone_statistics, update_source_statistics};
 
 pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
-    let prepared_drafts = files
+    detect_prepared_drafts(prepare_source_drafts(files, options), options)
+}
+
+pub(crate) fn prepare_source_drafts(
+    files: Vec<SourceFile>,
+    options: &Options,
+) -> Vec<PreparedSourceDraft> {
+    files
         .into_par_iter()
         .map(|file| prepare_file_maps(file, options))
         .collect::<Vec<_>>()
         .into_iter()
         .flatten()
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+}
+
+pub(crate) fn detect_prepared_drafts(
+    prepared_drafts: Vec<PreparedSourceDraft>,
+    options: &Options,
+) -> DetectionResult {
     let (format_ids, format_names) = assign_formats(&prepared_drafts);
     let prepared_files = prepared_drafts
         .into_iter()

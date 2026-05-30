@@ -104,7 +104,7 @@ pub(super) struct TokenSpan {
     pub(super) range: [usize; 2],
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(super) struct SourceMeta {
     pub(super) source_id: String,
     pub(super) format: String,
@@ -113,7 +113,7 @@ pub(super) struct SourceMeta {
     pub(super) tokens: usize,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(super) struct TokenStream {
     pub(super) source_id: SourceId,
     pub(super) format_id: FormatId,
@@ -127,14 +127,14 @@ pub(super) struct Occurrence {
     pub(super) token_start: usize,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(super) struct PreparedSource {
     pub(super) meta: SourceMeta,
     pub(super) stream: TokenStream,
 }
 
-#[derive(Debug)]
-pub(super) struct PreparedSourceDraft {
+#[derive(Clone, Debug)]
+pub(crate) struct PreparedSourceDraft {
     pub(super) meta: SourceMeta,
     pub(super) hashes: Vec<u64>,
     pub(super) spans: Vec<TokenSpan>,

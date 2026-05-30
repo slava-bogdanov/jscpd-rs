@@ -1,8 +1,12 @@
+use std::collections::BTreeSet;
+
 use crate::cli::Options;
 use crate::files::SourceFile;
 use crate::tokenizer::Location;
 
-use super::{CloneMatch, Fragment, dedup_exact_clones, detect};
+use super::{
+    CloneMatch, Fragment, dedup_exact_clones, detect, detect_prepared_drafts, prepare_source_drafts,
+};
 
 #[test]
 fn detects_cross_file_duplicates() {
@@ -85,6 +89,38 @@ fn skips_empty_token_sources_in_statistics() {
 
     assert_eq!(result.sources.len(), 0);
     assert_eq!(result.statistics.total.sources, 0);
+}
+
+#[test]
+fn prepared_drafts_detection_matches_direct_detection() {
+    let options = Options {
+        reporters: vec!["json".to_string()],
+        min_tokens: 3,
+        min_lines: 0,
+        ..Options::default()
+    };
+    let content = "alpha beta gamma delta epsilon\n";
+    let files = vec![
+        source("a.js", content),
+        source("b.js", &format!("prefix\n{content}\nsuffix\n")),
+    ];
+
+    let direct = detect(files.clone(), &options);
+    let prepared = detect_prepared_drafts(prepare_source_drafts(files, &options), &options);
+
+    assert_eq!(prepared.clones.len(), direct.clones.len());
+    assert_eq!(
+        prepared.statistics.total.sources,
+        direct.statistics.total.sources
+    );
+    assert_eq!(
+        prepared.statistics.total.clones,
+        direct.statistics.total.clones
+    );
+    assert_eq!(
+        prepared.source_contents.keys().collect::<BTreeSet<_>>(),
+        direct.source_contents.keys().collect::<BTreeSet<_>>()
+    );
 }
 
 #[test]

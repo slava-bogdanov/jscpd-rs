@@ -16,8 +16,8 @@ Passed on 2026-05-31 at code commit `2aba207`. Later documentation-only
 commits may reuse this evidence if they do not change code, scripts, package
 metadata, or benchmark configuration.
 
-Latest GitHub Actions default `release-gate` before this evidence refresh:
-`e55990b`, success.
+Latest GitHub Actions default `release-gate` after this evidence refresh:
+`6285e34`, success.
 
 Public benchmark summary from the latest release-candidate run:
 

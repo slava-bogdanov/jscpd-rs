@@ -19,6 +19,7 @@ use time::format_description::well_known::Rfc3339;
 
 use crate::cli::Options;
 use crate::detector::{DetectionResult, Fragment, Statistics};
+use crate::detector::{PreparedSourceDraft, detect_prepared_drafts, prepare_source_drafts};
 use crate::files::{self, SourceFile};
 
 mod mcp;
@@ -32,7 +33,7 @@ pub struct ServerService {
 struct ServiceState {
     working_directory: PathBuf,
     options: Options,
-    project_files: Vec<SourceFile>,
+    project_drafts: Vec<PreparedSourceDraft>,
     statistics: Option<Statistics>,
     last_scan_time: Option<String>,
     is_scanning: bool,
@@ -47,7 +48,7 @@ impl ServerService {
             state: Arc::new(RwLock::new(ServiceState {
                 working_directory,
                 options,
-                project_files: Vec::new(),
+                project_drafts: Vec::new(),
                 statistics: None,
                 last_scan_time: None,
                 is_scanning: false,
@@ -76,8 +77,8 @@ impl ServerService {
         let mut state = self.state.write().expect("server state lock poisoned");
         state.is_scanning = false;
 
-        let (project_files, detection_result) = result?;
-        state.project_files = project_files;
+        let (project_drafts, detection_result) = result?;
+        state.project_drafts = project_drafts;
         state.statistics = Some(detection_result.statistics);
         state.last_scan_time = Some(now_rfc3339());
         Ok(())
@@ -88,7 +89,7 @@ impl ServerService {
             bail!(FIELD_CODE_EMPTY);
         }
 
-        let (options, project_files, snippet_id, working_directory) = {
+        let (options, project_drafts, snippet_id, working_directory) = {
             let mut state = self.state.write().expect("server state lock poisoned");
             if state.is_scanning {
                 bail!(SCAN_IN_PROGRESS);
@@ -100,20 +101,23 @@ impl ServerService {
             state.snippet_counter += 1;
             (
                 detection_options(&state.options),
-                state.project_files.clone(),
+                state.project_drafts.clone(),
                 snippet_id,
                 state.working_directory.clone(),
             )
         };
 
         let total_lines = request.code.split('\n').count();
-        let mut files = project_files;
-        files.push(SourceFile {
-            source_id: snippet_id.clone(),
-            format: request.format,
-            content: request.code,
-        });
-        let result = crate::detect_source_files(files, &options);
+        let mut prepared_drafts = project_drafts;
+        prepared_drafts.extend(prepare_source_drafts(
+            vec![SourceFile {
+                source_id: snippet_id.clone(),
+                format: request.format,
+                content: request.code,
+            }],
+            &options,
+        ));
+        let result = detect_prepared_drafts(prepared_drafts, &options);
         let duplications = result
             .clones
             .iter()
@@ -191,10 +195,11 @@ fn detection_options(options: &Options) -> Options {
     options
 }
 
-fn scan_project(options: &Options) -> Result<(Vec<SourceFile>, DetectionResult)> {
+fn scan_project(options: &Options) -> Result<(Vec<PreparedSourceDraft>, DetectionResult)> {
     let files = files::discover(options)?;
-    let result = crate::detect_source_files(files.clone(), options);
-    Ok((files, result))
+    let project_drafts = prepare_source_drafts(files, options);
+    let result = detect_prepared_drafts(project_drafts.clone(), options);
+    Ok((project_drafts, result))
 }
 
 pub fn create_router(service: ServerService) -> Router {
