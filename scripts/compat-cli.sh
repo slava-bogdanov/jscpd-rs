@@ -190,6 +190,15 @@ const beta = 2;
 const gamma = 3;
 EOF_JS
 ln -s "$SYMLINK_ROOT_DIR/real" "$SYMLINK_ROOT_DIR/linkdir"
+CWD_GITIGNORE_DIR="$TMP_ROOT/cwd-gitignore"
+mkdir -p "$CWD_GITIGNORE_DIR/src" "$CWD_GITIGNORE_DIR/target" "$CWD_GITIGNORE_DIR/report" "$CWD_GITIGNORE_DIR/.bench" "$CWD_GITIGNORE_DIR/.idea"
+for dir in src target report .bench .idea; do
+  cat >"$CWD_GITIGNORE_DIR/$dir/file.js" <<'EOF_JS'
+const alpha = 1;
+const beta = 2;
+const gamma = 3;
+EOF_JS
+done
 
 printf 'target: %s\n' "$TARGET_REL"
 printf 'tmp: %s\n\n' "$TMP_ROOT"
@@ -219,6 +228,11 @@ require_both_not_contain stdout "patches/patch.js"
 run_case "no symlinks root" 0 "$SYMLINK_ROOT_DIR/linkdir" --debug --noTips --format javascript --noSymlinks --min-tokens 1 --min-lines 1 --max-size 1mb
 require_both_contain stdout "Found 0 files to detect."
 require_both_not_contain stdout "file.js"
+
+run_case "cwd gitignore absolute path" 0 "$CWD_GITIGNORE_DIR" --debug --noTips --format javascript --min-tokens 1 --min-lines 1 --max-size 1mb
+require_both_contain stdout "Found 1 files to detect."
+require_both_not_contain stdout "target/file.js"
+require_both_not_contain stdout "report/file.js"
 
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"

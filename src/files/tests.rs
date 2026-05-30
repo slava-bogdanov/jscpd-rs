@@ -6,7 +6,9 @@ use crate::cli::Options;
 
 use super::discover;
 use super::discovery::format_filter_skip_message;
-use super::gitignore::{collect_gitignore_patterns_with_global, gitignore_line_to_globs};
+use super::gitignore::{
+    collect_cwd_gitignore_patterns, collect_gitignore_patterns_with_global, gitignore_line_to_globs,
+};
 use super::paths::{display_relative_to, fast_glob_like_path_cmp, relative_path};
 
 #[test]
@@ -127,6 +129,28 @@ fn collect_gitignore_patterns_includes_global_excludes_like_upstream() {
     assert!(patterns.iter().any(|pattern| pattern == "**/*.swp"));
     assert!(patterns.iter().any(|pattern| pattern == "**/*.swp/**"));
     assert!(patterns.iter().any(|pattern| pattern == "**/.DS_Store"));
+    assert!(patterns.iter().all(|pattern| !pattern.contains("comment")));
+}
+
+#[test]
+fn collect_cwd_gitignore_patterns_uses_upstream_unscoped_conversion() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-cwd-gitignore-{}-{nonce}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join(".gitignore"), "/target/\nreport\n# comment\n\n").unwrap();
+
+    let patterns = collect_cwd_gitignore_patterns(&dir);
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(patterns.iter().any(|pattern| pattern == "target"));
+    assert!(patterns.iter().any(|pattern| pattern == "target/**"));
+    assert!(patterns.iter().any(|pattern| pattern == "**/report"));
     assert!(patterns.iter().all(|pattern| !pattern.contains("comment")));
 }
 

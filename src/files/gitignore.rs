@@ -11,6 +11,16 @@ pub(super) fn collect_gitignore_patterns(roots: &[PathBuf]) -> Vec<String> {
     collect_gitignore_patterns_with_global(roots, global_excludes_file.as_deref())
 }
 
+pub(super) fn collect_cwd_gitignore_patterns(cwd: &Path) -> Vec<String> {
+    let Ok(content) = fs::read_to_string(cwd.join(".gitignore")) else {
+        return Vec::new();
+    };
+    content
+        .lines()
+        .flat_map(|line| gitignore_line_to_globs(line, None))
+        .collect()
+}
+
 pub(super) fn collect_gitignore_patterns_with_global(
     roots: &[PathBuf],
     global_excludes_file: Option<&Path>,

@@ -11,7 +11,7 @@ use crate::cli::Options;
 use crate::formats;
 
 use super::SourceFile;
-use super::gitignore::collect_gitignore_patterns;
+use super::gitignore::{collect_cwd_gitignore_patterns, collect_gitignore_patterns};
 use super::paths::{display_relative_to, fast_glob_like_path_cmp};
 use super::shebang::shebang_format_for_path;
 
@@ -30,7 +30,11 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
         .any(|reporter| reporter_needs_report_paths(reporter))
         || !options.silent;
     let cwd = std::env::current_dir().context("failed to resolve current directory")?;
-    let mut ignore_patterns = normalize_ignore_patterns(&options.ignore, &options.paths, &cwd);
+    let mut explicit_ignore = options.ignore.clone();
+    if options.gitignore {
+        explicit_ignore.extend(collect_cwd_gitignore_patterns(&cwd));
+    }
+    let mut ignore_patterns = normalize_ignore_patterns(&explicit_ignore, &options.paths, &cwd);
     if options.gitignore && needs_compat_discovery {
         ignore_patterns.extend(collect_gitignore_patterns(&options.paths));
     }
