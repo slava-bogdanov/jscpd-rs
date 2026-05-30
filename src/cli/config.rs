@@ -129,7 +129,7 @@ impl FormatMappingsConfig {
     }
 }
 
-pub(super) fn read_config(path: Option<&Path>) -> Result<Option<(FileConfig, PathBuf)>> {
+pub(super) fn read_config(path: Option<&Path>) -> Result<Option<(FileConfig, PathBuf, PathBuf)>> {
     let path = path
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from(".jscpd.json"));
@@ -149,10 +149,10 @@ pub(super) fn read_config(path: Option<&Path>) -> Result<Option<(FileConfig, Pat
         .unwrap_or_else(|| Path::new("."))
         .to_path_buf();
 
-    Ok(Some((config, config_dir)))
+    Ok(Some((config, config_dir, path)))
 }
 
-pub(super) fn read_package_json_config() -> Result<Option<(FileConfig, PathBuf)>> {
+pub(super) fn read_package_json_config() -> Result<Option<(FileConfig, PathBuf, PathBuf)>> {
     let path = std::env::current_dir()?.join("package.json");
     if !path.exists() {
         return Ok(None);
@@ -184,7 +184,7 @@ pub(super) fn read_package_json_config() -> Result<Option<(FileConfig, PathBuf)>
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .to_path_buf();
-    Ok(Some((config, config_dir)))
+    Ok(Some((config, config_dir, path)))
 }
 
 #[derive(Debug, Deserialize)]

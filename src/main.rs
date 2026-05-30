@@ -178,9 +178,14 @@ fn debug_options_output(options: &Options) -> String {
         debug_reporter_options_field(options),
         debug_exit_code_field(&options.exit_code),
         format!("  noTips: {}", options.no_tips),
+    ];
+    if let Some(config) = &options.config {
+        fields.push(debug_string_field("config", &config.display().to_string()));
+    }
+    fields.extend([
         debug_array_field("listeners", &options.listeners),
         debug_array_field("format", &debug_formats(options)),
-    ];
+    ]);
 
     if options.pattern != "**/*" {
         fields.push(debug_string_field("pattern", &options.pattern));
@@ -322,6 +327,7 @@ mod tests {
     fn debug_output_lists_options_and_files() {
         let options = Options {
             debug: true,
+            config: Some(std::path::PathBuf::from("/repo/.jscpd.json")),
             formats: Some(std::collections::HashSet::from(["typescript".to_string()])),
             ..Options::default()
         };
@@ -345,6 +351,7 @@ mod tests {
         assert!(output.contains("executionId: '"));
         assert!(output.contains("path: [ '"));
         assert!(output.contains("debug: true"));
+        assert!(output.contains("config: '/repo/.jscpd.json'"));
         assert!(output.contains("mode: [Function: mild]"));
         assert!(output.contains("maxSize: '100kb'"));
         assert!(output.contains("format: [ 'typescript' ]"));

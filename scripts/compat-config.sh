@@ -380,6 +380,7 @@ run_option_surface_debug_case() {
     "cache: false" \
     "listeners: [ 'console' ]" \
     "tokensToSkip: [ 'comment', 'block-comment' ]" \
+    "config: '$project/.jscpd.json'" \
     "Found 1 files to detect."
   do
     if ! grep -Fq "$expected" "$stdout_file"; then

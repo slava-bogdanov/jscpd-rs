@@ -302,6 +302,7 @@ impl ExitCode {
 #[derive(Debug, Clone)]
 pub struct Options {
     pub execution_id: Option<String>,
+    pub config: Option<PathBuf>,
     pub paths: Vec<PathBuf>,
     pub pattern: String,
     pub ignore: Vec<String>,
@@ -367,6 +368,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             execution_id: Some(default_execution_id()),
+            config: None,
             paths: vec![std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))],
             pattern: "**/*".to_string(),
             ignore: Vec::new(),
@@ -420,10 +422,12 @@ impl Options {
             );
         }
 
-        if let Some((config, config_dir)) = read_package_json_config()? {
+        if let Some((config, config_dir, config_path)) = read_package_json_config()? {
+            options.config = Some(config_path);
             apply_config(&mut options, config, &config_dir)?;
         }
-        if let Some((config, config_dir)) = read_config(cli.config.as_deref())? {
+        if let Some((config, config_dir, config_path)) = read_config(cli.config.as_deref())? {
+            options.config = Some(config_path);
             apply_config(&mut options, config, &config_dir)?;
         }
 
