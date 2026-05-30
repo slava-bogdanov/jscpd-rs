@@ -1356,6 +1356,21 @@ mod tests {
     }
 
     #[test]
+    fn generic_tokenizer_handles_common_non_native_formats() {
+        for format in ["css", "markup", "yaml", "toml", "vue"] {
+            let maps = super::tokenize_maps_for_detection(
+                "alpha beta\n  gamma",
+                format,
+                &Options::default(),
+            );
+
+            assert_eq!(maps.len(), 1);
+            assert_eq!(maps[0].format, format);
+            assert_eq!(maps[0].tokens.len(), 3);
+        }
+    }
+
+    #[test]
     fn weak_mode_skips_js_comments() {
         let options = Options {
             mode: crate::cli::Mode::Weak,

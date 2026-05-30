@@ -127,9 +127,9 @@ with upstream while avoiding hand-maintained mapping drift.
 Tokenizer strategy remains hybrid:
 
 - native Rust/Oxc path for hot JS/TS formats;
-- generic tokenizer for long-tail formats until fallback/native support exists;
-- future `prism-fallback` feature for Prism-compatible tokenization of formats
-  that are not worth rewriting natively.
+- generic tokenizer for other recognized formats without parity claims;
+- no embedded JavaScript runtime fallback. Formats that need real compatibility
+  should get native Rust tokenizers and focused compat tests.
 
 ## Larger Local Repo Benchmarks
 

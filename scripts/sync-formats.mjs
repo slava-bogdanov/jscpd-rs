@@ -16,9 +16,6 @@ if (!fs.existsSync(tokenizerPath)) {
 const { FORMATS, EXT_TO_FORMAT, getSupportedFormats } = await import(pathToFileURL(tokenizerPath));
 const supportedFormats = getSupportedFormats();
 const extensionFormats = [...EXT_TO_FORMAT.entries()];
-const formatParents = Object.entries(FORMATS)
-  .filter(([, meta]) => meta?.parent)
-  .map(([format, meta]) => [format, meta.parent]);
 
 const source = `use std::path::Path;
 
@@ -35,11 +32,6 @@ ${stringArray(supportedFormats)}
 
 const EXTENSION_FORMATS: &[(&str, &str)] = &[
 ${tupleArray(extensionFormats)}
-];
-
-#[allow(dead_code)]
-const FORMAT_PARENTS: &[(&str, &str)] = &[
-${tupleArray(formatParents)}
 ];
 
 pub fn format_for_path<'a>(
@@ -62,18 +54,6 @@ pub fn format_for_path<'a>(
     EXTENSION_FORMATS
         .iter()
         .find_map(|(candidate, format)| (*candidate == ext).then_some(*format))
-}
-
-#[allow(dead_code)]
-pub fn parent_format(format: &str) -> Option<&'static str> {
-    FORMAT_PARENTS
-        .iter()
-        .find_map(|(candidate, parent)| (*candidate == format).then_some(*parent))
-}
-
-#[allow(dead_code)]
-pub fn tokenizer_format<'a>(format: &'a str) -> &'a str {
-    parent_format(format).unwrap_or(format)
 }
 
 pub fn supported_formats() -> Vec<&'static str> {
@@ -145,7 +125,7 @@ mod tests {
     }
 
     #[test]
-    fn maps_header_and_parent_formats_like_upstream() {
+    fn maps_header_extensions_like_upstream() {
         let formats_exts = FormatMappings::default();
         let formats_names = FormatMappings::default();
 
@@ -153,9 +133,10 @@ mod tests {
             super::format_for_path(Path::new("foo.h"), &formats_exts, &formats_names),
             Some("c-header")
         );
-        assert_eq!(super::parent_format("c-header"), Some("c"));
-        assert_eq!(super::tokenizer_format("cfml"), "markup");
-        assert_eq!(super::tokenizer_format("typescript"), "typescript");
+        assert_eq!(
+            super::format_for_path(Path::new("foo.hpp"), &formats_exts, &formats_names),
+            Some("cpp-header")
+        );
     }
 
     #[test]
@@ -183,7 +164,7 @@ mod tests {
 
 fs.writeFileSync(outputPath, source);
 console.log(`wrote ${path.relative(ROOT, outputPath)}`);
-console.log(`formats=${supportedFormats.length} extensions=${extensionFormats.length} parents=${formatParents.length}`);
+console.log(`formats=${supportedFormats.length} extensions=${extensionFormats.length}`);
 
 function stringArray(values) {
   return values.map((value) => `    ${quote(value)},`).join('\n');

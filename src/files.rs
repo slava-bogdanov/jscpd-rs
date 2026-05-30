@@ -584,4 +584,42 @@ mod tests {
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].format, "javascript");
     }
+
+    #[test]
+    fn discovers_common_non_native_formats() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("jscpd-rs-formats-{}-{nonce}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("style.css"), "body { color: red; }\n").unwrap();
+        std::fs::write(dir.join("index.html"), "<main>hello</main>\n").unwrap();
+        std::fs::write(dir.join("config.yaml"), "enabled: true\n").unwrap();
+        std::fs::write(dir.join("settings.toml"), "enabled = true\n").unwrap();
+        std::fs::write(dir.join("Component.vue"), "<template><div /></template>\n").unwrap();
+
+        let options = Options {
+            paths: vec![dir.clone()],
+            min_lines: 1,
+            reporters: vec!["json".to_string()],
+            silent: true,
+            gitignore: false,
+            ..Options::default()
+        };
+
+        let files = discover(&options).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        let formats = files
+            .iter()
+            .map(|file| file.format.as_str())
+            .collect::<HashSet<_>>();
+
+        assert!(formats.contains("css"));
+        assert!(formats.contains("markup"));
+        assert!(formats.contains("yaml"));
+        assert!(formats.contains("toml"));
+        assert!(formats.contains("vue"));
+    }
 }

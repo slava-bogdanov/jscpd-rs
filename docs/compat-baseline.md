@@ -31,8 +31,7 @@ groups can choose different equivalent pairs.
 - JS/TS/JSX/TSX use native Rust/Oxc tokenization, so token totals can differ
   from Prism while fragment coverage remains green.
 - Long-tail formats are now discoverable through the upstream-synchronized
-  registry, but most still use the generic tokenizer until the Prism fallback or
-  a native tokenizer exists.
+  registry, but most use generic tokenization and do not carry parity claims.
 - Extensionless names such as `Makefile` and `Dockerfile` require
   `--formats-names`, matching upstream behavior.
 - Known upstream bug candidates are tracked in `docs/upstream-bugs.md`.
