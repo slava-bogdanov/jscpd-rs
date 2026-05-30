@@ -28,6 +28,10 @@ fn main() {
 
 fn run() -> Result<()> {
     let cli = Cli::parse();
+    if cli.version {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
     if cli.list {
         print!("{}", list_output());
         return Ok(());

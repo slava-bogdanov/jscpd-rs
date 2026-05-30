@@ -26,9 +26,13 @@ const BARE_EXIT_CODE_VALUE: &str = "__jscpd_rs_bare_exit_code_true__";
     name = "jscpd",
     version,
     about = "detector of copy/paste in files",
-    override_usage = "jscpd [options] <path ...>"
+    override_usage = "jscpd [options] <path ...>",
+    disable_version_flag = true
 )]
 pub struct Cli {
+    #[arg(short = 'V', long = "version", help = "output the version number")]
+    pub version: bool,
+
     #[arg(value_name = "path", hide = true)]
     pub paths: Vec<PathBuf>,
 

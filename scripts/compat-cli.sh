@@ -180,6 +180,28 @@ require_count() {
   fi
 }
 
+require_both_match() {
+  local stream="$1"
+  local pattern="$2"
+  local rust_file="$LAST_CASE_DIR/rust.$stream.clean"
+  local upstream_file="$LAST_CASE_DIR/upstream.$stream.clean"
+
+  require_match "$rust_file" "$pattern" "rust $stream"
+  require_match "$upstream_file" "$pattern" "upstream $stream"
+}
+
+require_match() {
+  local file="$1"
+  local pattern="$2"
+  local label="$3"
+
+  if ! grep -Eq -- "$pattern" "$file"; then
+    printf '%s missing expected pattern: %s\n' "$label" "$pattern" >&2
+    print_case "$LAST_CASE_DIR"
+    return 1
+  fi
+}
+
 print_case() {
   local case_dir="$1"
   for tool in rust upstream; do
@@ -240,6 +262,11 @@ require_both_contain stdout "Usage: jscpd [options] <path ...>"
 require_both_contain stdout "min size of duplication in code lines"
 require_both_contain stdout "ignore comments during detection"
 require_both_contain stdout "alias for --mode"
+require_both_contain stdout "output the version number"
+
+run_case "version output" 0 --version
+require_both_match stdout '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9_.-]+)?$'
+require_both_not_contain stdout "jscpd "
 
 run_case "list formats" 0 --list --silent --format abcdefghijklmnopqrstuvwxyz
 require_both_contain stdout "Supported formats:"

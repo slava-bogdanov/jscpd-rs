@@ -145,7 +145,15 @@ fn help_output_keeps_upstream_cli_contract_text() {
     assert!(help.contains("min size of duplication in code lines (Default is 5)"));
     assert!(help.contains("reporters or list of reporters separated with comma"));
     assert!(help.contains("ignore comments during detection (alias for --mode weak)"));
+    assert!(help.contains("output the version number"));
     assert!(!help.contains("[possible values: strict, mild, weak]"));
+}
+
+#[test]
+fn parses_version_flag_for_upstream_output_shape() {
+    let cli = Cli::parse_from(&["jscpd-rs", "--version"]);
+
+    assert!(cli.version);
 }
 
 #[test]
