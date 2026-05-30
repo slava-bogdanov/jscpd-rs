@@ -35,6 +35,16 @@ This smoke check compares Rust and upstream exit codes plus stable terminal
 contracts for `--list`, `--debug`, `--exitCode`, `--threshold`, `--store`,
 unknown reporters, `xcode`, and `consoleFull`.
 
+Config gate:
+
+```bash
+scripts/compat-config.sh
+```
+
+This smoke check runs both implementations from a real `.jscpd.json`, including
+relative `path`, config `output`, `silent`, JSON reporter setup, and
+order-sensitive `formatsExts` object mappings.
+
 ## Current Matrix
 
 | Target | Format | Gate | Notes |
