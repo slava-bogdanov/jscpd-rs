@@ -171,7 +171,7 @@ pub(super) fn apply_config(
         options.reporters_options = reporters_options;
     }
     if let Some(output) = config.output {
-        options.output = resolve_config_path(config_dir, output);
+        options.output = output;
     }
     if let Some(format) = config.format {
         options.formats = Some(format.into_vec().into_iter().collect());

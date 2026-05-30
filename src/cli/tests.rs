@@ -135,6 +135,21 @@ fn resolves_config_ignore_relative_to_config_dir() {
 }
 
 #[test]
+fn config_output_stays_cwd_relative_like_upstream() {
+    let config: FileConfig = serde_json::from_str(r#"{ "output": "nested-report" }"#).unwrap();
+    let mut options = Options::default();
+
+    apply_config(
+        &mut options,
+        config,
+        std::path::Path::new("/repo/configs/nested"),
+    )
+    .unwrap();
+
+    assert_eq!(options.output, std::path::PathBuf::from("nested-report"));
+}
+
+#[test]
 fn skip_comments_does_not_override_explicit_mode() {
     let cli = Cli::parse_from(&["jscpd-rs", "--skipComments", "."]);
     let options = Options::from_cli(cli).unwrap();
