@@ -65,8 +65,9 @@ jscpd-server /path/to/source --host 127.0.0.1 --port 3000
 curl http://127.0.0.1:3000/api/health
 ```
 
-The current server exposes `/`, `/api/health`, `/api/stats`, `/api/check`, and
-`/api/recheck`. The upstream MCP endpoint is still follow-up work.
+The current server exposes `/`, `/api/health`, `/api/stats`, `/api/check`,
+`/api/recheck`, and `/mcp`. The MCP endpoint supports the upstream server's core
+tools and statistics resource over native JSON-RPC HTTP.
 
 ## Library API
 

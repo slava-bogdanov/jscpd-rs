@@ -1,8 +1,10 @@
+use std::collections::HashSet;
 use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use anyhow::{Context, Result, bail};
+use axum::extract::DefaultBodyLimit;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
@@ -18,6 +20,8 @@ use crate::cli::Options;
 use crate::detector::{DetectionResult, Fragment, Statistics};
 use crate::files::{self, SourceFile};
 
+mod mcp;
+
 #[derive(Clone)]
 pub struct ServerService {
     state: Arc<RwLock<ServiceState>>,
@@ -32,6 +36,8 @@ struct ServiceState {
     last_scan_time: Option<String>,
     is_scanning: bool,
     snippet_counter: u64,
+    mcp_counter: u64,
+    mcp_sessions: HashSet<String>,
 }
 
 impl ServerService {
@@ -45,6 +51,8 @@ impl ServerService {
                 last_scan_time: None,
                 is_scanning: false,
                 snippet_counter: 0,
+                mcp_counter: 0,
+                mcp_sessions: HashSet::new(),
             })),
         }
     }
@@ -158,6 +166,20 @@ impl ServerService {
             last_scan_time: state.last_scan_time.clone(),
         }
     }
+
+    pub(crate) fn create_mcp_session(&self) -> String {
+        let mut state = self.state.write().expect("server state lock poisoned");
+        let timestamp = OffsetDateTime::now_utc().unix_timestamp_nanos();
+        let session_id = format!("{timestamp:x}-{:08x}", state.mcp_counter);
+        state.mcp_counter += 1;
+        state.mcp_sessions.insert(session_id.clone());
+        session_id
+    }
+
+    pub(crate) fn has_mcp_session(&self, session_id: &str) -> bool {
+        let state = self.state.read().expect("server state lock poisoned");
+        state.mcp_sessions.contains(session_id)
+    }
 }
 
 fn detection_options(options: &Options) -> Options {
@@ -181,6 +203,8 @@ pub fn create_router(service: ServerService) -> Router {
         .route("/api/recheck", post(recheck))
         .route("/api/stats", get(stats))
         .route("/api/health", get(health))
+        .route("/mcp", post(mcp::post_mcp).get(mcp::method_not_allowed))
+        .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .with_state(service)
 }
 
@@ -218,6 +242,7 @@ async fn api_info() -> Json<ApiInfoResponse> {
             ("GET /api/stats", "Get overall project statistics"),
             ("GET /api/health", "Server health check"),
             ("POST /api/recheck", "Trigger recheck of the directory"),
+            ("POST /mcp", "MCP Protocol endpoint"),
         ]
         .into_iter()
         .map(|(key, value)| (key.to_string(), value.to_string()))

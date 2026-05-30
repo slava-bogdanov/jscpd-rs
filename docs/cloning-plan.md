@@ -63,13 +63,14 @@ Known MVP gaps:
   match the local upstream missing-store fallback. Dynamic external stores are
   not implemented yet.
 - A native Rust API now exposes detection from configured paths and prepared
-  in-memory sources. Exact upstream JavaScript package API compatibility and
-  the standalone `jscpd-server` MCP endpoint remain follow-up work.
+  in-memory sources. Exact upstream JavaScript package API compatibility remains
+  follow-up work.
 - A native `jscpd-server` binary exposes the first REST surface:
-  `/`, `/api/health`, `/api/stats`, `/api/check`, and `/api/recheck`.
-  The current snippet check reuses the native detector against the in-memory
-  project file set; an indexed hybrid-store path can be added if server-scale
-  benchmarks show this is needed.
+  `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`.
+  The MCP endpoint supports initialize/session handling, core tools, and the
+  statistics resource. The current snippet check reuses the native detector
+  against the in-memory project file set; an indexed hybrid-store path can be
+  added if server-scale benchmarks show this is needed.
 - `cache`, config `listeners`, and `tokensToSkip` are parsed for option-surface
   compatibility, but upstream currently does not consume them in runtime code.
 - No full parity for non-native syntax-specific token streams yet.
