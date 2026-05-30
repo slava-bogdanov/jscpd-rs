@@ -44,6 +44,8 @@ pub(super) fn tokenize_generic(
             generic_comment_span_end(content, format, start_byte, content.len())
         {
             (comment_end, TokenKind::Comment)
+        } else if css_like_format(format) {
+            scan_css_like_token(content, start_byte)
         } else {
             (scan_generic_token(content, start_byte), TokenKind::Default)
         };
@@ -74,6 +76,27 @@ pub(super) fn scan_generic_token(content: &str, start: usize) -> usize {
         end += ch.len_utf8();
     }
     end
+}
+
+fn scan_css_like_token(content: &str, start: usize) -> (usize, TokenKind) {
+    let ch = content[start..].chars().next().unwrap_or('\0');
+    if is_css_punctuation(ch) {
+        return (start + ch.len_utf8(), TokenKind::Punctuation);
+    }
+
+    let mut end = start;
+    while end < content.len() {
+        let ch = content[end..].chars().next().unwrap_or('\0');
+        if ch.is_whitespace() || is_css_punctuation(ch) {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+    (end, TokenKind::Default)
+}
+
+fn is_css_punctuation(ch: char) -> bool {
+    matches!(ch, '{' | '}' | '(' | ')' | '[' | ']' | ':' | ';' | ',')
 }
 
 pub(super) fn scan_whitespace(content: &str, start: usize) -> usize {
@@ -168,6 +191,10 @@ fn generic_semicolon_comment_format(format: &str) -> bool {
             | "racket"
             | "scheme"
     )
+}
+
+fn css_like_format(format: &str) -> bool {
+    matches!(format, "css" | "less" | "sass" | "scss" | "stylus")
 }
 
 fn scan_to_line_end(bytes: &[u8], start: usize, limit: usize) -> usize {

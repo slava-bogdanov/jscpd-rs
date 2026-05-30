@@ -43,6 +43,7 @@ run_case "fixtures markdown" "jscpd/fixtures/markdown" "markdown" 20 3
 run_case "fixtures vue" "jscpd/fixtures" "vue" 20 3
 run_case "fixtures svelte" "jscpd/fixtures" "svelte" 20 3
 run_case "fixtures astro" "jscpd/fixtures" "astro" 20 3
+run_case "fixtures css" "jscpd/fixtures/css" "css" 20 3
 run_case "fixtures python" "jscpd/fixtures/python" "python" 20 3
 run_case "fixtures go" "jscpd/fixtures/go" "go" 20 3
 run_case "fixtures ruby" "jscpd/fixtures/ruby" "ruby" 20 3

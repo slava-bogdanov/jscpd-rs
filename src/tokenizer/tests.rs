@@ -330,6 +330,23 @@ fn generic_css_ids_are_not_treated_as_hash_comments() {
 }
 
 #[test]
+fn css_like_tokenizer_splits_punctuation() {
+    let content = "#app .title { color: saturate(@base, 5%); }";
+    let tokens = tokenize_for_detection(content, "css", &Options::default());
+    let token_values = tokens
+        .iter()
+        .map(|token| &content[token.range[0]..token.range[1]])
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        token_values,
+        vec![
+            "#app", ".title", "{", "color", ":", "saturate", "(", "@base", ",", "5%", ")", ";", "}"
+        ]
+    );
+}
+
+#[test]
 fn weak_mode_skips_js_comments() {
     let options = Options {
         mode: crate::cli::Mode::Weak,

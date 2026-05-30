@@ -28,6 +28,7 @@ range while compatibility is converging.
 | `jscpd/fixtures` | `vue` | pass | 18/18 upstream fragments line-covered; exact starts differ for wider markup/scss ranges |
 | `jscpd/fixtures` | `svelte` | pass | 6/6 upstream fragments line-covered; exact start differs for wider css range |
 | `jscpd/fixtures` | `astro` | pass | 8/8 upstream fragments line-covered; exact starts differ for wider markup/css ranges |
+| `jscpd/fixtures/css` | `css` | pass | exact clone coverage; token totals differ |
 | `jscpd/fixtures/python` | `python` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/go` | `go` | pass | 2/2 upstream fragments line-covered |
 | `jscpd/fixtures/ruby` | `ruby` | pass | 2/2 upstream fragments line-covered |
@@ -58,6 +59,8 @@ range while compatibility is converging.
   strips best-effort common comment spans, including `#`, `//`, `/* */`,
   `<!-- -->`, SQL-style `--`, and Lisp/INI-style `;` comments where those
   prefixes are comments in the upstream Prism grammar.
+- CSS-like generic formats split common punctuation so practical stylesheet
+  clones meet upstream token thresholds without carrying a full Prism port.
 - `--mode strict` now preserves Prism-style `empty` and `new_line` whitespace
   tokens in the native JS/TS/Oxc path and the generic tokenizer. The
   JavaScript fixture has exact strict-mode summary parity.
