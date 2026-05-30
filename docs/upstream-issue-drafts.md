@@ -2,59 +2,69 @@
 
 These drafts are prepared from `docs/upstream-bugs.md` for filing issues in
 `kucherenko/jscpd`. Re-verify each issue against current upstream `main` before
-posting. Drafts that use public repositories include pinned commits; if a draft
-still mentions a local or generated repro shape, first reduce it to a small
-public fixture before filing.
+posting. Drafts that use public repositories include pinned commits; the other
+drafts use upstream fixtures or minimal inline reproductions.
 
-## Draft 1: JavaScript tokenizer misparses template literals in minified code
+## Draft 1: JavaScript tokenizer treats `//` inside a template literal as a comment
 
 Suggested title:
 
 ```text
-JavaScript tokenizer misparses template literals and swallows following code
+JavaScript tokenizer treats `//` inside a template literal as a line comment
 ```
 
 Suggested labels: `bug`, `javascript`, `tokenizer`.
 
 Summary:
 
-The Prism-backed JavaScript tokenizer can treat code after a nested template
-literal as one large string token. A related case treats `//` inside a template
-literal as a line comment that consumes the rest of a long minified line. This
-causes valid duplicated JavaScript regions to be missed.
+The Prism-backed JavaScript tokenizer can treat `//` inside a JavaScript
+template literal as a line comment. The resulting comment token consumes the
+rest of the physical line, including ordinary JavaScript after the template
+literal. This can hide valid duplicated code behind one large comment token in
+minified or bundled JavaScript.
 
-Current repro status:
+Minimal tokenizer repro:
 
-The original evidence came from generated Next.js/SSR output in a local project.
-Before posting this issue, reduce that generated chunk to a small public fixture
-or attach equivalent generated files. The relevant source shapes are:
+Run this from the upstream `jscpd` repository after building packages:
 
-```js
-return `${config.path}?url=${encodeURIComponent(src)}&w=${width}&q=${q}${
-  src.startsWith("/") && deploymentId ? `&dpl=${deploymentId}` : ""
-}`;
+```bash
+node - <<'NODE'
+const { Tokenizer } = require('./packages/tokenizer/dist/index.js');
+const { mild } = require('./packages/core/dist/index.js');
 
-return `${protocol}//${host}${port ? ":" + port : ""}`;
+const code =
+  'function h(a){let j="//";return`${j}`}function j(){let{protocol:a,hostname:b,port:c}=window.location;return`${a}//${b}${c?":"+c:""}`}function k(){return 1}\n';
+
+const tokens = new Tokenizer()
+  .generateMaps('repro.js', code, 'javascript', { minTokens: 1, mode: mild })[0]
+  .tokens;
+
+for (const token of tokens.filter((t) => t.type === 'comment' || t.value.includes('//'))) {
+  console.log(`${token.type} ${JSON.stringify(token.value)} line=${token.loc.start.line} col=${token.loc.start.column}`);
+}
+NODE
 ```
 
 Observed symptoms:
 
-- For a nested template expression like
-  `` `${path}?url=${encodeURIComponent(url)}&w=${w}&q=${q}${url.startsWith("/")&&dpl?`&dpl=${dpl}`:""}` ``,
-  upstream emits one very large `string` token for ordinary following module
-  code.
-- For a template literal like `` `${a}//${b}${c?":"+c:""}` ``, upstream emits a
-  very large `comment` token starting at the `//` sequence inside the template.
+- The first `//` string literal is emitted correctly as a `string` token.
+- The `//` inside the template literal is emitted as a `comment` token:
+
+```text
+string "\"//\"" line=1 col=21
+comment "//${b}${c?\":\"+c:\"\"}`}function k(){return 1}" line=1 col=113
+```
 
 Expected behavior:
 
-The tokenizer should resume JavaScript tokenization after nested template
-literals, and `//` inside template literal text should not start a line comment.
+`//` inside template literal text should remain a template string segment and
+should not comment out the rest of the generated line.
 
 Impact:
 
-Generated/minified SSR bundles can lose duplicate coverage because large parts
-of the module body are hidden inside one incorrect token.
+Generated/minified SSR bundles can lose duplicate coverage because ordinary
+module code after the template literal is hidden inside one incorrect comment
+token.
 
 ## Draft 2: `--blame` fails for paths inside a nested Git repository
 
