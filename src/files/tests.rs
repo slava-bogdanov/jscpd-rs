@@ -574,6 +574,36 @@ fn empty_file_counts_as_one_line_like_upstream() {
 }
 
 #[test]
+fn known_extension_files_over_max_size_are_filtered() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-max-size-filter-{}-{nonce}",
+        std::process::id()
+    ));
+    let path = dir.join("large.js");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(&path, "const value = 'larger than the configured size';\n").unwrap();
+
+    let options = Options {
+        paths: vec![path],
+        min_lines: 1,
+        max_size_bytes: 10,
+        reporters: Vec::new(),
+        silent: true,
+        gitignore: false,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(files.is_empty());
+}
+
+#[test]
 fn gitignore_negation_reincludes_files_during_compat_discovery() {
     let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

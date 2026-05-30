@@ -120,7 +120,8 @@ pub fn discover(options: &Options) -> Result<Vec<SourceFile>> {
         .into_par_iter()
         .enumerate()
         .map(|(idx, candidate)| {
-            read_candidate(candidate, options, &cwd).map(|file| file.map(|file| (idx, file)))
+            read_candidate(candidate, options, &cwd, needs_compat_discovery)
+                .map(|file| file.map(|file| (idx, file)))
         })
         .collect::<Vec<_>>()
         .into_iter()
@@ -149,13 +150,24 @@ fn collect_candidate(
         return Ok(());
     }
 
-    let metadata = fs::metadata(path)
-        .with_context(|| format!("failed to inspect file `{}`", path.display()))?;
     let format = if let Some(format) =
         formats::format_for_path(path, &options.formats_exts, &options.formats_names)
     {
         Some(format.to_string())
     } else {
+        let metadata = fs::metadata(path)
+            .with_context(|| format!("failed to inspect file `{}`", path.display()))?;
+        if metadata.len() > options.max_size_bytes {
+            if options.verbose {
+                eprintln!(
+                    "skipped large file: {} ({} > {})",
+                    path.display(),
+                    metadata.len(),
+                    options.max_size_bytes
+                );
+            }
+            return Ok(());
+        }
         shebang_format_for_path(path, &metadata)?.map(str::to_string)
     };
     let Some(format) = format else {
@@ -172,19 +184,6 @@ fn collect_candidate(
         }
         return Ok(());
     }
-
-    if metadata.len() > options.max_size_bytes {
-        if options.verbose {
-            eprintln!(
-                "skipped large file: {} ({} > {})",
-                path.display(),
-                metadata.len(),
-                options.max_size_bytes
-            );
-        }
-        return Ok(());
-    }
-
     candidates.push(CandidateFile {
         path: path.to_path_buf(),
         format,
@@ -198,20 +197,27 @@ fn read_candidate(
     candidate: CandidateFile,
     options: &Options,
     cwd: &Path,
+    needs_report_paths: bool,
 ) -> Result<Option<SourceFile>> {
     let bytes = fs::read(&candidate.path)
         .with_context(|| format!("failed to read `{}`", candidate.path.display()))?;
+    if bytes.len() as u64 > options.max_size_bytes {
+        if options.verbose {
+            eprintln!(
+                "skipped large file: {} ({} > {})",
+                candidate.path.display(),
+                bytes.len(),
+                options.max_size_bytes
+            );
+        }
+        return Ok(None);
+    }
     let lines = count_lines(&bytes);
     if lines < options.min_lines || lines > options.max_lines {
         return Ok(None);
     }
     let content = decode_source(bytes);
 
-    let needs_report_paths = options
-        .reporters
-        .iter()
-        .any(|reporter| reporter_needs_report_paths(reporter))
-        || !options.silent;
     let source_id = if options.absolute {
         candidate
             .path
