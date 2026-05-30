@@ -279,7 +279,7 @@ async fn check_snippet(
     };
     match service.check_snippet(request) {
         Ok(response) => Json(response).into_response(),
-        Err(error) => error_response("CheckError", error.to_string(), 400),
+        Err(error) => error_response("Error", error.to_string(), 400),
     }
 }
 
@@ -289,7 +289,7 @@ async fn recheck(State(service): State<ServerService>) -> Response {
             message: "Recheck started",
         })
         .into_response(),
-        Err(error) => error_response("RecheckError", error.to_string(), 400),
+        Err(error) => error_response("Error", error.to_string(), 400),
     }
 }
 
@@ -827,6 +827,85 @@ mod tests {
         assert_eq!(body["error"], "ValidationError");
         assert_eq!(body["message"], "Field \"format\" must be a string");
         assert_eq!(body["statusCode"], 400);
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn server_uninitialized_api_matches_upstream_error_shapes() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        let app = create_router(service);
+
+        let check_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/check")
+                    .header(CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        r#"{"code":"console.log(\"test\");","format":"javascript"}"#,
+                    ))
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(check_response.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(check_response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        let body: Value = serde_json::from_slice(&body).expect("json body");
+        assert_eq!(body["error"], "Error");
+        assert_eq!(body["message"], NOT_INITIALIZED);
+        assert_eq!(body["statusCode"], 400);
+
+        let stats_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/api/stats")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(stats_response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let body = to_bytes(stats_response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        let body: Value = serde_json::from_slice(&body).expect("json body");
+        assert_eq!(body["error"], "NotReady");
+        assert_eq!(
+            body["message"],
+            "Statistics not available yet. Server is still initializing."
+        );
+        assert_eq!(body["statusCode"], 503);
+
+        let health_response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/api/health")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(health_response.status(), StatusCode::OK);
+        let body = to_bytes(health_response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        let body: Value = serde_json::from_slice(&body).expect("json body");
+        assert!(matches!(
+            body["status"].as_str(),
+            Some("ready" | "initializing")
+        ));
+        assert_eq!(body["workingDirectory"], path.display().to_string());
+        assert_eq!(body["lastScanTime"], Value::Null);
         fs::remove_dir_all(path).ok();
     }
 
