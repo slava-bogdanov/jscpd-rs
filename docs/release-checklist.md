@@ -12,20 +12,20 @@ Latest full local release-candidate gate:
 scripts/release-candidate.sh
 ```
 
-Passed on 2026-05-31 at code commit `bf72201`. Later documentation-only
+Passed on 2026-05-31 at code commit `e55990b`. Later documentation-only
 commits may reuse this evidence if they do not change code, scripts, package
 metadata, or benchmark configuration.
 
 Latest GitHub Actions default `release-gate` before this evidence refresh:
-`bf72201`, success.
+`e55990b`, success.
 
 Public benchmark summary from the latest release-candidate run:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.185840s | 9.946134s | 53.52x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.245187s | 14.182714s | 57.84x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.072801s | 4.542385s | 62.39x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.188624s | 9.779668s | 51.85x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.248816s | 14.416879s | 57.94x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.074166s | 4.542560s | 61.25x | pass |
 
 ## Publish Blockers
 
