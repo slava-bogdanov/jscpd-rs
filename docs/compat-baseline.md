@@ -53,9 +53,10 @@ range while compatibility is converging.
   only when both fragments are inside the same input path.
 - The upstream workflow option surface for `blame`, `store`, `storePath`,
   `cache`, `executionId`, `noTips`, `listeners`, and `tokensToSkip` is parsed
-  from CLI/config where applicable. Blame attribution, persistent stores,
-  listener plugins, custom token skipping, and cache workflows are still
-  implementation gaps.
+  from CLI/config where applicable. The default `executionId` is generated as a
+  UTC RFC3339 timestamp, matching the upstream workflow shape. Blame
+  attribution, persistent stores, listener plugins, custom token skipping, and
+  cache workflows are still implementation gaps.
 - `--store <name>` currently follows the upstream missing-store fallback shape:
   it warns that the store package is not installed and continues with in-memory
   detection. Persistent stores remain an implementation gap.

@@ -20,6 +20,19 @@ fn parses_format_mappings() {
 }
 
 #[test]
+fn default_execution_id_matches_upstream_shape() {
+    let options = Options::default();
+    let execution_id = options.execution_id.as_deref().unwrap();
+
+    assert!(execution_id.ends_with('Z'));
+    assert!(
+        regex::Regex::new(r"^\d{4}-\d{2}-\d{2}T")
+            .unwrap()
+            .is_match(execution_id)
+    );
+}
+
+#[test]
 fn normalizes_silent_reporter_like_upstream() {
     let mut options = Options {
         silent: true,

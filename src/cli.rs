@@ -5,6 +5,8 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use regex::Regex;
 use serde::Deserialize;
+use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 
 mod config;
 mod parsing;
@@ -187,7 +189,7 @@ impl FormatMappings {
 impl Default for Options {
     fn default() -> Self {
         Self {
-            execution_id: None,
+            execution_id: Some(default_execution_id()),
             paths: vec![PathBuf::from(".")],
             pattern: "**/*".to_string(),
             ignore: Vec::new(),
@@ -222,6 +224,12 @@ impl Default for Options {
             tokens_to_skip: Vec::new(),
         }
     }
+}
+
+fn default_execution_id() -> String {
+    OffsetDateTime::now_utc()
+        .format(&Rfc3339)
+        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
 }
 
 impl Options {
