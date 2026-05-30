@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::ffi::OsString;
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -121,22 +122,27 @@ fn collect_candidate(
         return Ok(());
     }
 
-    let Some(format) =
+    let metadata = fs::metadata(path)
+        .with_context(|| format!("failed to inspect file `{}`", path.display()))?;
+    let format = if let Some(format) =
         formats::format_for_path(path, &options.formats_exts, &options.formats_names)
-    else {
+    {
+        Some(format.to_string())
+    } else {
+        shebang_format_for_path(path, &metadata)?.map(str::to_string)
+    };
+    let Some(format) = format else {
         if options.verbose {
             eprintln!("skipped unsupported format: {}", path.display());
         }
         return Ok(());
     };
     if let Some(formats) = &options.formats
-        && !formats.contains(format)
+        && !formats.contains(format.as_str())
     {
         return Ok(());
     }
 
-    let metadata = fs::metadata(path)
-        .with_context(|| format!("failed to inspect file `{}`", path.display()))?;
     if metadata.len() > options.max_size_bytes {
         if options.verbose {
             eprintln!(
@@ -151,10 +157,108 @@ fn collect_candidate(
 
     candidates.push(CandidateFile {
         path: path.to_path_buf(),
-        format: format.to_string(),
+        format,
     });
 
     Ok(())
+}
+
+fn shebang_format_for_path(path: &Path, metadata: &fs::Metadata) -> Result<Option<&'static str>> {
+    if !is_executable(metadata) || is_symlink(path) {
+        return Ok(None);
+    }
+
+    let mut file =
+        fs::File::open(path).with_context(|| format!("failed to read `{}`", path.display()))?;
+    let mut buf = [0u8; 128];
+    let read = file
+        .read(&mut buf)
+        .with_context(|| format!("failed to read `{}`", path.display()))?;
+    let head = String::from_utf8_lossy(&buf[..read]);
+    let Some(first_line) = head.lines().next() else {
+        return Ok(None);
+    };
+    if !first_line.starts_with("#!") {
+        return Ok(None);
+    }
+
+    let mut tokens = first_line[2..].split_whitespace();
+    let Some(first_token) = tokens.next() else {
+        return Ok(None);
+    };
+    let interpreter = if Path::new(first_token)
+        .file_name()
+        .is_some_and(|name| name.to_string_lossy().starts_with("env"))
+    {
+        let Some(second_token) = tokens.next() else {
+            return Ok(None);
+        };
+        if second_token.starts_with('-') {
+            return Ok(None);
+        }
+        second_token
+    } else {
+        first_token
+    };
+
+    let Some(raw_name) = Path::new(interpreter).file_name() else {
+        return Ok(None);
+    };
+    let raw_name = raw_name.to_string_lossy();
+    if raw_name.as_bytes().first().is_some_and(u8::is_ascii_digit) {
+        return Ok(None);
+    }
+
+    Ok(shebang_name_to_format(&normalize_shebang_name(&raw_name)))
+}
+
+fn shebang_name_to_format(name: &str) -> Option<&'static str> {
+    match name {
+        "bash" | "sh" | "zsh" | "dash" | "ksh" => Some("bash"),
+        "python" => Some("python"),
+        "ruby" => Some("ruby"),
+        "perl" => Some("perl"),
+        "php" => Some("php"),
+        "node" | "nodejs" => Some("javascript"),
+        "lua" => Some("lua"),
+        "tclsh" | "wish" => Some("tcl"),
+        "groovy" => Some("groovy"),
+        "awk" | "gawk" | "nawk" => Some("awk"),
+        "rscript" => Some("r"),
+        _ => None,
+    }
+}
+
+fn normalize_shebang_name(raw_name: &str) -> String {
+    let mut end = raw_name.len();
+    if raw_name.as_bytes().last().is_some_and(u8::is_ascii_digit) {
+        while end > 0
+            && raw_name.as_bytes()[end - 1].is_ascii()
+            && (raw_name.as_bytes()[end - 1].is_ascii_digit()
+                || raw_name.as_bytes()[end - 1] == b'.')
+        {
+            end -= 1;
+        }
+    }
+    raw_name[..end].to_ascii_lowercase()
+}
+
+fn is_symlink(path: &Path) -> bool {
+    fs::symlink_metadata(path)
+        .map(|metadata| metadata.file_type().is_symlink())
+        .unwrap_or(false)
+}
+
+#[cfg(unix)]
+fn is_executable(metadata: &fs::Metadata) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+
+    metadata.permissions().mode() & 0o111 != 0
+}
+
+#[cfg(not(unix))]
+fn is_executable(_metadata: &fs::Metadata) -> bool {
+    false
 }
 
 fn read_candidate(
@@ -395,9 +499,12 @@ fn build_glob_set(patterns: &[String]) -> Result<GlobSet> {
 #[cfg(test)]
 mod tests {
     use std::cmp::Ordering;
+    use std::collections::HashSet;
     use std::path::Path;
 
-    use super::{fast_glob_like_path_cmp, gitignore_line_to_globs, relative_path};
+    use crate::cli::Options;
+
+    use super::{discover, fast_glob_like_path_cmp, gitignore_line_to_globs, relative_path};
 
     #[test]
     fn fast_glob_like_order_places_parent_files_before_child_files() {
@@ -441,5 +548,40 @@ mod tests {
         let globs = gitignore_line_to_globs("/node_modules/", Some(Path::new("/repo/app")));
         assert!(globs.iter().any(|glob| glob == "/repo/app/node_modules"));
         assert!(globs.iter().any(|glob| glob == "/repo/app/node_modules/**"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn discovers_executable_node_shebang_without_extension() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "jscpd-rs-node-shebang-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::write(&path, "#!/usr/bin/env node\nconsole.log(1);\n").unwrap();
+        let mut permissions = std::fs::metadata(&path).unwrap().permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&path, permissions).unwrap();
+
+        let options = Options {
+            paths: vec![path.clone()],
+            formats: Some(HashSet::from(["javascript".to_string()])),
+            min_lines: 1,
+            reporters: vec!["json".to_string()],
+            silent: true,
+            gitignore: false,
+            ..Options::default()
+        };
+
+        let files = discover(&options).unwrap();
+        let _ = std::fs::remove_file(&path);
+
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].format, "javascript");
     }
 }
