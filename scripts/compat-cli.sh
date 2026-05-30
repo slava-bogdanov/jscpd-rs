@@ -177,6 +177,9 @@ require_both_contain stdout "Found 1 files to detect."
 run_case "exit code on clones" 7 "$TARGET_REL" --exitCode 7 --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
 
+run_case "decimal max size" 0 "$TARGET_REL" --silent --noTips --min-tokens "$MIN_TOKENS" --min-lines "$MIN_LINES" --max-size 1.5kb
+require_both_contain stdout "$SUMMARY"
+
 run_case "store fallback warning" 0 "$TARGET_REL" --store leveldb --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$SUMMARY"
 require_both_contain stderr "$STORE_WARNING"

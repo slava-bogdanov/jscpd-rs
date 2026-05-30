@@ -34,19 +34,36 @@ pub(super) fn compile_patterns(patterns: Vec<String>) -> Result<Vec<Regex>> {
 
 pub(super) fn parse_size(value: &str) -> Result<u64> {
     let trimmed = value.trim().to_ascii_lowercase();
-    let split_at = trimmed
-        .find(|ch: char| !ch.is_ascii_digit())
-        .unwrap_or(trimmed.len());
-    let number = trimmed[..split_at]
-        .parse::<u64>()
+    let mut split_at = 0;
+    let mut saw_dot = false;
+    for (idx, ch) in trimmed.char_indices() {
+        if ch.is_ascii_digit() {
+            split_at = idx + ch.len_utf8();
+        } else if ch == '.' && !saw_dot {
+            saw_dot = true;
+            split_at = idx + ch.len_utf8();
+        } else {
+            break;
+        }
+    }
+    let number_part = &trimmed[..split_at];
+    if number_part.is_empty() || number_part.starts_with('.') {
+        anyhow::bail!("missing numeric size in `{value}`");
+    }
+    let number = number_part
+        .parse::<f64>()
         .with_context(|| format!("missing numeric size in `{value}`"))?;
     let suffix = trimmed[split_at..].trim();
     let multiplier = match suffix {
-        "" | "b" => 1,
-        "k" | "kb" => 1024,
-        "m" | "mb" => 1024 * 1024,
-        "g" | "gb" => 1024 * 1024 * 1024,
+        "" | "b" => 1.0,
+        "k" | "kb" => 1024.0,
+        "m" | "mb" => 1024.0 * 1024.0,
+        "g" | "gb" => 1024.0 * 1024.0 * 1024.0,
         _ => anyhow::bail!("unsupported size suffix `{suffix}`"),
     };
-    Ok(number * multiplier)
+    let bytes = (number * multiplier).floor();
+    if !bytes.is_finite() || bytes < 0.0 {
+        anyhow::bail!("invalid size `{value}`");
+    }
+    Ok(bytes as u64)
 }

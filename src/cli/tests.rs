@@ -8,7 +8,13 @@ use clap::{CommandFactory, Parser};
 fn parses_size_suffixes() {
     assert_eq!(parse_size("1b").unwrap(), 1);
     assert_eq!(parse_size("100kb").unwrap(), 102400);
+    assert_eq!(parse_size("100KB").unwrap(), 102400);
     assert_eq!(parse_size("2mb").unwrap(), 2 * 1024 * 1024);
+    assert_eq!(parse_size("1024").unwrap(), 1024);
+    assert_eq!(parse_size("1.5kb").unwrap(), 1536);
+    assert_eq!(parse_size("1.5 kb").unwrap(), 1536);
+    assert_eq!(parse_size("1.1kb").unwrap(), 1126);
+    assert!(parse_size(".5kb").is_err());
 }
 
 #[test]
