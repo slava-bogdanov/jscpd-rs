@@ -77,7 +77,7 @@ fn jsx_embedded_javascript_keeps_nested_object_whitespace() {
 
 #[test]
 fn generic_tokenizer_handles_common_non_native_formats() {
-    for format in ["css", "markup", "yaml", "toml", "vue"] {
+    for format in ["css", "markup", "yaml", "toml", "python"] {
         let maps = tokenize_maps_for_detection("alpha beta\n  gamma", format, &Options::default());
 
         assert_eq!(maps.len(), 1);
@@ -163,6 +163,65 @@ fn markdown_embedded_generic_blocks_keep_whitespace_tokens() {
             .tokens
             .iter()
             .any(|token| &content[token.range[0]..token.range[1]] == "\n")
+    );
+}
+
+#[test]
+fn vue_sfc_emits_template_script_and_style_maps() {
+    let content = "<template>\n  <section>{{ title }}</section>\n</template>\n<style lang=\"scss\">\n.panel { color: red; }\n</style>\n<script setup lang=\"ts\">\nconst title: string = 'Demo';\n</script>\n";
+    let maps = tokenize_maps_for_detection(content, "vue", &Options::default());
+
+    assert!(maps.iter().any(|map| map.format == "markup"));
+    assert!(maps.iter().any(|map| map.format == "scss"));
+    let typescript = maps
+        .iter()
+        .find(|map| map.format == "typescript")
+        .expect("typescript map");
+
+    assert_eq!(typescript.tokens[0].start.line, 8);
+    assert_eq!(
+        &content[typescript.tokens[0].range[0]..typescript.tokens[0].range[1]],
+        "const"
+    );
+}
+
+#[test]
+fn svelte_sfc_emits_markup_script_and_style_maps() {
+    let content = "<script>\nlet title = 'Demo';\n</script>\n<h1>{title}</h1>\n<style>\nh1 { color: red; }\n</style>\n";
+    let maps = tokenize_maps_for_detection(content, "svelte", &Options::default());
+
+    assert!(maps.iter().any(|map| map.format == "markup"));
+    assert!(maps.iter().any(|map| map.format == "javascript"));
+    let css = maps
+        .iter()
+        .find(|map| map.format == "css")
+        .expect("css map");
+    let h1 = css
+        .tokens
+        .iter()
+        .find(|token| &content[token.range[0]..token.range[1]] == "h1")
+        .expect("h1 selector token");
+
+    assert_eq!(h1.start.line, 6);
+}
+
+#[test]
+fn astro_sfc_emits_frontmatter_script_style_and_markup_maps() {
+    let content = "---\nconst title: string = 'Demo';\n---\n<article>{title}</article>\n<script>\nconsole.log(title);\n</script>\n<style>\narticle { color: red; }\n</style>\n";
+    let maps = tokenize_maps_for_detection(content, "astro", &Options::default());
+
+    assert!(maps.iter().any(|map| map.format == "markup"));
+    assert!(maps.iter().any(|map| map.format == "javascript"));
+    assert!(maps.iter().any(|map| map.format == "css"));
+    let typescript = maps
+        .iter()
+        .find(|map| map.format == "typescript")
+        .expect("frontmatter typescript map");
+
+    assert_eq!(typescript.tokens[0].start.line, 2);
+    assert_eq!(
+        &content[typescript.tokens[0].range[0]..typescript.tokens[0].range[1]],
+        "const"
     );
 }
 

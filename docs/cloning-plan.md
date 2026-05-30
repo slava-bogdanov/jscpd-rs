@@ -49,7 +49,8 @@ Known MVP gaps:
   use generic tokenization rather than Prism-compatible tokenization.
 - `strict/mild/weak` are only approximated.
 - Terminal timing/tips/progress polish is still approximate.
-- No blame, persistent stores, or Vue/Svelte/Astro block tokenization yet.
+- No blame, persistent stores, or full parity for non-native syntax-specific
+  token streams yet.
 - Markdown front matter and fenced code blocks are extracted into embedded
   format maps, but full Markdown fixture parity is not claimed yet.
 
@@ -64,8 +65,8 @@ Known MVP gaps:
    language-aware token streams. Prefer existing parsers/tokenizers over custom
    grammars.
 4. Reporters: polish remaining report details and terminal UX.
-5. Advanced sources: Vue/Svelte/Astro block splitting, full Markdown parity,
-   ignore blocks, ignore regex patterns, and weak-mode comment stripping.
+5. Advanced sources: full non-native tokenizer parity, ignore blocks, ignore
+   regex patterns, and weak-mode comment stripping.
 6. Performance work: parallel file reads/tokenization, compact hash storage,
    faster hashers where compatible, memory profiling, and optional persistent
    cache/store.
@@ -129,6 +130,8 @@ with upstream while avoiding hand-maintained mapping drift.
 Tokenizer strategy remains hybrid:
 
 - native Rust/Oxc path for hot JS/TS formats;
+- native Rust block splitting for Markdown, Vue, Svelte, and Astro embedded
+  code/style/template regions;
 - generic tokenizer for other recognized formats without parity claims;
 - no embedded JavaScript runtime fallback. Formats that need real compatibility
   should get native Rust tokenizers and focused compat tests.

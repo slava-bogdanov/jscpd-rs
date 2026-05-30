@@ -1,3 +1,5 @@
+mod blocks;
+mod embedded;
 mod markdown;
 
 use std::path::Path;
@@ -91,6 +93,8 @@ pub fn tokenize_maps_for_detection(
     let ignore_regions = find_ignore_regions(content, options);
     let mut maps = if format == "markdown" {
         markdown::tokenize_maps(content, options, &ignore_regions)
+    } else if matches!(format, "vue" | "svelte" | "astro") {
+        blocks::tokenize_maps(content, format, options, &ignore_regions)
     } else if is_oxc_format(format) {
         tokenize_oxc_maps(content, format, options, &ignore_regions)
     } else {
