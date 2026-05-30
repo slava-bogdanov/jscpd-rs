@@ -86,6 +86,45 @@ fn explicit_file_paths_preserve_cli_order_like_upstream() {
 }
 
 #[test]
+fn directory_discovery_preserves_glob_like_order_with_parallel_walk() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir = std::env::temp_dir().join(format!(
+        "jscpd-rs-parallel-order-{}-{nonce}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(dir.join("packages/a")).unwrap();
+    std::fs::create_dir_all(dir.join("packages/b")).unwrap();
+    std::fs::write(dir.join("packages/root.js"), "const root = 1;\n").unwrap();
+    std::fs::write(dir.join("packages/a/file.js"), "const a = 1;\n").unwrap();
+    std::fs::write(dir.join("packages/b/file.js"), "const b = 1;\n").unwrap();
+
+    let options = Options {
+        paths: vec![dir.clone()],
+        formats: Some(HashSet::from(["javascript".to_string()])),
+        min_lines: 1,
+        reporters: Vec::new(),
+        silent: true,
+        gitignore: false,
+        ..Options::default()
+    };
+
+    let files = discover(&options).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    let paths = files
+        .iter()
+        .map(|file| file.source_id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths.len(), 3);
+    assert!(paths[0].ends_with("packages/root.js"));
+    assert!(paths[1].ends_with("packages/a/file.js"));
+    assert!(paths[2].ends_with("packages/b/file.js"));
+}
+
+#[test]
 fn relative_path_formats_sibling_paths_like_upstream() {
     assert_eq!(
         relative_path(
