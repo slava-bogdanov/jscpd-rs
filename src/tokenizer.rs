@@ -1063,7 +1063,7 @@ mod tests {
             reporters: vec!["json".to_string()],
             ..Options::default()
         };
-        for format in ["javascript", "typescript"] {
+        for format in ["javascript", "typescript", "jsx", "tsx"] {
             let tokens = super::tokenize_for_detection("let a = 1;\nlet b = 2;", format, &options);
             assert_eq!(tokens[0].start.position, 0);
             assert_eq!(tokens[1].start.position, 2);
