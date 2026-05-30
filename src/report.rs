@@ -69,8 +69,8 @@ fn progress_output(result: &DetectionResult, options: &Options) -> String {
 }
 
 fn warn_unknown_reporters(options: &Options) {
-    for warning in unknown_reporter_warnings(options) {
-        println!("{warning}");
+    for message in unknown_reporter_messages(options) {
+        println!("{message}");
     }
 }
 
@@ -92,15 +92,18 @@ fn is_builtin_reporter(reporter: &str) -> bool {
     )
 }
 
-fn unknown_reporter_warnings(options: &Options) -> Vec<String> {
+fn unknown_reporter_messages(options: &Options) -> Vec<String> {
     options
         .reporters
         .iter()
         .filter(|reporter| !is_builtin_reporter(reporter))
-        .map(|reporter| {
-            format!(
-                "warning: {reporter} not installed (install packages named @jscpd/{reporter}-reporter or jscpd-{reporter}-reporter)"
-            )
+        .flat_map(|reporter| {
+            [
+                format!(
+                    "warning: {reporter} not installed (install packages named @jscpd/{reporter}-reporter or jscpd-{reporter}-reporter)"
+                ),
+                format!("Cannot find module 'jscpd-{reporter}-reporter'"),
+            ]
         })
         .collect()
 }
@@ -144,9 +147,10 @@ mod tests {
         };
 
         assert_eq!(
-            unknown_reporter_warnings(&options),
+            unknown_reporter_messages(&options),
             vec![
-                "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
+                "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)",
+                "Cannot find module 'jscpd-badgezz-reporter'",
             ]
         );
     }
@@ -164,11 +168,14 @@ mod tests {
         };
 
         assert_eq!(
-            unknown_reporter_warnings(&options),
+            unknown_reporter_messages(&options),
             vec![
                 "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)",
+                "Cannot find module 'jscpd-badgezz-reporter'",
                 "warning: myreport not installed (install packages named @jscpd/myreport-reporter or jscpd-myreport-reporter)",
+                "Cannot find module 'jscpd-myreport-reporter'",
                 "warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)",
+                "Cannot find module 'jscpd-badgezz-reporter'",
             ]
         );
     }

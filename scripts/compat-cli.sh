@@ -200,6 +200,7 @@ EXIT_CODE_TYPE_ERROR_STRING="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argu
 EXIT_CODE_RANGE_ERROR="RangeError [ERR_OUT_OF_RANGE]: The value of \"code\" is out of range. It must be an integer. Received 7.5"
 EXIT_CODE_TYPE_ERROR_BOOLEAN="TypeError [ERR_INVALID_ARG_TYPE]: The \"code\" argument must be of type number. Received type boolean (true)"
 UNKNOWN_REPORTER_WARNING="warning: badgezz not installed (install packages named @jscpd/badgezz-reporter or jscpd-badgezz-reporter)"
+UNKNOWN_REPORTER_MODULE_ERROR="Cannot find module 'jscpd-badgezz-reporter'"
 STORE_WARNING="store name leveldb not installed."
 BARE_STORE_WARNING="store name true not installed."
 XCODE_ABSOLUTE_WARNING="$TARGET_FILE_ABS:18:3: warning: Found 10 lines (18-28) duplicated on file $TARGET_FILE_ABS (8-18)"
@@ -329,6 +330,7 @@ require_both_count stdout "$SUMMARY" 2
 
 run_case "unknown reporter warning" 0 "$TARGET_REL" --reporters badgezz --silent --noTips "${COMMON_ARGS[@]}"
 require_both_contain stdout "$UNKNOWN_REPORTER_WARNING"
+require_both_contain stdout "$UNKNOWN_REPORTER_MODULE_ERROR"
 require_both_contain stdout "$SUMMARY"
 
 run_case "bare threshold" 1 "$TARGET_REL" --threshold --noTips "${COMMON_ARGS[@]}"
