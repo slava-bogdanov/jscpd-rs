@@ -10,7 +10,7 @@ current implementation status.
 
 | Component | Status | Notes |
 | --- | --- | --- |
-| Binary/package surface | ready | `jscpd` binary name, Cargo package include list, install check, version/help smoke checks. |
+| Binary/package surface | ready | `jscpd` binary name, Cargo package include list, publish dry-run, install check, version/help smoke checks. |
 | CLI option surface | ready | Main upstream flags are parsed, including visible Commander quirks gated by `scripts/compat-cli.sh`. |
 | Config loading | ready | `.jscpd.json` and `package.json#jscpd`, config-relative paths/ignore, malformed JSON behavior, symlinked explicit config paths. |
 | File discovery | ready | Format filters, custom extensions/names, `.gitignore`, global Git excludes, symlink policy, shebang detection, max size/line filtering. |

@@ -37,6 +37,8 @@ Before publishing, all of these must be true:
 - GitHub Actions `release-gate` passes on the pushed commit.
 - `scripts/package-check.sh` passes and the package file list excludes
   `jscpd/`, `target/`, `node_modules/`, and `scripts/`.
+- `cargo publish --dry-run --locked` passes for the exact package manifest and
+  include list being published.
 - `README.md`, `docs/compat-baseline.md`, and
   `docs/public-benchmark-suite.md` contain the same latest public benchmark
   numbers.
@@ -87,6 +89,7 @@ git status --short
 git submodule status jscpd
 scripts/release-candidate.sh
 scripts/package-check.sh
+cargo publish --dry-run --locked
 ```
 
 Then push the exact release commit and verify the GitHub Actions
