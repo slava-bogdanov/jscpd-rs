@@ -276,6 +276,8 @@ coverage-first compatibility matrix and is required before publication.
 - Bare optional values for `--threshold`, `--max-size`, `--pattern`, `--store`,
   and `--store-path` follow the local upstream runtime behavior where upstream
   continues instead of failing during CLI parsing.
+- CLI `--threshold` follows JavaScript `Number(...)` parsing for values such as
+  `0x10` and `nope`, matching upstream threshold reporter behavior.
 - If discovery, size, or line filters leave no files to detect, reporters are
   not run, matching upstream's `InFilesDetector` early return. Silent mode
   stays quiet; non-silent mode only prints the terminal footer.

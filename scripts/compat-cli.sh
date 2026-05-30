@@ -287,6 +287,13 @@ require_both_contain stdout "$SUMMARY"
 run_case "bare threshold" 1 "$TARGET_REL" --threshold --noTips "${COMMON_ARGS[@]}"
 require_both_contain stderr "ERROR: jscpd found too many duplicates (35.71%) over threshold (1%)"
 
+run_case "hex threshold" 1 "$TARGET_REL" --threshold 0x10 --noTips "${COMMON_ARGS[@]}"
+require_both_contain stderr "ERROR: jscpd found too many duplicates (35.71%) over threshold (16%)"
+
+run_case "nan threshold" 0 "$TARGET_REL" --threshold nope --silent --noTips "${COMMON_ARGS[@]}"
+require_both_contain stdout "$SUMMARY"
+require_both_not_contain stderr "ERROR: jscpd found too many duplicates"
+
 run_case "threshold failure" 1 "$TARGET_REL" --threshold 10 --noTips "${COMMON_ARGS[@]}"
 require_both_contain stderr "$THRESHOLD_ERROR"
 

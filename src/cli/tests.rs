@@ -1,6 +1,6 @@
 use super::{
     Cli, FileConfig, Mode, Options, apply_config, normalize_reporters, parse_format_mappings,
-    parse_js_usize, parse_size, resolve_config_ignore,
+    parse_js_number, parse_js_usize, parse_size, resolve_config_ignore,
 };
 use clap::{CommandFactory, Parser};
 
@@ -38,6 +38,17 @@ fn parses_cli_integer_flags_like_upstream_parse_int() {
     assert!(parse_js_usize(".5").is_err());
     assert!(parse_js_usize("nope").is_err());
     assert!(parse_js_usize("-1").is_err());
+}
+
+#[test]
+fn parses_threshold_like_upstream_number() {
+    assert_eq!(parse_js_number("7").unwrap(), 7.0);
+    assert_eq!(parse_js_number("7.5").unwrap(), 7.5);
+    assert_eq!(parse_js_number("0x10").unwrap(), 16.0);
+    assert_eq!(parse_js_number("0b10").unwrap(), 2.0);
+    assert_eq!(parse_js_number("").unwrap(), 0.0);
+    assert!(parse_js_number("nope").unwrap().is_nan());
+    assert!(parse_js_number("true").unwrap().is_nan());
 }
 
 #[test]

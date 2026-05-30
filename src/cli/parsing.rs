@@ -66,6 +66,48 @@ pub(super) fn parse_js_usize(value: &str) -> std::result::Result<usize, String> 
     Ok(parsed)
 }
 
+pub(super) fn parse_js_number(value: &str) -> std::result::Result<f64, String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Ok(0.0);
+    }
+    if trimmed == "NaN" {
+        return Ok(f64::NAN);
+    }
+    if trimmed == "Infinity" || trimmed == "+Infinity" {
+        return Ok(f64::INFINITY);
+    }
+    if trimmed == "-Infinity" {
+        return Ok(f64::NEG_INFINITY);
+    }
+    if let Some(hex) = trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"))
+    {
+        return Ok(u64::from_str_radix(hex, 16)
+            .map(|value| value as f64)
+            .unwrap_or(f64::NAN));
+    }
+    if let Some(binary) = trimmed
+        .strip_prefix("0b")
+        .or_else(|| trimmed.strip_prefix("0B"))
+    {
+        return Ok(u64::from_str_radix(binary, 2)
+            .map(|value| value as f64)
+            .unwrap_or(f64::NAN));
+    }
+    if let Some(octal) = trimmed
+        .strip_prefix("0o")
+        .or_else(|| trimmed.strip_prefix("0O"))
+    {
+        return Ok(u64::from_str_radix(octal, 8)
+            .map(|value| value as f64)
+            .unwrap_or(f64::NAN));
+    }
+
+    Ok(trimmed.parse::<f64>().unwrap_or(f64::NAN))
+}
+
 pub(super) fn parse_size(value: &str) -> Result<u64> {
     let trimmed = value.trim();
     if let Some(bytes) = parse_bytes_unit(trimmed) {

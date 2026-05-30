@@ -15,7 +15,9 @@ mod tests;
 #[cfg(test)]
 use config::{FileConfig, resolve_config_ignore};
 use config::{apply_config, read_config, read_package_json_config};
-use parsing::{compile_patterns, parse_format_mappings, parse_js_usize, parse_size, split_csv};
+use parsing::{
+    compile_patterns, parse_format_mappings, parse_js_number, parse_js_usize, parse_size, split_csv,
+};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -77,6 +79,7 @@ pub struct Cli {
         value_name = "number",
         num_args = 0..=1,
         default_missing_value = "1",
+        value_parser = parse_js_number,
         help = "threshold for duplication, in case duplications >= threshold jscpd will exit with error"
     )]
     pub threshold: Option<f64>,
