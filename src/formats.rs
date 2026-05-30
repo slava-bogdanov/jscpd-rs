@@ -13,6 +13,8 @@ const EXTENSION_FORMATS: &[(&str, &str)] = &[
     ("go", "go"),
     ("java", "java"),
     ("js", "javascript"),
+    ("es", "javascript"),
+    ("es6", "javascript"),
     ("cjs", "javascript"),
     ("mjs", "javascript"),
     ("jsx", "jsx"),
@@ -100,6 +102,21 @@ mod tests {
         assert_eq!(
             super::format_for_path(Path::new("index.cts"), &formats_exts, &formats_names),
             Some("typescript")
+        );
+    }
+
+    #[test]
+    fn maps_javascript_module_extensions_like_upstream() {
+        let formats_exts = FormatMappings::default();
+        let formats_names = FormatMappings::default();
+
+        assert_eq!(
+            super::format_for_path(Path::new("index.es"), &formats_exts, &formats_names),
+            Some("javascript")
+        );
+        assert_eq!(
+            super::format_for_path(Path::new("index.es6"), &formats_exts, &formats_names),
+            Some("javascript")
         );
     }
 }
