@@ -45,6 +45,17 @@ This smoke check runs both implementations from a real `.jscpd.json`, including
 relative `path`, config `output`, `silent`, JSON reporter setup, and
 order-sensitive `formatsExts` object mappings.
 
+Aggregate gate:
+
+```bash
+scripts/release-gate.sh
+FULL=1 scripts/release-gate.sh
+```
+
+The default run covers formatting, unit tests, shell syntax, and fast
+CLI/config/reporter compatibility checks. `FULL=1` also runs the full
+coverage-first compatibility matrix and is required before publication.
+
 ## Current Matrix
 
 | Target | Format | Gate | Notes |
