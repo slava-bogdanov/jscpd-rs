@@ -25,8 +25,6 @@ mod xml;
 pub use threshold::ThresholdExceeded;
 
 pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> {
-    warn_unknown_reporters(options);
-
     for reporter in &options.reporters {
         match reporter.as_str() {
             "console" if !options.silent => console::write(result, options),
@@ -48,6 +46,12 @@ pub fn write_reports(result: &DetectionResult, options: &Options) -> Result<()> 
     Ok(())
 }
 
+pub fn write_unknown_reporter_warnings(options: &Options) {
+    for message in unknown_reporter_messages(options) {
+        println!("{message}");
+    }
+}
+
 pub fn write_progress(result: &DetectionResult, options: &Options) {
     if !should_write_progress(options) {
         return;
@@ -66,12 +70,6 @@ fn progress_output(result: &DetectionResult, options: &Options) -> String {
         output.push('\n');
     }
     output
-}
-
-fn warn_unknown_reporters(options: &Options) {
-    for message in unknown_reporter_messages(options) {
-        println!("{message}");
-    }
 }
 
 fn is_builtin_reporter(reporter: &str) -> bool {

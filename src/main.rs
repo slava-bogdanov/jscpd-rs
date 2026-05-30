@@ -45,6 +45,7 @@ fn run() -> Result<()> {
     }
 
     print_store_warning(&options);
+    report::write_unknown_reporter_warnings(&options);
 
     let started = Instant::now();
     if files.is_empty() {

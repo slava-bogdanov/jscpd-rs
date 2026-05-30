@@ -190,6 +190,43 @@ require_count() {
   fi
 }
 
+require_both_before() {
+  local stream="$1"
+  local first="$2"
+  local second="$3"
+  local rust_file="$LAST_CASE_DIR/rust.$stream.clean"
+  local upstream_file="$LAST_CASE_DIR/upstream.$stream.clean"
+
+  require_before "$rust_file" "$first" "$second" "rust $stream"
+  require_before "$upstream_file" "$first" "$second" "upstream $stream"
+}
+
+require_before() {
+  local file="$1"
+  local first="$2"
+  local second="$3"
+  local label="$4"
+
+  node --input-type=module - "$file" "$first" "$second" "$label" <<'NODE'
+import fs from 'node:fs';
+
+const [file, first, second, label] = process.argv.slice(2);
+const content = fs.readFileSync(file, 'utf8');
+const firstIndex = content.indexOf(first);
+const secondIndex = content.indexOf(second);
+
+if (firstIndex === -1 || secondIndex === -1 || firstIndex > secondIndex) {
+  console.error(`${label} expected "${first}" before "${second}"`);
+  process.exit(1);
+}
+NODE
+  local code=$?
+  if [[ "$code" != "0" ]]; then
+    print_case "$LAST_CASE_DIR"
+    return "$code"
+  fi
+}
+
 require_both_match() {
   local stream="$1"
   local pattern="$2"
@@ -515,6 +552,7 @@ require_both_contain stdout "$TIME_REPORTER_WARNING"
 require_both_contain stdout "$TIME_REPORTER_MODULE_ERROR"
 require_both_contain stdout "Clone found (c):"
 require_both_contain stdout "time:"
+require_both_before stdout "$TIME_REPORTER_WARNING" "Clone found (c):"
 
 run_case_without_ci "terminal footer tips" 0 "$TARGET_REL" --reporters silent "${COMMON_ARGS[@]}"
 require_both_contain stdout "time:"
