@@ -593,6 +593,13 @@ pub fn resolve_node_exit_code(exit_code: &ExitCode) -> std::result::Result<i32, 
     parsing::node_exit_code(exit_code).map_err(|error| error.message())
 }
 
+pub fn store_warning(options: &Options) -> Option<String> {
+    options
+        .store
+        .as_ref()
+        .map(|store| format!("store name {store} not installed."))
+}
+
 pub(super) fn parse_mode(value: &str) -> Result<Mode> {
     match value {
         "strict" => Ok(Mode::Strict),

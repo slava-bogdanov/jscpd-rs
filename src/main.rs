@@ -93,16 +93,9 @@ fn print_debug(options: &Options, files: &[SourceFile]) {
 }
 
 fn print_store_warning(options: &Options) {
-    if let Some(warning) = store_warning(options) {
+    if let Some(warning) = cli::store_warning(options) {
         eprintln!("{warning}");
     }
-}
-
-fn store_warning(options: &Options) -> Option<String> {
-    options
-        .store
-        .as_ref()
-        .map(|store| format!("store name {store} not installed."))
 }
 
 fn print_terminal_footer(options: &Options, elapsed: Duration) {
@@ -393,10 +386,10 @@ mod tests {
         };
 
         assert_eq!(
-            store_warning(&options).as_deref(),
+            cli::store_warning(&options).as_deref(),
             Some("store name leveldb not installed.")
         );
-        assert!(store_warning(&Options::default()).is_none());
+        assert!(cli::store_warning(&Options::default()).is_none());
     }
 
     #[test]

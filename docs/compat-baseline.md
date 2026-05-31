@@ -453,10 +453,10 @@ Latest public benchmark measurements:
   option-surface compatibility only for now: the upstream CLI/reference code
   defines or merges these fields, but does not consume them in the detection,
   tokenizer, reporter, or store runtime.
-- `--store <name>` currently follows the upstream missing-store fallback shape:
-  it warns that the store package is not installed and continues with in-memory
-  detection. Dynamic loading of external store packages remains an
-  implementation gap.
+- `--store <name>` currently follows the upstream missing-store fallback shape
+  in both CLI and server entrypoints: it warns that the store package is not
+  installed and continues with in-memory detection. Dynamic loading of external
+  store packages remains an implementation gap.
 - `--debug` is a dry run like upstream: it prints JS-style option fields and
   discovered files, then exits before clone detection and reporter execution.
 - Explicit `--config` paths are resolved lexically like Node `path.resolve()`,

@@ -1,7 +1,7 @@
 use super::{
     BARE_CONFIG_VALUE, Cli, ExitCode, FileConfig, Mode, Options, apply_config,
     apply_gitignore_patterns_from, normalize_reporters, parse_format_mappings, parse_js_number,
-    parse_js_usize, parse_size, resolve_config_ignore, resolve_node_exit_code,
+    parse_js_usize, parse_size, resolve_config_ignore, resolve_node_exit_code, store_warning,
 };
 use clap::{CommandFactory, Parser};
 
@@ -451,6 +451,21 @@ fn parses_upstream_workflow_options() {
         options.reporters_options["badge"]["subject"].as_str(),
         Some("Duplication")
     );
+}
+
+#[test]
+fn store_warning_matches_upstream_missing_store_fallback() {
+    let options = Options {
+        store: Some("leveldb".to_string()),
+        ..Options::default()
+    };
+
+    assert_eq!(
+        store_warning(&options).as_deref(),
+        Some("store name leveldb not installed.")
+    );
+
+    assert!(store_warning(&Options::default()).is_none());
 }
 
 #[test]

@@ -17,7 +17,7 @@ use serde_json::Value;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
-use crate::cli::Options;
+use crate::cli::{Options, store_warning};
 use crate::detector::{DetectionResult, Fragment, Statistics};
 use crate::detector::{PreparedSourceDraft, detect_prepared_drafts, prepare_source_drafts};
 use crate::files::{self, SourceFile};
@@ -221,6 +221,9 @@ pub fn create_router(service: ServerService) -> Router {
 }
 
 pub async fn serve(options: Options, host: &str, port: u16) -> Result<()> {
+    if let Some(warning) = store_warning(&options) {
+        eprintln!("{warning}");
+    }
     let working_directory = server_working_directory(&options);
     let service = ServerService::new(working_directory, options);
     service.initialize()?;
