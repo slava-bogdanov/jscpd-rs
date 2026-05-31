@@ -4,12 +4,12 @@ Baseline date: 2026-05-31.
 
 Latest full release gate:
 `FULL=1 PUBLIC=1 scripts/release-gate.sh`
-passed on 2026-05-31 at code commit `04563ac` as part of
+passed on 2026-05-31 at code commit `d1c759c` as part of
 `scripts/release-candidate.sh`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
-passed on 2026-05-31 at code commit `04563ac` as part of
+passed on 2026-05-31 at code commit `d1c759c` as part of
 `scripts/release-candidate.sh`.
 
 Default gate:
@@ -183,22 +183,22 @@ workflow dispatch exposes `full`, `public`, `release_candidate`, and
 release-candidate gates.
 
 Latest local release-candidate check: `scripts/release-candidate.sh` passed on
-2026-05-31 at code commit `04563ac`, covering
+2026-05-31 at code commit `d1c759c`, covering
 `cargo clippy --all-targets -- -D warnings`, the default release gate, the full
 coverage matrix, and the public benchmark/coverage suite.
 
 Latest GitHub Actions release-candidate check:
 `workflow_dispatch release_candidate=true public_runs=3` passed on 2026-05-31
-at code commit `39a6a70`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26699415410
+at code commit `d1c759c`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26700182707
 
 Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.185054s | 9.880061s | 53.39x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.246471s | 14.149835s | 57.41x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.068917s | 4.609267s | 66.88x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.183285s | 10.080480s | 55.00x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.242917s | 14.249136s | 58.66x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.071890s | 4.542392s | 63.19x | pass |
 
 ## Current Matrix
 
@@ -500,9 +500,9 @@ project tree:
 
 | Target | Commit | Format | Rust avg | Upstream avg | Approx speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `facebook/react` | `f0dfee3` | `javascript` | `0.185054s` | `9.880061s` | `53.39x` |
-| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.246471s` | `14.149835s` | `57.41x` |
-| `prometheus/prometheus` | `a0524ee` | `go` | `0.068917s` | `4.609267s` | `66.88x` |
+| `facebook/react` | `f0dfee3` | `javascript` | `0.183285s` | `10.080480s` | `55.00x` |
+| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.242917s` | `14.249136s` | `58.66x` |
+| `prometheus/prometheus` | `a0524ee` | `go` | `0.071890s` | `4.542392s` | `63.19x` |
 
 ## Additional Mode Checks
 
