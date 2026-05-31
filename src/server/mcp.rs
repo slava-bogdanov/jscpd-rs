@@ -637,6 +637,7 @@ mod tests {
             .get(MCP_SESSION_ID)
             .and_then(|value| value.to_str().ok())
             .expect("session id");
+        assert_uuid_v4_shape(session_id);
         assert!(service.has_mcp_session(session_id));
         fs::remove_dir_all(path).ok();
     }
@@ -668,6 +669,26 @@ mod tests {
             assert_eq!(tool["execution"]["taskSupport"], "forbidden");
         }
         fs::remove_dir_all(path).ok();
+    }
+
+    fn assert_uuid_v4_shape(session_id: &str) {
+        let bytes = session_id.as_bytes();
+        assert_eq!(session_id.len(), 36);
+        assert_eq!(bytes[8], b'-');
+        assert_eq!(bytes[13], b'-');
+        assert_eq!(bytes[18], b'-');
+        assert_eq!(bytes[23], b'-');
+        assert_eq!(bytes[14], b'4');
+        assert!(
+            matches!(bytes[19], b'8' | b'9' | b'a' | b'b'),
+            "UUID v4 variant nibble should be 8, 9, a, or b"
+        );
+        for (index, byte) in bytes.iter().enumerate() {
+            if matches!(index, 8 | 13 | 18 | 23) {
+                continue;
+            }
+            assert!(byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase());
+        }
     }
 
     #[tokio::test]

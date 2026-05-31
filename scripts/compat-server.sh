@@ -448,6 +448,10 @@ NODE
     sed -n '1,80p' "$mcp_headers" >&2
     return 1
   fi
+  if [[ ! "$session_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+    printf '%s MCP initialize returned non-UUID-v4 session id: %s\n' "$label" "$session_id" >&2
+    return 1
+  fi
   local mcp_tools_headers="$dir/mcp-tools-headers.txt"
   http_json "$dir/mcp-tools.json" 200 \
     -D "$mcp_tools_headers" \

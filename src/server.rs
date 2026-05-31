@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::Write as _;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
@@ -38,7 +39,6 @@ struct ServiceState {
     last_scan_time: Option<String>,
     is_scanning: bool,
     snippet_counter: u64,
-    mcp_counter: u64,
     mcp_sessions: HashSet<String>,
 }
 
@@ -53,7 +53,6 @@ impl ServerService {
                 last_scan_time: None,
                 is_scanning: false,
                 snippet_counter: 0,
-                mcp_counter: 0,
                 mcp_sessions: HashSet::new(),
             })),
         }
@@ -174,9 +173,7 @@ impl ServerService {
 
     pub(crate) fn create_mcp_session(&self) -> String {
         let mut state = self.state.write().expect("server state lock poisoned");
-        let timestamp = OffsetDateTime::now_utc().unix_timestamp_nanos();
-        let session_id = format!("{timestamp:x}-{:08x}", state.mcp_counter);
-        state.mcp_counter += 1;
+        let session_id = new_mcp_session_id();
         state.mcp_sessions.insert(session_id.clone());
         session_id
     }
@@ -498,6 +495,21 @@ fn now_rfc3339() -> String {
     OffsetDateTime::now_utc()
         .format(&Rfc3339)
         .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
+}
+
+fn new_mcp_session_id() -> String {
+    let mut bytes = [0u8; 16];
+    getrandom::getrandom(&mut bytes).expect("OS random unavailable for MCP session id");
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    let mut session_id = String::with_capacity(36);
+    for (index, byte) in bytes.iter().enumerate() {
+        if matches!(index, 4 | 6 | 8 | 10) {
+            session_id.push('-');
+        }
+        write!(&mut session_id, "{byte:02x}").expect("write to string");
+    }
+    session_id
 }
 
 const SCAN_IN_PROGRESS: &str = "Please wait for initial scan to complete";
