@@ -1,7 +1,7 @@
 use axum::Json;
 use axum::body::{Bytes, to_bytes};
 use axum::extract::State;
-use axum::http::header::ALLOW;
+use axum::http::header::{ALLOW, CONTENT_TYPE};
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde_json::{Map, Value, json};
@@ -26,12 +26,6 @@ pub(super) async fn post_mcp(
         );
     }
 
-    let payload = match serde_json::from_slice::<Value>(&body) {
-        Ok(payload) => payload,
-        Err(error) => {
-            return syntax_error_response(super::json_syntax_error_message(&body, &error));
-        }
-    };
     let session_id = headers
         .get(MCP_SESSION_ID)
         .and_then(|value| value.to_str().ok())
@@ -39,6 +33,21 @@ pub(super) async fn post_mcp(
     let has_valid_session = session_id
         .as_deref()
         .is_some_and(|session_id| service.has_mcp_session(session_id));
+
+    if !has_json_content_type(&headers) {
+        return if has_valid_session {
+            unsupported_media_type_response()
+        } else {
+            bad_session_response()
+        };
+    }
+
+    let payload = match serde_json::from_slice::<Value>(&body) {
+        Ok(payload) => payload,
+        Err(error) => {
+            return syntax_error_response(super::json_syntax_error_message(&body, &error));
+        }
+    };
     let mut response = match payload {
         Value::Array(messages) => handle_mcp_batch(service, session_id.as_deref(), messages).await,
         payload => handle_mcp_request(service, session_id.as_deref(), payload).await,
@@ -369,6 +378,31 @@ fn accepts_mcp_response(headers: &HeaderMap) -> bool {
     accept.contains("application/json") && accept.contains("text/event-stream")
 }
 
+fn has_json_content_type(headers: &HeaderMap) -> bool {
+    let Some(content_type) = headers
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+    else {
+        return false;
+    };
+    let mime = content_type
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    mime == "application/json" || mime.ends_with("+json")
+}
+
+fn unsupported_media_type_response() -> Response {
+    jsonrpc_error(
+        StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        Value::Null,
+        -32000,
+        "Unsupported Media Type: Content-Type must be application/json",
+    )
+}
+
 fn syntax_error_response(message: String) -> Response {
     (
         StatusCode::BAD_REQUEST,
@@ -559,6 +593,15 @@ mod tests {
         headers
     }
 
+    fn mcp_headers_with_content_type(session_id: Option<&str>, content_type: &str) -> HeaderMap {
+        let mut headers = mcp_headers(session_id);
+        headers.insert(
+            CONTENT_TYPE,
+            HeaderValue::from_str(content_type).expect("content-type header"),
+        );
+        headers
+    }
+
     #[tokio::test]
     async fn mcp_initialize_creates_session() {
         let path = fixture_project();
@@ -729,6 +772,69 @@ mod tests {
         assert!(
             headers.get(MCP_SESSION_ID).is_none(),
             "upstream does not echo session IDs on accepted notifications"
+        );
+        fs::remove_dir_all(path).ok();
+    }
+
+    #[tokio::test]
+    async fn mcp_rejects_unsupported_content_type_like_upstream_sdk() {
+        let path = fixture_project();
+        let service = service_for(&path);
+        let initialize_payload = Bytes::from(
+            json!({
+                "jsonrpc": "2.0",
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": { "name": "test-client", "version": "1.0.0" },
+                },
+                "id": 1,
+            })
+            .to_string(),
+        );
+
+        let response = post_mcp(
+            State(service.clone()),
+            mcp_headers_with_content_type(None, "text/plain"),
+            initialize_payload,
+        )
+        .await;
+        let (status, _headers, body) = response_json(response).await;
+
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(body["error"]["code"], -32000);
+        assert_eq!(
+            body["error"]["message"],
+            "Bad Request: No valid session ID provided"
+        );
+
+        let session_id = service.create_mcp_session();
+        let response = post_mcp(
+            State(service),
+            mcp_headers_with_content_type(Some(&session_id), "text/plain"),
+            Bytes::from(
+                json!({
+                    "jsonrpc": "2.0",
+                    "method": "tools/list",
+                    "id": 2,
+                })
+                .to_string(),
+            ),
+        )
+        .await;
+        let (status, headers, body) = response_json(response).await;
+
+        assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE);
+        assert_eq!(body["id"], Value::Null);
+        assert_eq!(body["error"]["code"], -32000);
+        assert_eq!(
+            body["error"]["message"],
+            "Unsupported Media Type: Content-Type must be application/json"
+        );
+        assert!(
+            headers.get(MCP_SESSION_ID).is_none(),
+            "upstream SDK does not echo session IDs on unsupported media type errors"
         );
         fs::remove_dir_all(path).ok();
     }

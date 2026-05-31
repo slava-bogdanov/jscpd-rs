@@ -493,6 +493,16 @@ NODE
     -H "mcp-session-id: $session_id" \
     -d '{"jsonrpc":"2.0","method":"resources/read","params":{"uri":"jscpd://statistics"},"id":4}' \
     "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-init-form-content-type.json" 400 \
+    -H 'Accept: application/json, text/event-stream' \
+    -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"compat-server","version":"1.0.0"}},"id":17}' \
+    "http://127.0.0.1:$port/mcp"
+  http_json "$dir/mcp-tools-text-content-type.json" 415 \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'Content-Type: text/plain' \
+    -H "mcp-session-id: $session_id" \
+    -d '{"jsonrpc":"2.0","method":"tools/list","id":18}' \
+    "http://127.0.0.1:$port/mcp"
   http_json "$dir/mcp-no-accept.json" 406 \
     -H 'Content-Type: application/json' \
     -H "mcp-session-id: $session_id" \
@@ -680,6 +690,15 @@ assert(checkCurrentDirectory.result?.content?.[0]?.text?.includes('timestamp'), 
 const resource = read('mcp-resource.json');
 assert(resource.result?.contents?.[0]?.uri === 'jscpd://statistics', `${label} mcp resource`);
 assert(!Object.hasOwn(resource.result?.contents?.[0] ?? {}, 'mimeType'), `${label} mcp resource read content mimeType`);
+
+const initFormContentType = read('mcp-init-form-content-type.json');
+assert(initFormContentType.error?.code === -32000, `${label} mcp init form content-type code`);
+assert(initFormContentType.error?.message === 'Bad Request: No valid session ID provided', `${label} mcp init form content-type message`);
+
+const toolsTextContentType = read('mcp-tools-text-content-type.json');
+assert(toolsTextContentType.error?.code === -32000, `${label} mcp tools text content-type code`);
+assert(toolsTextContentType.error?.message === 'Unsupported Media Type: Content-Type must be application/json', `${label} mcp tools text content-type message`);
+assert(toolsTextContentType.id === null, `${label} mcp tools text content-type id`);
 
 const noAccept = read('mcp-no-accept.json');
 assert(noAccept.error?.code === -32000, `${label} mcp no accept code`);

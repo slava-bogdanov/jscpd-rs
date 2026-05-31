@@ -110,11 +110,12 @@ snippets, JSON content-type headers, JSON syntax errors, upstream-style JSON
 initialize/session handling, `tools/list`,
 `resources/list`, `get_statistics`, `check_duplication` with `recheck`,
 `check_current_directory`, `jscpd://statistics`, and `GET /mcp` method
-rejection. It also checks upstream-style `DELETE /mcp` and
-`OPTIONS /mcp` JSON 404 responses plus JSON-RPC single-request and multi-request
-batch handling. Stable MCP SDK-shaped responses for `initialize`, `tools/list`,
-`resources/list`, and batch list/resource requests are compared exactly against
-upstream, with only the package version normalized.
+rejection. It also checks upstream-style MCP `Content-Type` rejection,
+`DELETE /mcp` and `OPTIONS /mcp` JSON 404 responses, plus JSON-RPC
+single-request and multi-request batch handling. Stable MCP SDK-shaped
+responses for `initialize`, `tools/list`, `resources/list`, and batch
+list/resource requests are compared exactly against upstream, with only the
+package version normalized.
 
 Package/install gate:
 
