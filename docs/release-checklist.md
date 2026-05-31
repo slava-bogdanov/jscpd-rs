@@ -20,6 +20,15 @@ GitHub Actions default `release-gate` must pass on the exact pushed commit
 being published. Check the current run in GitHub Actions after the final push;
 the publish blocker below is the authoritative gate.
 
+Latest GitHub Actions release-candidate gate:
+
+```text
+workflow_dispatch release_candidate=true public_runs=3
+```
+
+Passed on 2026-05-31 at code commit `39a6a70`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26699415410
+
 Public benchmark summary from the latest release-candidate run:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |

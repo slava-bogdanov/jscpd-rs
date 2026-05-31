@@ -186,6 +186,11 @@ Latest local release-candidate check: `scripts/release-candidate.sh` passed on
 `cargo clippy --all-targets -- -D warnings`, the default release gate, the full
 coverage matrix, and the public benchmark/coverage suite.
 
+Latest GitHub Actions release-candidate check:
+`workflow_dispatch release_candidate=true public_runs=3` passed on 2026-05-31
+at code commit `39a6a70`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26699415410
+
 Latest public benchmark measurements:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
