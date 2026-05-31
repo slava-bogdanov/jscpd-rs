@@ -99,15 +99,15 @@ These are not publication blockers for the first release:
 Run from the repository root:
 
 ```bash
-git status --short
-git submodule status jscpd
-git tag -l 'v0.1.0'
-git ls-remote --tags origin 'refs/tags/v0.1.0'
-cargo search jscpd-rs --limit 5
-scripts/release-candidate.sh
-scripts/package-check.sh
-cargo publish --dry-run --locked
+scripts/prepublish-check.sh
 ```
+
+The script checks clean git state, the reviewed `jscpd` submodule reference,
+local and remote tag availability, exact crate-name availability through
+`cargo search`, benchmark-number consistency across release docs, the full
+release-candidate gate, package/install validation, and
+`cargo publish --dry-run --locked`. Set `RUN_RELEASE_CANDIDATE=0` only when the
+same code commit already has fresh local and CI release-candidate evidence.
 
 Then push the exact release commit and verify the GitHub Actions
 `release-gate` result. Use the workflow dispatch `release_candidate` input for a
