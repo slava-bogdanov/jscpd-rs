@@ -55,25 +55,31 @@ fi
 printf 'cargo search found no exact %s crate\n' "$CRATE_NAME"
 
 section "benchmark docs consistency"
-required_benchmark_rows=(
-  "0.189897s | 9.879855s | 52.03x"
-  "0.245680s | 14.249817s | 58.00x"
-  "0.076644s | 4.509250s | 58.83x"
-)
+benchmark_source="docs/compat-baseline.md"
+benchmark_cases=(react next prometheus)
 benchmark_docs=(
   "README.md"
   "docs/compat-baseline.md"
   "docs/public-benchmark-suite.md"
+  "docs/release-checklist.md"
   "CHANGELOG.md"
 )
-for doc in "${benchmark_docs[@]}"; do
-  for row in "${required_benchmark_rows[@]}"; do
-    if ! grep -Fq "$row" "$doc"; then
-      fail "$doc is missing benchmark row fragment: $row"
+for case in "${benchmark_cases[@]}"; do
+  row="$(grep -E "^\| \`${case}\` \|" "$benchmark_source" | head -n1)"
+  if [[ -z "$row" ]]; then
+    fail "$benchmark_source is missing benchmark row for $case"
+  fi
+  fragment="$(awk -F'|' '{for (i = 5; i <= 7; i++) {gsub(/^[ \t]+|[ \t]+$/, "", $i); printf "%s%s", $i, (i < 7 ? " | " : "")}}' <<<"$row")"
+  if [[ -z "$fragment" ]]; then
+    fail "could not extract benchmark numbers for $case from $benchmark_source"
+  fi
+  for doc in "${benchmark_docs[@]}"; do
+    if ! grep -Fq "$fragment" "$doc"; then
+      fail "$doc is missing benchmark row fragment for $case: $fragment"
     fi
   done
 done
-printf 'benchmark rows are present in README, compat baseline, public suite docs, and changelog\n'
+printf 'benchmark rows are consistent across release docs using %s as source\n' "$benchmark_source"
 
 if [[ "$RUN_RELEASE_CANDIDATE" == "1" ]]; then
   section "release candidate gate"

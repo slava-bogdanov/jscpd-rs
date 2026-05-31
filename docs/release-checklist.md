@@ -12,7 +12,7 @@ Latest full local prepublish gate:
 scripts/prepublish-check.sh
 ```
 
-Passed on 2026-05-31 at code commit `65cb0c2`. This includes
+Passed on 2026-05-31 at code commit `5c6e70f`. This includes
 `scripts/release-candidate.sh`, package/install verification, crate/tag
 availability checks, and `cargo publish --dry-run --locked`. Later documentation-only
 commits may reuse this evidence if they do not change code, scripts, package
@@ -35,9 +35,9 @@ Recorded public benchmark baseline for this release candidate:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.189897s | 9.879855s | 52.03x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.245680s | 14.249817s | 58.00x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.076644s | 4.509250s | 58.83x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.191518s | 9.880031s | 51.59x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.244980s | 14.282986s | 58.30x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.077275s | 4.609228s | 59.65x | pass |
 
 ## Publish Blockers
 
