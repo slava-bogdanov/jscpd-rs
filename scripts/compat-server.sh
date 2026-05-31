@@ -351,19 +351,31 @@ check_server_http() {
   local dir="$TMP_ROOT/$label-http"
   mkdir -p "$dir"
 
-  node --input-type=module - "$dir/check-large-payload.json" "$dir/check-special-payload.json" <<'NODE'
+  node --input-type=module - "$dir/check-large-payload.json" "$dir/check-special-payload.json" "$dir/check-isolation-payload.json" <<'NODE'
 import fs from 'node:fs';
 
-const [largePath, specialPath] = process.argv.slice(2);
+const [largePath, specialPath, isolationPath] = process.argv.slice(2);
 const largeCode = Array.from({ length: 100 }, (_, i) => `const variable${i} = ${i};`).join('\n');
 const specialCode = [
   `const str = "Hello, ${String.fromCodePoint(0x4e16, 0x754c)}! ${String.fromCodePoint(0x1f30d)}";`,
   'const regex = /[a-z]+/gi;',
   'const template = `${str}`;',
 ].join('\n');
+const isolationCode = [
+  'function uniqueSnippetIsolation() {',
+  '  const isolationValue1 = "alpha";',
+  '  const isolationValue2 = "beta";',
+  '  const isolationValue3 = "gamma";',
+  '  const isolationValue4 = "delta";',
+  '  const isolationValue5 = "epsilon";',
+  '  const isolationValue6 = "zeta";',
+  '  return isolationValue1 + isolationValue2;',
+  '}',
+].join('\n');
 
 fs.writeFileSync(largePath, JSON.stringify({ code: largeCode, format: 'javascript' }));
 fs.writeFileSync(specialPath, JSON.stringify({ code: specialCode, format: 'javascript' }));
+fs.writeFileSync(isolationPath, JSON.stringify({ code: isolationCode, format: 'javascript' }));
 NODE
 
   http_json_with_headers "$dir/root.json" "$dir/root.headers" 200 "http://127.0.0.1:$port/"
@@ -385,6 +397,14 @@ NODE
   http_json "$dir/check-special.json" 200 \
     -H 'Content-Type: application/json' \
     -d @"$dir/check-special-payload.json" \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-isolation-1.json" 200 \
+    -H 'Content-Type: application/json' \
+    -d @"$dir/check-isolation-payload.json" \
+    "http://127.0.0.1:$port/api/check"
+  http_json "$dir/check-isolation-2.json" 200 \
+    -H 'Content-Type: application/json' \
+    -d @"$dir/check-isolation-payload.json" \
     "http://127.0.0.1:$port/api/check"
   http_json "$dir/check-missing-code.json" 400 \
     -H 'Content-Type: application/json' \
@@ -607,15 +627,33 @@ for (const file of ['check-json.json', 'check-form.json']) {
   assert(Array.isArray(body.duplications), `${label} ${file} duplications`);
   assert(typeof body.statistics?.totalDuplications === 'number', `${label} ${file} totalDuplications`);
   assert(typeof body.statistics?.percentageDuplicated === 'number', `${label} ${file} percentageDuplicated`);
+  assertNoSnippetCodebase(body, file);
 }
 
 const large = read('check-large.json');
 assert(Array.isArray(large.duplications), `${label} large snippet duplications`);
 assert(large.statistics?.totalLines === 100, `${label} large snippet totalLines`);
+assertNoSnippetCodebase(large, 'check-large.json');
 
 const special = read('check-special.json');
 assert(Array.isArray(special.duplications), `${label} special chars duplications`);
 assert(typeof special.statistics?.totalLines === 'number', `${label} special chars totalLines`);
+assertNoSnippetCodebase(special, 'check-special.json');
+
+const isolation1 = read('check-isolation-1.json');
+const isolation2 = read('check-isolation-2.json');
+assert(Array.isArray(isolation1.duplications), `${label} isolation first duplications`);
+assert(Array.isArray(isolation2.duplications), `${label} isolation second duplications`);
+assertNoSnippetCodebase(isolation1, 'check-isolation-1.json');
+assertNoSnippetCodebase(isolation2, 'check-isolation-2.json');
+assert(
+  JSON.stringify(isolation2.duplications) === JSON.stringify(isolation1.duplications),
+  `${label} repeated snippets should not detect previous snippets`,
+);
+assert(
+  isolation2.statistics?.totalDuplications === isolation1.statistics?.totalDuplications,
+  `${label} repeated snippet duplication count should stay stable`,
+);
 
 const missingCode = read('check-missing-code.json');
 assert(missingCode.error === 'ValidationError', `${label} missing code error`);
@@ -759,6 +797,15 @@ function assert(condition, message) {
   if (!condition) {
     console.error(message);
     process.exit(1);
+  }
+}
+
+function assertNoSnippetCodebase(body, file) {
+  for (const duplication of body.duplications ?? []) {
+    assert(
+      !String(duplication.codebaseLocation?.file ?? '').includes('<snippet>'),
+      `${label} ${file} leaked snippet path into codebaseLocation`,
+    );
   }
 }
 NODE
