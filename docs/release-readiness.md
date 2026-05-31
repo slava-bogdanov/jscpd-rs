@@ -20,7 +20,7 @@ current implementation status.
 | Embedded/block formats | ready | Markdown, markup, Vue, Svelte, Astro, Apex, and TAP have native block handling where needed for upstream coverage. |
 | Built-in reporters | ready | `ai`, `console`, `consoleFull`, `csv`, `html`, `json`, `markdown`, `silent`, `sarif`, `threshold`, `xcode`, `xml`, and `badge`; file reporters are gated for clone and no-duplicate reports. |
 | Blame | ready | Native `git blame -w` data is populated and gated by `scripts/compat-blame.sh`. |
-| Native Rust API | ready | `detect_clones`, `detect_clones_and_statistic`, `detect_clones_and_statistics`, `detect_source_files`, default options, argv option parsing, supported formats, and format lookup helpers expose the detector core for path-based and in-memory integrations. See `docs/api-parity.md`. |
+| Native Rust API | ready | `jscpd`, `jscpd_with_exit_callback`, `detect_clones`, `detect_clones_and_statistic`, `detect_clones_and_statistics`, `detect_source_files`, default options, argv option parsing, supported formats, and format lookup helpers expose the app and detector core for path-based and in-memory integrations. See `docs/api-parity.md`. |
 | Native server | partial | `jscpd-server` exposes `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`; exact help text, stable CLI, HTTP success/error, and MCP contracts are gated; `/api/check` reuses prepared project token maps; exact upstream Streamable HTTP SDK behavior remains follow-up. |
 | Performance harness | ready | Local benchmark script and public benchmark suite with pinned output recording and speedup gates. |
 | Release gates | ready | Default CI gate, full compatibility matrix, package check, reporter/config/CLI/blame gates. |
@@ -34,7 +34,7 @@ current implementation status.
 | Token totals | diagnostic | Native token streams may differ from Prism. Keep report-visible clone coverage as the gate. |
 | HTML reporter polish | practical parity | Keep self-contained HTML stable. Do not chase pixel-perfect upstream parity for the first release. |
 | Terminal cosmetics | practical parity | Important messages are gated; exact wrapping/order remains lower priority. |
-| Upstream JavaScript API parity | follow-up | Native Rust helpers cover the practical app/tokenizer concepts; exact JS package export shape is not implemented in the Rust crate. See `docs/api-parity.md`. |
+| Upstream JavaScript API parity | follow-up | Native Rust helpers cover the practical app/tokenizer concepts, including an embeddable argv runner; exact JS package export shape is not implemented in the Rust crate. See `docs/api-parity.md`. |
 | Server snippet matching | optimized baseline | Native `/api/check` and MCP `check_duplication` are functional and reuse project token maps from the last scan; add a dedicated window index only if real server benchmarks require it. |
 | Latest full publication gate | ready | `scripts/prepublish-check.sh` passed locally on code commit `5c6e70f`, including `scripts/release-candidate.sh`, package/install verification, crate/tag availability checks, and `cargo publish --dry-run --locked`. GitHub Actions `workflow_dispatch release_candidate=true public_runs=3` passed on code commit `ce5f649`; later documentation-only commits may reuse this evidence. |
 

@@ -13,7 +13,7 @@ wrapper unless that is chosen as a separate release target.
 | --- | --- | --- |
 | `detectClones(opts, store?, statisticProvider?)` | covered | Use `detect_clones(&Options)` for path-based detection. Custom store/statistic providers are not exposed for the first release. |
 | `detectClonesAndStatistic(opts, store?)` | covered | Use `detect_clones_and_statistic(&Options)`. `detect_clones_and_statistics(&Options)` remains the idiomatic Rust spelling. |
-| `jscpd(argv, exitCallback?)` | partial | Use the `jscpd` binary for argv-compatible behavior. Native integrations can use `get_options_from_args(args)` plus `detect_clones*`; an embeddable runner with exit-callback semantics is not exposed yet. |
+| `jscpd(argv, exitCallback?)` | covered natively | Use the `jscpd` binary for process behavior, `jscpd(args)` for embeddable argv execution, or `jscpd_with_exit_callback(args, callback)` for upstream-style duplicate exit callback semantics. Exact JavaScript package export shape is not implemented. |
 
 ## Core And Tokenizer Helpers
 
@@ -36,8 +36,8 @@ wrapper unless that is chosen as a separate release target.
 
 - Decide later whether a JavaScript package wrapper is worth shipping. The
   current recommendation is to keep the first release native-only.
-- Expose an embeddable argv runner if users need programmatic CLI execution
-  with upstream-style `exitCallback` semantics instead of argv parsing plus the
-  detector API.
+- Keep `jscpd(args)` / `jscpd_with_exit_callback(args, callback)` as the native
+  embeddable path; add a JavaScript wrapper only if publishing an npm package
+  becomes an explicit target.
 - Keep custom store/reporter/provider APIs out of the release path until a real
   integration requires native hooks.

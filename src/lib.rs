@@ -1,3 +1,4 @@
+pub mod app;
 pub mod blame;
 pub mod cli;
 pub mod detector;
@@ -12,6 +13,7 @@ use std::{ffi::OsString, path::Path};
 
 use anyhow::Result;
 
+pub use app::{JscpdOutcome, jscpd, jscpd_with_exit_callback, run_cli_args};
 pub use cli::{FormatMappings, Options};
 pub use detector::{CloneMatch, DetectionResult};
 pub use files::SourceFile;
