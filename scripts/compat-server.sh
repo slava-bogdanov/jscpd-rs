@@ -6,6 +6,8 @@ TARGET="${TARGET:-$ROOT/jscpd/fixtures/javascript}"
 TMP_ROOT="${TMP_ROOT:-$(mktemp -d "${TMPDIR:-/tmp}/jscpd-rs-server.XXXXXX")}"
 RUST_PORT="${RUST_PORT:-39981}"
 UPSTREAM_PORT="${UPSTREAM_PORT:-39982}"
+RUST_STORE_WARNING_PORT="${RUST_STORE_WARNING_PORT:-39983}"
+UPSTREAM_STORE_WARNING_PORT="${UPSTREAM_STORE_WARNING_PORT:-39984}"
 MIN_TOKENS="${MIN_TOKENS:-40}"
 MIN_LINES="${MIN_LINES:-5}"
 MAX_SIZE="${MAX_SIZE:-1mb}"
@@ -87,7 +89,28 @@ check_exit_code() {
   fi
 }
 
-check_server_cli() {
+check_server_store_warning() {
+  local label="$1"
+  local store_warning_port="$2"
+  shift 2
+  local cmd=("$@")
+  local dir="$TMP_ROOT/$label-cli"
+  mkdir -p "$dir"
+
+  run_command "$dir/store-warning.code" "$dir/store-warning.stdout" "$dir/store-warning.stderr" \
+    timeout 3 "${cmd[@]}" "$TARGET" --store leveldb --port "$store_warning_port"
+  check_exit_code "$dir/store-warning.code" 124 "$label --store warning"
+  require_contains "$dir/store-warning.stderr" \
+    "store name leveldb not installed." \
+    "$label --store warning stderr"
+  require_contains "$dir/store-warning.stdout" \
+    "JSCPD server running on" \
+    "$label --store warning stdout"
+
+  printf 'ok %-18s\n' "$label store warning"
+}
+
+check_server_cli_contract() {
   local label="$1"
   shift
   local cmd=("$@")
@@ -144,8 +167,10 @@ check_server_cli() {
   printf 'ok %-18s\n' "$label CLI"
 }
 
-check_server_cli rust "$ROOT/target/release/jscpd-server"
-check_server_cli upstream node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
+check_server_cli_contract rust "$ROOT/target/release/jscpd-server"
+check_server_cli_contract upstream node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
+check_server_store_warning rust "$RUST_STORE_WARNING_PORT" "$ROOT/target/release/jscpd-server"
+check_server_store_warning upstream "$UPSTREAM_STORE_WARNING_PORT" node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
 
 if ! diff -u "$TMP_ROOT/upstream-cli/help.stdout" "$TMP_ROOT/rust-cli/help.stdout"; then
   printf 'server --help output differs from upstream\n' >&2
