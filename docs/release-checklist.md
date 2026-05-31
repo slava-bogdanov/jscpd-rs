@@ -12,7 +12,7 @@ Latest full local prepublish gate:
 scripts/prepublish-check.sh
 ```
 
-Passed on 2026-05-31 at code commit `5c6e70f`. This includes
+Passed on 2026-05-31 at code commit `bac2203`. This includes
 `scripts/release-candidate.sh`, package/install verification, crate/tag
 availability checks, and `cargo publish --dry-run --locked`. Later documentation-only
 commits may reuse this evidence if they do not change code, scripts, package
@@ -22,22 +22,22 @@ GitHub Actions default `release-gate` must pass on the exact pushed commit
 being published. Check the current run in GitHub Actions after the final push;
 the publish blocker below is the authoritative gate.
 
-Latest GitHub Actions release-candidate gate:
+Latest GitHub Actions default release-gate:
 
 ```text
-workflow_dispatch release_candidate=true public_runs=3
+push
 ```
 
-Passed on 2026-05-31 at code commit `ce5f649`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26701933084
+Passed on 2026-05-31 at code commit `bac2203`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26702488698
 
 Recorded public benchmark baseline for this release candidate:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.191518s | 9.880031s | 51.59x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.244980s | 14.282986s | 58.30x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.077275s | 4.609228s | 59.65x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.192096s | 9.946562s | 51.78x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.248940s | 14.282248s | 57.37x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.082703s | 4.609423s | 55.73x | pass |
 
 ## Publish Blockers
 
