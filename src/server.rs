@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::net::ToSocketAddrs;
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
@@ -228,16 +228,25 @@ pub async fn serve(options: Options, host: &str, port: u16) -> Result<()> {
     let service = ServerService::new(working_directory, options);
     service.initialize()?;
     let app = create_router(service);
-    let address = (host, port)
-        .to_socket_addrs()
-        .with_context(|| format!("failed to resolve server address {host}:{port}"))?
-        .next()
-        .with_context(|| format!("failed to resolve server address {host}:{port}"))?;
+    let address = server_bind_address(host, port)?;
     let listener = tokio::net::TcpListener::bind(address)
         .await
         .with_context(|| format!("failed to bind server address {address}"))?;
-    println!("JSCPD server running on http://{address}");
+    println!("JSCPD server running on {}", server_display_url(host, port));
     axum::serve(listener, app).await.context("server failed")
+}
+
+fn server_bind_address(host: &str, port: u16) -> Result<SocketAddr> {
+    let bind_host = if host == "true" { "0.0.0.0" } else { host };
+    (bind_host, port)
+        .to_socket_addrs()
+        .with_context(|| format!("failed to resolve server address {host}:{port}"))?
+        .next()
+        .with_context(|| format!("failed to resolve server address {host}:{port}"))
+}
+
+fn server_display_url(host: &str, port: u16) -> String {
+    format!("http://{host}:{port}")
 }
 
 pub fn server_working_directory(options: &Options) -> PathBuf {
@@ -656,6 +665,18 @@ mod tests {
         assert_eq!(health.working_directory, path.display().to_string());
         assert!(health.last_scan_time.is_some());
         fs::remove_dir_all(path).ok();
+    }
+
+    #[test]
+    fn server_host_binding_preserves_upstream_display_host() {
+        let true_addr = server_bind_address("true", 3000).expect("true host bind");
+        assert_eq!(true_addr.ip().to_string(), "0.0.0.0");
+        assert_eq!(true_addr.port(), 3000);
+        assert_eq!(server_display_url("true", 3000), "http://true:3000");
+        assert_eq!(
+            server_display_url("localhost", 3001),
+            "http://localhost:3001"
+        );
     }
 
     #[test]

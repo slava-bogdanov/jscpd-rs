@@ -8,6 +8,10 @@ RUST_PORT="${RUST_PORT:-39981}"
 UPSTREAM_PORT="${UPSTREAM_PORT:-39982}"
 RUST_STORE_WARNING_PORT="${RUST_STORE_WARNING_PORT:-39983}"
 UPSTREAM_STORE_WARNING_PORT="${UPSTREAM_STORE_WARNING_PORT:-39984}"
+RUST_BARE_HOST_PORT="${RUST_BARE_HOST_PORT:-39986}"
+UPSTREAM_BARE_HOST_PORT="${UPSTREAM_BARE_HOST_PORT:-39987}"
+RUST_LOCALHOST_PORT="${RUST_LOCALHOST_PORT:-39988}"
+UPSTREAM_LOCALHOST_PORT="${UPSTREAM_LOCALHOST_PORT:-39989}"
 MIN_TOKENS="${MIN_TOKENS:-40}"
 MIN_LINES="${MIN_LINES:-5}"
 MAX_SIZE="${MAX_SIZE:-1mb}"
@@ -110,6 +114,32 @@ check_server_store_warning() {
   printf 'ok %-18s\n' "$label store warning"
 }
 
+check_server_host_binding() {
+  local label="$1"
+  local bare_host_port="$2"
+  local localhost_port="$3"
+  shift 3
+  local cmd=("$@")
+  local dir="$TMP_ROOT/$label-cli"
+  mkdir -p "$dir"
+
+  run_command "$dir/bare-host.code" "$dir/bare-host.stdout" "$dir/bare-host.stderr" \
+    timeout 3 "${cmd[@]}" "$TARGET" --host --port "$bare_host_port"
+  check_exit_code "$dir/bare-host.code" 124 "$label bare --host"
+  require_contains "$dir/bare-host.stdout" \
+    "JSCPD server running on http://true:$bare_host_port" \
+    "$label bare --host stdout"
+
+  run_command "$dir/localhost.code" "$dir/localhost.stdout" "$dir/localhost.stderr" \
+    timeout 3 "${cmd[@]}" "$TARGET" --host=localhost --port "$localhost_port"
+  check_exit_code "$dir/localhost.code" 124 "$label --host=localhost"
+  require_contains "$dir/localhost.stdout" \
+    "JSCPD server running on http://localhost:$localhost_port" \
+    "$label --host=localhost stdout"
+
+  printf 'ok %-18s\n' "$label host"
+}
+
 check_server_cli_contract() {
   local label="$1"
   shift
@@ -186,6 +216,8 @@ check_server_cli_contract rust "$ROOT/target/release/jscpd-server"
 check_server_cli_contract upstream node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
 check_server_store_warning rust "$RUST_STORE_WARNING_PORT" "$ROOT/target/release/jscpd-server"
 check_server_store_warning upstream "$UPSTREAM_STORE_WARNING_PORT" node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
+check_server_host_binding rust "$RUST_BARE_HOST_PORT" "$RUST_LOCALHOST_PORT" "$ROOT/target/release/jscpd-server"
+check_server_host_binding upstream "$UPSTREAM_BARE_HOST_PORT" "$UPSTREAM_LOCALHOST_PORT" node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
 
 if ! diff -u "$TMP_ROOT/upstream-cli/help.stdout" "$TMP_ROOT/rust-cli/help.stdout"; then
   printf 'server --help output differs from upstream\n' >&2
