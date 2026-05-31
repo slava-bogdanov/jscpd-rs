@@ -7,7 +7,7 @@ use jscpd_rs::cli::{Cli, Options};
 #[tokio::main]
 async fn main() {
     if let Err(error) = run().await {
-        eprintln!("Failed to start server: Error: {error}");
+        eprintln!("{}", server_error_message(&error.to_string()));
         std::process::exit(1);
     }
 }
@@ -206,6 +206,22 @@ fn parse_port(value: &str) -> Result<u16> {
     Ok(port)
 }
 
+fn server_error_message(message: &str) -> String {
+    match message {
+        "TypeError: mode is not a function" => {
+            format!("Failed to start server: {message}")
+        }
+        message
+            if message.starts_with("TypeError [ERR_INVALID_ARG_TYPE]")
+                || message.starts_with("TypeError:")
+                || message.starts_with("SyntaxError:") =>
+        {
+            message.to_string()
+        }
+        message => format!("Failed to start server: Error: {message}"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -285,6 +301,22 @@ mod tests {
         )
         .expect_err("invalid port should fail");
         assert_eq!(error.to_string(), "Invalid port number: abc");
+    }
+
+    #[test]
+    fn formats_server_start_errors_like_upstream() {
+        assert_eq!(
+            server_error_message("Invalid port number: true"),
+            "Failed to start server: Error: Invalid port number: true"
+        );
+        assert_eq!(
+            server_error_message("TypeError: cli.format.split is not a function"),
+            "TypeError: cli.format.split is not a function"
+        );
+        assert_eq!(
+            server_error_message("TypeError: mode is not a function"),
+            "Failed to start server: TypeError: mode is not a function"
+        );
     }
 
     #[test]

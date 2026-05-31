@@ -138,6 +138,21 @@ check_server_cli_contract() {
     "Failed to start server: Error: Invalid port number: true" \
     "$label bare --port stderr"
 
+  for option_error in \
+    "--config|TypeError [ERR_INVALID_ARG_TYPE]: The \"paths[0]\" argument must be of type string. Received type boolean (true)" \
+    "--format|TypeError: cli.format.split is not a function" \
+    "--ignore|TypeError: cli.ignore.split is not a function" \
+    "--ignore-pattern|TypeError: cli.ignorePattern.split is not a function" \
+    "--mode|Failed to start server: TypeError: mode is not a function"; do
+    local option="${option_error%%|*}"
+    local expected="${option_error#*|}"
+    local slug="${option//-/}"
+    run_command "$dir/bare-$slug.code" "$dir/bare-$slug.stdout" "$dir/bare-$slug.stderr" \
+      timeout 3 "${cmd[@]}" --port 39985 "$TARGET" "$option"
+    check_exit_code "$dir/bare-$slug.code" 1 "$label bare $option"
+    require_contains "$dir/bare-$slug.stderr" "$expected" "$label bare $option stderr"
+  done
+
   for option in \
     --list \
     -h \

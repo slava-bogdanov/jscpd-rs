@@ -99,7 +99,8 @@ scripts/compat-server.sh
 
 This smoke check compares the native `jscpd-server` binary with upstream
 `apps/jscpd-server`. It verifies exact server `--help` output, invalid or bare
-`--port`, rejects main-CLI-only options that upstream server does not accept,
+`--port`, bare common optional flag error shapes, missing-store warning
+fallback, rejects main-CLI-only options that upstream server does not accept,
 starts both servers on local ports, and checks the root API info,
 `/api/health`, `/api/stats`, JSON and urlencoded `/api/check`,
 empty/missing/non-string field validation, large and special-character
