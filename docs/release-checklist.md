@@ -12,7 +12,7 @@ Latest full local prepublish gate:
 scripts/prepublish-check.sh
 ```
 
-Passed on 2026-05-31 at code commit `6b917b8`. This includes
+Passed on 2026-05-31 at code commit `65cb0c2`. This includes
 `scripts/release-candidate.sh`, package/install verification, crate/tag
 availability checks, and `cargo publish --dry-run --locked`. Later documentation-only
 commits may reuse this evidence if they do not change code, scripts, package
@@ -28,10 +28,10 @@ Latest GitHub Actions release-candidate gate:
 workflow_dispatch release_candidate=true public_runs=3
 ```
 
-Passed on 2026-05-31 at code commit `6b917b8`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26700745857
+Passed on 2026-05-31 at code commit `65cb0c2`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26701044130
 
-Public benchmark summary from the latest release-candidate run:
+Recorded public benchmark baseline for this release candidate:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
@@ -52,7 +52,7 @@ Before publishing, all of these must be true:
 - `cargo publish --dry-run --locked` passes for the exact package manifest and
   include list being published.
 - `README.md`, `docs/compat-baseline.md`, and
-  `docs/public-benchmark-suite.md` contain the same latest public benchmark
+  `docs/public-benchmark-suite.md` contain the same recorded public benchmark
   numbers.
 - For the first publication, the `jscpd-rs` crate name is still available or
   already owned by this project, and `v0.1.0` does not already exist locally or

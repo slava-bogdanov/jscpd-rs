@@ -37,7 +37,7 @@ The first release is intentionally coverage-first: Rust must not miss duplicated
 upstream lines on the same inputs/options. Additional Rust findings are allowed
 while compatibility converges and remain visible in comparison output.
 
-Latest release-candidate public benchmark measurements from
+Recorded release-candidate public benchmark measurements from
 `scripts/release-candidate.sh`:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |

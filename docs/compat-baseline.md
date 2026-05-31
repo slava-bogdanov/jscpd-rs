@@ -4,12 +4,12 @@ Baseline date: 2026-05-31.
 
 Latest full release gate:
 `FULL=1 PUBLIC=1 scripts/release-gate.sh`
-passed on 2026-05-31 at code commit `6b917b8` as part of
+passed on 2026-05-31 at code commit `65cb0c2` as part of
 `scripts/prepublish-check.sh`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
-passed on 2026-05-31 at code commit `6b917b8` as part of
+passed on 2026-05-31 at code commit `65cb0c2` as part of
 `scripts/prepublish-check.sh`.
 
 Default gate:
@@ -183,17 +183,17 @@ workflow dispatch exposes `full`, `public`, `release_candidate`, and
 release-candidate gates.
 
 Latest local prepublish check: `scripts/prepublish-check.sh` passed on
-2026-05-31 at code commit `6b917b8`, covering
+2026-05-31 at code commit `65cb0c2`, covering
 `cargo clippy --all-targets -- -D warnings`, the default release gate, the full
 coverage matrix, the public benchmark/coverage suite, package/install
 verification, crate/tag availability checks, and `cargo publish --dry-run --locked`.
 
 Latest GitHub Actions release-candidate check:
 `workflow_dispatch release_candidate=true public_runs=3` passed on 2026-05-31
-at code commit `6b917b8`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26700745857
+at code commit `65cb0c2`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26701044130
 
-Latest public benchmark measurements:
+Recorded public benchmark baseline:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |

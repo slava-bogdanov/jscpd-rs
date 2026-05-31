@@ -54,7 +54,7 @@ narrow allowlists for upstream overextended ranges documented in
 exceptions in the comparison output. New public benchmark misses should be fixed
 or documented before they are added to this allowlist.
 
-Latest release-candidate measurements on May 31, 2026:
+Recorded release-candidate measurements on May 31, 2026:
 
 ```bash
 scripts/release-candidate.sh
