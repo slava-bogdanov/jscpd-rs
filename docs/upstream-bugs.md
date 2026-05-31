@@ -1,8 +1,13 @@
 # Upstream Bug Candidates
 
 These are compatibility findings that look like upstream `jscpd` issues rather
-than Rust clone issues. Verify each against the current upstream main branch
+than Rust clone issues. Verify each against the current upstream default branch
 before filing.
+
+Verification snapshot: on 2026-05-31, upstream remote `HEAD` resolved to
+`refs/heads/master` at `50290cf`; no `refs/heads/main` was advertised. The
+local upstream submodule is clean at that SHA and was used as the current
+upstream checkout for quick repro verification.
 
 ## Prism JS tokenizer swallows code after nested template literals
 

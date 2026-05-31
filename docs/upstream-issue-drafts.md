@@ -1,14 +1,36 @@
 # Upstream Issue Drafts
 
 These drafts are prepared from `docs/upstream-bugs.md` for filing issues in
-`kucherenko/jscpd`. Re-verify each issue against current upstream `main` before
-posting. Drafts that use public repositories include pinned commits; the other
-drafts use upstream fixtures or minimal inline reproductions.
+`kucherenko/jscpd`. Re-verify each issue against the current upstream default
+branch before posting. Drafts that use public repositories include pinned
+commits; the other drafts use upstream fixtures or minimal inline
+reproductions.
 
-Verification snapshot: the quick repros for Drafts 1, 2, 3, 5, 6, and 7 were
-checked on 2026-05-31 against upstream submodule `50290cf`. Draft 4 is covered
-by the public benchmark compatibility gate recorded in
-`docs/compat-baseline.md`.
+Verification snapshot: on 2026-05-31, upstream remote `HEAD` resolved to
+`refs/heads/master` at `50290cf`; no `refs/heads/main` was advertised. The
+local upstream submodule is clean at that SHA and was used as the current
+upstream checkout for quick verification. Drafts 1, 2, 3, 5, 6, and 7
+reproduced. Draft 4 is covered by the public benchmark compatibility gate
+recorded in `docs/compat-baseline.md`; the full GitHub Actions release-candidate
+gate also passed on 2026-05-31.
+
+Quick verification notes:
+
+- Draft 1 reproduced the tokenizer output
+  `comment "//${b}${c?\":\"+c:\"\"}`}function k(){return 1}"`.
+- Draft 2 reproduced `git blame` exit 128 from the parent repository on
+  `jscpd/fixtures/javascript/file_4.js`.
+- Draft 3 reproduced the reported fixture ranges
+  `pug file1.pug:1-274 <> file2.pug:1-266`,
+  `haml file1.haml:1-26 <> file2.haml:1-26`, and
+  `aspnet file1.aspx:18-36 <> file2.aspx:18-43`.
+- Draft 5 reproduced
+  `TypeError: Cannot read properties of undefined (reading 'range')`.
+- Draft 6 was rechecked by source search: `cache` is defaulted/copied but has
+  no CLI flag or runtime read, `listeners` is only normalized, and
+  `tokensToSkip` appears only in the options interface.
+- Draft 7 reproduced the documented bare-flag behavior for `--threshold`,
+  `--exitCode`, `--formats-exts javascript`, and `--ignore`.
 
 ## Draft 1: JavaScript tokenizer treats `//` inside a template literal as a comment
 
