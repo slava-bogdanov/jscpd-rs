@@ -27,8 +27,10 @@ First release candidate for `jscpd-rs`, a native Rust clone of upstream
   `json`, `markdown`, `silent`, `sarif`, `threshold`, `xcode`, `xml`, and
   `badge`.
 - Native `git blame -w` support in reports.
-- Native Rust API for path-based detection and in-memory `SourceFile`
-  detection.
+- Native Rust API for path-based detection, in-memory `SourceFile` detection,
+  upstream-style default options, supported format listing, format lookup, and
+  both `detect_clones_and_statistic` and `detect_clones_and_statistics`
+  spellings.
 - Public benchmark suite on pinned React, Next.js, and Prometheus revisions.
 
 ### Compatibility And Performance
