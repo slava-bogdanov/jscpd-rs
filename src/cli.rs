@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result, bail};
@@ -450,6 +451,15 @@ fn default_execution_id() -> String {
 }
 
 impl Options {
+    pub fn from_args<I, T>(args: I) -> Result<Self>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        let cli = Cli::try_parse_from(args)?;
+        Self::from_cli(cli)
+    }
+
     pub fn from_cli(cli: Cli) -> Result<Self> {
         let mut options = Self::default();
 

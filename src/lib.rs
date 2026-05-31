@@ -8,7 +8,7 @@ pub mod server;
 pub mod tokenizer;
 pub mod verbose;
 
-use std::path::Path;
+use std::{ffi::OsString, path::Path};
 
 use anyhow::Result;
 
@@ -18,6 +18,14 @@ pub use files::SourceFile;
 
 pub fn get_default_options() -> Options {
     Options::default()
+}
+
+pub fn get_options_from_args<I, T>(args: I) -> Result<Options>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
+{
+    Options::from_args(args)
 }
 
 pub fn get_supported_formats() -> Vec<&'static str> {
@@ -119,6 +127,45 @@ mod tests {
         assert_eq!(options.reporters, vec!["console"]);
         assert!(options.cache);
         assert!(options.gitignore);
+    }
+
+    #[test]
+    fn public_api_parses_options_from_args() {
+        let options = get_options_from_args([
+            "jscpd",
+            "fixtures",
+            "--format",
+            "javascript,typescript",
+            "--reporters",
+            "json",
+            "--min-tokens",
+            "7",
+            "--min-lines",
+            "2",
+            "--max-size",
+            "1mb",
+            "--noTips",
+        ])
+        .expect("parse options from argv");
+
+        let expected_formats = vec!["javascript".to_string(), "typescript".to_string()];
+        assert_eq!(options.paths, vec![PathBuf::from("fixtures")]);
+        assert_eq!(
+            options.format_order.as_deref(),
+            Some(expected_formats.as_slice())
+        );
+        assert_eq!(options.reporters, vec!["json"]);
+        assert_eq!(options.min_tokens, 7);
+        assert_eq!(options.min_lines, 2);
+        assert_eq!(options.max_size_bytes, 1024 * 1024);
+        assert!(options.no_tips);
+    }
+
+    #[test]
+    fn public_api_arg_parser_preserves_runtime_option_errors() {
+        let error = get_options_from_args(["jscpd", "--mode", "zzz", "."]).unwrap_err();
+
+        assert_eq!(error.to_string(), "Mode zzz does not supported yet.");
     }
 
     #[test]

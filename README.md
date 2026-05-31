@@ -81,10 +81,11 @@ let clones = result.clones;
 ```
 
 `detect_clones_and_statistics` is also available as the idiomatic Rust spelling.
-`detect_source_files` accepts in-memory `SourceFile` values, which is the
-foundation for the upstream-style snippet/server workflow. Format helpers are
-available through `get_supported_formats`, `get_format_by_file`, and
-`get_format_by_file_with_mappings`.
+`get_options_from_args` parses upstream-style argv into normalized `Options` for
+native integrations. `detect_source_files` accepts in-memory `SourceFile`
+values, which is the foundation for the upstream-style snippet/server workflow.
+Format helpers are available through `get_supported_formats`,
+`get_format_by_file`, and `get_format_by_file_with_mappings`.
 
 ## Compatibility Gates
 
