@@ -480,7 +480,8 @@ Recorded public benchmark baseline:
   followed by comma-separated formats.
 - Non-silent runs print clone progress for non-`ai` reporters, then reporter
   output, then a `time:` footer. Tips are printed by default and suppressed by
-  `--noTips`, matching the upstream workflow shape.
+  `--noTips`; the Rust footer keeps only the AI refactoring tip and omits the
+  upstream promotional/support lines.
 - Reporter normalization mirrors upstream append behavior: explicit `silent`
   or `threshold` reporters are not deduplicated when `--silent` or
   `--threshold` appends the same reporter.

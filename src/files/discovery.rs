@@ -437,19 +437,31 @@ pub(super) fn format_filter_skip_message(path: &Path, format: &str, cwd: &Path) 
     )
 }
 
-fn is_ignored(path: &Path, ignore_set: &IgnoreMatcher, cwd: &Path) -> bool {
+pub(super) fn is_ignored(path: &Path, ignore_set: &IgnoreMatcher, cwd: &Path) -> bool {
     if ignore_set.is_empty() {
         return false;
     }
-    if ignore_set.is_match(path) {
+    if ignore_set.is_match(path) || ignore_set.is_match(&normalize_match_path(path)) {
         return true;
     }
     path.strip_prefix(cwd)
-        .map(|relative| ignore_set.is_match(relative))
+        .map(|relative| {
+            ignore_set.is_match(relative) || ignore_set.is_match(&normalize_match_path(relative))
+        })
         .unwrap_or(false)
 }
 
-struct IgnoreMatcher {
+fn normalize_match_path(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        if !matches!(component, std::path::Component::CurDir) {
+            normalized.push(component.as_os_str());
+        }
+    }
+    normalized
+}
+
+pub(super) struct IgnoreMatcher {
     ignored: GlobSet,
     negated: GlobSet,
 }
@@ -468,7 +480,7 @@ impl IgnoreMatcher {
     }
 }
 
-fn build_ignore_matcher(patterns: &[String]) -> Result<IgnoreMatcher> {
+pub(super) fn build_ignore_matcher(patterns: &[String]) -> Result<IgnoreMatcher> {
     let mut ignored = GlobSetBuilder::new();
     let mut negated = GlobSetBuilder::new();
     for pattern in patterns {

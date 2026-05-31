@@ -144,11 +144,8 @@ fn terminal_footer_output(options: &Options, elapsed: Duration) -> Option<String
     Some(output)
 }
 
-const TIPS: &[&str] = &[
-    "💡 Auto-refactor with AI: npx skills add kucherenko/jscpd",
-    "🎩 New: Gangsta Agents — discipline your AI coding → gangsta.page",
-    "💖 Support jscpd project → https://opencollective.com/jscpd",
-];
+const TIPS: &[&str] =
+    &["💡 Auto-refactor with AI: npx skills add kucherenko/jscpd --skill dry-refactoring"];
 
 fn debug_output(options: &Options, files: &[SourceFile]) -> String {
     let mut output = String::new();
@@ -492,8 +489,11 @@ mod tests {
         let output = terminal_footer_output(&verbose, elapsed).unwrap();
 
         assert!(output.starts_with("time: "));
-        assert!(output.contains("Auto-refactor with AI"));
-        assert!(output.contains("Support jscpd project"));
+        assert!(output.contains(
+            "Auto-refactor with AI: npx skills add kucherenko/jscpd --skill dry-refactoring"
+        ));
+        assert!(!output.contains("Gangsta Agents"));
+        assert!(!output.contains("Support jscpd project"));
 
         let no_tips = Options {
             no_tips: true,

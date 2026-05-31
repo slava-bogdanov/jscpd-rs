@@ -35,7 +35,8 @@ const BARE_STRING_VALUE: &str = "__jscpd_rs_bare_string_true__";
     version,
     about = "detector of copy/paste in files",
     override_usage = "jscpd [options] <path ...>",
-    disable_version_flag = true
+    disable_version_flag = true,
+    args_override_self = true
 )]
 pub struct Cli {
     #[arg(short = 'V', long = "version", help = "output the version number")]

@@ -5,7 +5,9 @@ use std::path::Path;
 use crate::cli::Options;
 
 use super::discover;
-use super::discovery::{count_lines, decode_source, format_filter_skip_message};
+use super::discovery::{
+    build_ignore_matcher, count_lines, decode_source, format_filter_skip_message, is_ignored,
+};
 use super::gitignore::{
     collect_cwd_gitignore_patterns, collect_gitignore_patterns_with_global, gitignore_line_to_globs,
 };
@@ -511,6 +513,22 @@ fn dot_relative_ignore_pattern_matches_absolute_scan_root_like_upstream() {
 
     assert_eq!(paths.len(), 1);
     assert!(paths[0].ends_with("src/main.js"));
+}
+
+#[test]
+fn relative_ignore_patterns_match_dot_relative_walk_paths() {
+    let matcher = build_ignore_matcher(&[
+        "jscpd/**".to_string(),
+        "target/**".to_string(),
+        ".git/**".to_string(),
+    ])
+    .unwrap();
+    let cwd = std::env::current_dir().unwrap();
+
+    assert!(is_ignored(Path::new("./jscpd/file.js"), &matcher, &cwd));
+    assert!(is_ignored(Path::new("./target/debug/app"), &matcher, &cwd));
+    assert!(is_ignored(Path::new("./.git/config"), &matcher, &cwd));
+    assert!(!is_ignored(Path::new("./src/lib.rs"), &matcher, &cwd));
 }
 
 #[cfg(unix)]

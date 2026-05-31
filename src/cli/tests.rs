@@ -181,6 +181,27 @@ fn bare_optional_string_flags_match_upstream_runtime_errors() {
 }
 
 #[test]
+fn repeated_value_flags_match_upstream_last_value_wins_behavior() {
+    let cli = Cli::parse_from([
+        "jscpd-rs",
+        ".",
+        "--ignore",
+        "first/**",
+        "--ignore",
+        "second/**",
+        "--reporters",
+        "json",
+        "--reporters",
+        "silent",
+    ]);
+    let options = Options::from_cli(cli).unwrap();
+
+    assert!(options.ignore.contains(&"second/**".to_string()));
+    assert!(!options.ignore.contains(&"first/**".to_string()));
+    assert_eq!(options.reporters, vec!["silent"]);
+}
+
+#[test]
 fn malformed_cli_format_mappings_match_upstream_runtime_error() {
     for flag in ["--formats-exts", "--formats-names"] {
         let cli = Cli::parse_from(["jscpd-rs", ".", flag, "javascript"]);
