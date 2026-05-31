@@ -12,6 +12,8 @@ RUST_BARE_HOST_PORT="${RUST_BARE_HOST_PORT:-39986}"
 UPSTREAM_BARE_HOST_PORT="${UPSTREAM_BARE_HOST_PORT:-39987}"
 RUST_LOCALHOST_PORT="${RUST_LOCALHOST_PORT:-39988}"
 UPSTREAM_LOCALHOST_PORT="${UPSTREAM_LOCALHOST_PORT:-39989}"
+RUST_CONFIG_PORT="${RUST_CONFIG_PORT:-39990}"
+UPSTREAM_CONFIG_PORT="${UPSTREAM_CONFIG_PORT:-39991}"
 MIN_TOKENS="${MIN_TOKENS:-40}"
 MIN_LINES="${MIN_LINES:-5}"
 MAX_SIZE="${MAX_SIZE:-1mb}"
@@ -140,6 +142,59 @@ check_server_host_binding() {
   printf 'ok %-18s\n' "$label host"
 }
 
+check_server_config_working_directory() {
+  local label="$1"
+  local port="$2"
+  shift 2
+  local cmd=("$@")
+  local dir="$TMP_ROOT/$label-config"
+  local log="$dir/server.log"
+  local health="$dir/health.json"
+  mkdir -p "$dir/src"
+  cat >"$dir/src/a.js" <<'EOF_JS'
+const alpha = 1;
+const beta = 2;
+const gamma = alpha + beta;
+console.log(gamma);
+EOF_JS
+  cp "$dir/src/a.js" "$dir/src/b.js"
+  cat >"$dir/.jscpd.json" <<'EOF_JSON'
+{"path":["src"],"format":["javascript"],"minTokens":5,"minLines":1,"maxSize":"1mb"}
+EOF_JSON
+
+  (cd "$dir" && timeout 10 "${cmd[@]}" --config .jscpd.json --host 127.0.0.1 --port "$port") >"$log" 2>&1 &
+  local pid=$!
+
+  for _ in $(seq 1 100); do
+    if curl -fsS "http://127.0.0.1:$port/api/health" >"$health" 2>/dev/null; then
+      kill "$pid" >/dev/null 2>&1 || true
+      wait "$pid" >/dev/null 2>&1 || true
+      node --input-type=module - "$health" "$dir" "$label" <<'NODE'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const [healthPath, root, label] = process.argv.slice(2);
+const health = JSON.parse(fs.readFileSync(healthPath, 'utf8'));
+assert.equal(health.workingDirectory, root, `${label} config-only workingDirectory`);
+NODE
+      printf 'ok %-18s\n' "$label config cwd"
+      return 0
+    fi
+    if ! kill -0 "$pid" >/dev/null 2>&1; then
+      printf '%s config-only server exited before becoming ready\n' "$label" >&2
+      sed -n '1,160p' "$log" >&2
+      return 1
+    fi
+    sleep 0.1
+  done
+
+  kill "$pid" >/dev/null 2>&1 || true
+  wait "$pid" >/dev/null 2>&1 || true
+  printf '%s config-only server did not become ready\n' "$label" >&2
+  sed -n '1,160p' "$log" >&2
+  return 1
+}
+
 check_server_cli_contract() {
   local label="$1"
   shift
@@ -218,6 +273,8 @@ check_server_store_warning rust "$RUST_STORE_WARNING_PORT" "$ROOT/target/release
 check_server_store_warning upstream "$UPSTREAM_STORE_WARNING_PORT" node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
 check_server_host_binding rust "$RUST_BARE_HOST_PORT" "$RUST_LOCALHOST_PORT" "$ROOT/target/release/jscpd-server"
 check_server_host_binding upstream "$UPSTREAM_BARE_HOST_PORT" "$UPSTREAM_LOCALHOST_PORT" node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
+check_server_config_working_directory rust "$RUST_CONFIG_PORT" "$ROOT/target/release/jscpd-server"
+check_server_config_working_directory upstream "$UPSTREAM_CONFIG_PORT" node "$ROOT/jscpd/apps/jscpd-server/bin/jscpd-server"
 
 if ! diff -u "$TMP_ROOT/upstream-cli/help.stdout" "$TMP_ROOT/rust-cli/help.stdout"; then
   printf 'server --help output differs from upstream\n' >&2

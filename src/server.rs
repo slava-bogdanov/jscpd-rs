@@ -70,7 +70,7 @@ impl ServerService {
                 bail!(SCAN_IN_PROGRESS);
             }
             state.is_scanning = true;
-            detection_options(&state.options)
+            service_detection_options(&state)
         };
 
         let result = scan_project(&options);
@@ -100,7 +100,7 @@ impl ServerService {
             let snippet_id = format!("<snippet>/snippet_{:08x}", state.snippet_counter);
             state.snippet_counter += 1;
             (
-                detection_options(&state.options),
+                service_detection_options(&state),
                 state.project_drafts.clone(),
                 snippet_id,
                 state.working_directory.clone(),
@@ -195,6 +195,12 @@ fn detection_options(options: &Options) -> Options {
     options
 }
 
+fn service_detection_options(state: &ServiceState) -> Options {
+    let mut options = detection_options(&state.options);
+    options.paths = vec![state.working_directory.clone()];
+    options
+}
+
 fn scan_project(options: &Options) -> Result<(Vec<PreparedSourceDraft>, DetectionResult)> {
     let files = files::discover(options)?;
     let project_drafts = prepare_source_drafts(files, options);
@@ -221,10 +227,19 @@ pub fn create_router(service: ServerService) -> Router {
 }
 
 pub async fn serve(options: Options, host: &str, port: u16) -> Result<()> {
+    let working_directory = server_working_directory(&options);
+    serve_with_working_directory(options, working_directory, host, port).await
+}
+
+pub async fn serve_with_working_directory(
+    options: Options,
+    working_directory: PathBuf,
+    host: &str,
+    port: u16,
+) -> Result<()> {
     if let Some(warning) = store_warning(&options) {
         eprintln!("{warning}");
     }
-    let working_directory = server_working_directory(&options);
     let service = ServerService::new(working_directory, options);
     service.initialize()?;
     let app = create_router(service);
@@ -748,6 +763,28 @@ mod tests {
             .sources;
         assert!(after > before);
         fs::remove_dir_all(path).ok();
+    }
+
+    #[test]
+    fn server_scan_uses_working_directory_over_config_paths_like_upstream() {
+        let working = fixture_project();
+        let configured = fixture_project();
+        fs::write(configured.join("c.js"), "const configured = 1;\n").expect("write c.js");
+        let options = Options {
+            paths: vec![configured.clone()],
+            min_tokens: 5,
+            min_lines: 2,
+            max_size_bytes: 1024 * 1024,
+            ..Options::default()
+        };
+        let service = ServerService::new(working.clone(), options);
+
+        service.initialize().expect("initialize");
+
+        let stats = service.statistics().statistics.expect("statistics");
+        assert_eq!(stats.total.sources, 2);
+        fs::remove_dir_all(working).ok();
+        fs::remove_dir_all(configured).ok();
     }
 
     #[tokio::test]

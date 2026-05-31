@@ -1,4 +1,5 @@
 use std::ffi::OsString;
+use std::path::PathBuf;
 
 use anyhow::{Result, bail};
 use clap::Parser;
@@ -27,8 +28,15 @@ async fn run() -> Result<()> {
         println!("{}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
+    let working_directory = server_cli_working_directory(&cli);
     let options = Options::from_cli(cli)?;
-    jscpd_rs::server::serve(options, &server_args.host, server_args.port).await
+    jscpd_rs::server::serve_with_working_directory(
+        options,
+        working_directory,
+        &server_args.host,
+        server_args.port,
+    )
+    .await
 }
 
 #[derive(Debug)]
@@ -206,6 +214,13 @@ fn parse_port(value: &str) -> Result<u16> {
     Ok(port)
 }
 
+fn server_cli_working_directory(cli: &Cli) -> PathBuf {
+    cli.paths
+        .first()
+        .cloned()
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+}
+
 fn server_error_message(message: &str) -> String {
     match message {
         "TypeError: mode is not a function" => {
@@ -268,6 +283,18 @@ mod tests {
             vec![OsString::from("jscpd-server"), OsString::from("src")]
         );
         assert_eq!(args.unknown_option, None);
+    }
+
+    #[test]
+    fn server_working_directory_uses_cli_arg_before_config_paths() {
+        let cli = Cli::parse_from(["jscpd-server", "--config", ".jscpd.json"]);
+        assert_eq!(
+            server_cli_working_directory(&cli),
+            std::env::current_dir().unwrap()
+        );
+
+        let cli = Cli::parse_from(["jscpd-server", "--config", ".jscpd.json", "src"]);
+        assert_eq!(server_cli_working_directory(&cli), PathBuf::from("src"));
     }
 
     #[test]
