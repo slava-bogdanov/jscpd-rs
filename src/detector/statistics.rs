@@ -1,5 +1,46 @@
 use super::model::{CloneMatch, StatisticRow, Statistics};
 
+#[derive(Clone, Debug, Default)]
+pub struct Statistic {
+    statistics: Statistics,
+}
+
+impl Statistic {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn get_statistic(&self) -> &Statistics {
+        &self.statistics
+    }
+
+    pub fn into_statistics(self) -> Statistics {
+        self.statistics
+    }
+
+    pub fn match_source(
+        &mut self,
+        source_id: impl AsRef<str>,
+        format_name: impl AsRef<str>,
+        lines: usize,
+        tokens: usize,
+    ) {
+        update_source_statistics(
+            &mut self.statistics,
+            source_id.as_ref(),
+            format_name.as_ref(),
+            lines,
+            tokens,
+        );
+        finalize_percentages(&mut self.statistics);
+    }
+
+    pub fn clone_found(&mut self, clone: &CloneMatch) {
+        update_clone_statistics(&mut self.statistics, clone);
+        finalize_percentages(&mut self.statistics);
+    }
+}
+
 pub fn clone_lines(clone: &CloneMatch) -> usize {
     clone
         .duplication_a

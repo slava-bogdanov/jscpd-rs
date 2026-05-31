@@ -15,7 +15,10 @@ use anyhow::Result;
 
 pub use app::{JscpdOutcome, jscpd, jscpd_with_exit_callback, run_cli_args};
 pub use cli::{FormatMappings, Options};
-pub use detector::{CloneMatch, DetectionResult};
+pub use detector::{
+    CloneMatch, DetectionResult, Detector, MemoryStore, MemoryStoreError, Statistic, StatisticRow,
+    Statistics,
+};
 pub use files::SourceFile;
 pub use tokenizer::{DetectionToken, Location, SourceTokenMap, TokenMap, Tokenizer};
 
@@ -240,5 +243,88 @@ mod tests {
 
         assert_eq!(result.clones.len(), 1);
         assert_eq!(result.statistics.total.sources, 2);
+    }
+
+    #[test]
+    fn public_api_exposes_streaming_detector() {
+        let options = Options {
+            reporters: Vec::new(),
+            silent: true,
+            no_tips: true,
+            min_tokens: 5,
+            min_lines: 2,
+            ..Options::default()
+        };
+        let content = "const alpha = 1;\nconst beta = 2;\nconst gamma = alpha + beta;\n";
+        let mut detector = Detector::new(options);
+
+        assert!(
+            detector
+                .detect("first.js", content, "javascript")
+                .is_empty()
+        );
+        let clones = detector.detect("second.js", content, "javascript");
+
+        assert_eq!(clones.len(), 1);
+        assert_eq!(detector.sources().len(), 2);
+        assert!(
+            clones[0].duplication_a.source_id == "second.js"
+                || clones[0].duplication_b.source_id == "second.js"
+        );
+    }
+
+    #[test]
+    fn public_api_exposes_statistic_collector() {
+        let options = Options {
+            reporters: Vec::new(),
+            silent: true,
+            no_tips: true,
+            min_tokens: 5,
+            min_lines: 2,
+            ..Options::default()
+        };
+        let content = "const alpha = 1;\nconst beta = 2;\nconst gamma = alpha + beta;\n";
+        let result = detect_source_files(
+            vec![
+                SourceFile {
+                    source_id: "first.js".to_string(),
+                    format: "javascript".to_string(),
+                    content: content.to_string(),
+                },
+                SourceFile {
+                    source_id: "second.js".to_string(),
+                    format: "javascript".to_string(),
+                    content: content.to_string(),
+                },
+            ],
+            &options,
+        );
+        let mut statistic = Statistic::new();
+
+        statistic.match_source("first.js", "javascript", 3, 42);
+        statistic.match_source("second.js", "javascript", 3, 42);
+        statistic.clone_found(&result.clones[0]);
+
+        let stats = statistic.get_statistic();
+        assert_eq!(stats.total.sources, 2);
+        assert_eq!(stats.total.clones, 1);
+        assert_eq!(stats.formats["javascript"].sources["first.js"].sources, 1);
+    }
+
+    #[test]
+    fn public_api_exposes_memory_store() {
+        let mut store = MemoryStore::new();
+
+        store.namespace("javascript");
+        assert_eq!(*store.set("hash", 7usize), 7);
+        assert_eq!(*store.get("hash").expect("stored value"), 7);
+        store.namespace("typescript");
+        let error = store.get("hash").unwrap_err();
+
+        assert_eq!(error.namespace(), "typescript");
+        assert_eq!(error.key(), "hash");
+        assert_eq!(store.len(), 1);
+        store.close();
+        assert!(store.is_empty());
     }
 }

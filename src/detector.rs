@@ -11,6 +11,7 @@ mod model;
 mod prepare;
 mod skip_local;
 mod statistics;
+mod store;
 #[cfg(test)]
 mod tests;
 
@@ -21,12 +22,79 @@ pub use model::{
     BlamedLine, BlamedLines, CloneMatch, DetectionResult, Fragment, SkippedClone, SourceSummary,
     StatisticRow, Statistics,
 };
-pub use statistics::clone_lines;
+pub use statistics::{Statistic, clone_lines};
+pub use store::{MemoryStore, MemoryStoreError};
 
 use matching::detect_format;
 use model::{FormatId, PreparedSource, SourceId, TokenStream};
 use prepare::{assign_formats, prepare_file_maps};
 use statistics::{finalize_percentages, update_clone_statistics, update_source_statistics};
+
+#[derive(Clone, Debug)]
+pub struct Detector {
+    options: Options,
+    sources: Vec<SourceFile>,
+}
+
+impl Detector {
+    pub fn new(options: Options) -> Self {
+        Self {
+            options,
+            sources: Vec::new(),
+        }
+    }
+
+    pub fn with_sources(options: Options, sources: Vec<SourceFile>) -> Self {
+        Self { options, sources }
+    }
+
+    pub fn options(&self) -> &Options {
+        &self.options
+    }
+
+    pub fn options_mut(&mut self) -> &mut Options {
+        &mut self.options
+    }
+
+    pub fn sources(&self) -> &[SourceFile] {
+        &self.sources
+    }
+
+    pub fn clear(&mut self) {
+        self.sources.clear();
+    }
+
+    pub fn detect(
+        &mut self,
+        source_id: impl Into<String>,
+        text: impl Into<String>,
+        format: impl Into<String>,
+    ) -> Vec<CloneMatch> {
+        self.detect_source_file(SourceFile {
+            source_id: source_id.into(),
+            format: format.into(),
+            content: text.into(),
+        })
+    }
+
+    pub fn detect_source_file(&mut self, source: SourceFile) -> Vec<CloneMatch> {
+        let source_id = source.source_id.clone();
+        self.sources.push(source);
+        let result = detect(self.sources.clone(), &self.options);
+        result
+            .clones
+            .into_iter()
+            .filter(|clone| {
+                clone.duplication_a.source_id == source_id
+                    || clone.duplication_b.source_id == source_id
+            })
+            .collect()
+    }
+
+    pub fn detect_files(&self, files: Vec<SourceFile>) -> DetectionResult {
+        detect(files, &self.options)
+    }
+}
 
 pub fn detect(files: Vec<SourceFile>, options: &Options) -> DetectionResult {
     detect_prepared_drafts(prepare_source_drafts(files, options), options)

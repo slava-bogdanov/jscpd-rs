@@ -28,9 +28,10 @@ First release candidate for `jscpd-rs`, a native Rust clone of upstream
   `badge`.
 - Native `git blame -w` support in reports.
 - Native Rust API for path-based detection, in-memory `SourceFile` detection,
-  an embeddable argv runner, native tokenizer map generation, upstream-style
-  default options, argv option parsing, supported format listing, format
-  lookup, and both `detect_clones_and_statistic` and
+  an embeddable argv runner, native tokenizer map generation, native
+  `Detector`/`Statistic`/`MemoryStore` counterparts, upstream-style default
+  options, argv option parsing, supported format listing, format lookup, and
+  both `detect_clones_and_statistic` and
   `detect_clones_and_statistics` spellings.
 - Public benchmark suite on pinned React, Next.js, and Prometheus revisions.
 
