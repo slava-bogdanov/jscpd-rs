@@ -361,13 +361,25 @@ pub struct Options {
     pub tokens_to_skip: Vec<String>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FormatMappings(Vec<(String, Vec<String>)>);
 
 impl FormatMappings {
-    #[cfg(test)]
-    pub fn from_pairs(pairs: Vec<(String, Vec<String>)>) -> Self {
-        Self(pairs)
+    pub fn from_pairs<I, S, V, T>(pairs: I) -> Self
+    where
+        I: IntoIterator<Item = (S, V)>,
+        S: Into<String>,
+        V: IntoIterator<Item = T>,
+        T: Into<String>,
+    {
+        Self(
+            pairs
+                .into_iter()
+                .map(|(format, values)| {
+                    (format.into(), values.into_iter().map(Into::into).collect())
+                })
+                .collect(),
+        )
     }
 
     pub fn is_empty(&self) -> bool {

@@ -131,6 +131,11 @@ the `jscpd` and `jscpd-server` binaries into a temporary Cargo root, and checks
 the installed binaries' versions and the CLI binary's upstream-compatible
 command name.
 
+Native API smoke tests are covered by the Rust test suite. They verify the
+path-based detector API, in-memory source API, upstream singular
+`detectClonesAndStatistic` spelling, default options, supported format registry,
+and default/custom format lookup helpers.
+
 Upstream CI fixture gate:
 
 ```bash

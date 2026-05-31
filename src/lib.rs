@@ -8,15 +8,40 @@ pub mod server;
 pub mod tokenizer;
 pub mod verbose;
 
+use std::path::Path;
+
 use anyhow::Result;
 
+pub use cli::{FormatMappings, Options};
 pub use detector::{CloneMatch, DetectionResult};
+pub use files::SourceFile;
 
-use crate::cli::Options;
-use crate::files::SourceFile;
+pub fn get_default_options() -> Options {
+    Options::default()
+}
+
+pub fn get_supported_formats() -> Vec<&'static str> {
+    formats::supported_formats()
+}
+
+pub fn get_format_by_file(path: impl AsRef<Path>) -> Option<String> {
+    get_format_by_file_with_mappings(path, &FormatMappings::default(), &FormatMappings::default())
+}
+
+pub fn get_format_by_file_with_mappings(
+    path: impl AsRef<Path>,
+    formats_exts: &FormatMappings,
+    formats_names: &FormatMappings,
+) -> Option<String> {
+    formats::format_for_path(path.as_ref(), formats_exts, formats_names).map(str::to_string)
+}
 
 pub fn detect_clones(options: &Options) -> Result<Vec<CloneMatch>> {
     Ok(detect_clones_and_statistics(options)?.clones)
+}
+
+pub fn detect_clones_and_statistic(options: &Options) -> Result<DetectionResult> {
+    detect_clones_and_statistics(options)
 }
 
 pub fn detect_clones_and_statistics(options: &Options) -> Result<DetectionResult> {
@@ -71,6 +96,70 @@ mod tests {
         assert_eq!(result.clones.len(), 1);
         assert_eq!(result.statistics.total.clones, 1);
         assert_eq!(result.statistics.total.sources, 1);
+    }
+
+    #[test]
+    fn public_api_statistic_alias_matches_upstream_name() {
+        let options = fixture_options("jscpd/fixtures/clike/file2.c");
+
+        let result = detect_clones_and_statistic(&options).expect("detect with statistic alias");
+
+        assert_eq!(result.clones.len(), 1);
+        assert_eq!(result.statistics.total.clones, 1);
+    }
+
+    #[test]
+    fn public_api_exposes_default_options() {
+        let options = get_default_options();
+
+        assert_eq!(options.min_lines, 5);
+        assert_eq!(options.min_tokens, 50);
+        assert_eq!(options.max_lines, 1000);
+        assert_eq!(options.max_size_bytes, 100 * 1024);
+        assert_eq!(options.reporters, vec!["console"]);
+        assert!(options.cache);
+        assert!(options.gitignore);
+    }
+
+    #[test]
+    fn public_api_exposes_supported_formats() {
+        let formats = get_supported_formats();
+
+        assert_eq!(formats.len(), 223);
+        assert!(formats.contains(&"javascript"));
+        assert!(formats.contains(&"typescript"));
+        assert!(formats.contains(&"rust"));
+    }
+
+    #[test]
+    fn public_api_resolves_format_by_file() {
+        assert_eq!(
+            get_format_by_file("src/index.mts").as_deref(),
+            Some("typescript")
+        );
+        assert_eq!(
+            get_format_by_file("src/component.vue").as_deref(),
+            Some("vue")
+        );
+    }
+
+    #[test]
+    fn public_api_resolves_format_by_custom_mappings() {
+        let formats_exts = FormatMappings::from_pairs(vec![("custom", vec!["foo"])]);
+        let formats_names = FormatMappings::from_pairs(vec![("makefile", vec!["Buildfile"])]);
+
+        assert_eq!(
+            get_format_by_file_with_mappings("demo.foo", &formats_exts, &formats_names).as_deref(),
+            Some("custom")
+        );
+        assert_eq!(
+            get_format_by_file_with_mappings("Buildfile", &formats_exts, &formats_names).as_deref(),
+            Some("makefile")
+        );
+        assert_eq!(
+            get_format_by_file_with_mappings("src/index.ts", &formats_exts, &formats_names),
+            None
+        );
     }
 
     #[test]
