@@ -12,12 +12,12 @@ Latest full local prepublish gate:
 scripts/prepublish-check.sh
 ```
 
-Passed on 2026-05-31 at code commit `d24aec1`. This includes
+Passed on 2026-05-31 at code commit `84aee0b`. This includes
 `scripts/release-candidate.sh`, package/install verification, crate/tag
-availability checks, and `cargo publish --dry-run --locked`. The next release
-evidence refresh must include the new npm package/npx gate. Later
-documentation-only commits may reuse fresh evidence if they do not change code,
-scripts, package metadata, or benchmark configuration.
+availability checks, npm package/name/npx verification, and
+`cargo publish --dry-run --locked`. Later documentation-only commits may reuse
+this evidence if they do not change code, scripts, package metadata, or
+benchmark configuration.
 
 GitHub Actions default `release-gate` must pass on the exact pushed commit
 being published. Check the current run in GitHub Actions after the final push;
@@ -29,16 +29,16 @@ Latest GitHub Actions default release-gate:
 push
 ```
 
-Passed on 2026-05-31 at code commit `d24aec1`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26703644979
+Passed on 2026-05-31 at code commit `84aee0b`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26704069942
 
 Recorded public benchmark baseline for this release candidate:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.186758s | 9.946236s | 53.26x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.249364s | 14.282779s | 57.28x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.077132s | 4.609230s | 59.76x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.192541s | 10.080165s | 52.35x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.251140s | 14.383025s | 57.27x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.080630s | 4.642588s | 57.58x | pass |
 
 ## Publish Blockers
 

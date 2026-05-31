@@ -37,7 +37,7 @@ current implementation status.
 | Upstream JavaScript API parity | follow-up | Native Rust helpers cover the practical app/tokenizer/detector/statistics/store concepts, including an embeddable argv runner and tokenizer map generation; exact JS package export shape is not implemented in the Rust crate. See `docs/api-parity.md`. |
 | Server snippet matching | optimized baseline | Native `/api/check` and MCP `check_duplication` are functional and reuse project token maps from the last scan; add a dedicated window index only if real server benchmarks require it. |
 | Npm prebuilt binaries | follow-up | The first npm package is source-build: install/postinstall compiles with Cargo. Add platform-specific prebuilt packages before broad npm promotion if install speed or Rust toolchain requirements become a blocker. |
-| Latest full publication gate | ready | `scripts/prepublish-check.sh` passed locally on code commit `d24aec1`, including `scripts/release-candidate.sh`, package/install verification, crate/tag availability checks, and `cargo publish --dry-run --locked`. GitHub Actions default `release-gate` passed on code commit `d24aec1`; refresh evidence after npm package gate changes before publishing. |
+| Latest full publication gate | ready | `scripts/prepublish-check.sh` passed locally on code commit `84aee0b`, including `scripts/release-candidate.sh`, package/install verification, crate/tag availability checks, npm package/name/npx verification, and `cargo publish --dry-run --locked`. GitHub Actions default `release-gate` passed on code commit `84aee0b` in run `26704069942`. |
 
 ## Post-MVP
 
