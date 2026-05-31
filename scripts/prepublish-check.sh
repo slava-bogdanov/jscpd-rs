@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RELEASE_TAG="${RELEASE_TAG:-v0.1.0}"
 CRATE_NAME="${CRATE_NAME:-jscpd-rs}"
+NPM_PACKAGE_NAME="${NPM_PACKAGE_NAME:-jscpd-rs}"
 EXPECTED_JSCPD_SHA="${EXPECTED_JSCPD_SHA:-50290cfd1b60b8d0d4c2929a1367328a1dddd074}"
 RUN_RELEASE_CANDIDATE="${RUN_RELEASE_CANDIDATE:-1}"
 
@@ -53,6 +54,21 @@ if grep -E "^${CRATE_NAME}[[:space:]=]" <<<"$cargo_search_output"; then
   fail "crate $CRATE_NAME appears to exist in cargo search output"
 fi
 printf 'cargo search found no exact %s crate\n' "$CRATE_NAME"
+
+section "npm package name availability"
+set +e
+npm_view_output="$(npm view "$NPM_PACKAGE_NAME" version 2>&1)"
+npm_view_code=$?
+set -e
+if [[ "$npm_view_code" == "0" ]]; then
+  printf '%s\n' "$npm_view_output" >&2
+  fail "npm package $NPM_PACKAGE_NAME appears to exist"
+fi
+if ! grep -Fq "E404" <<<"$npm_view_output"; then
+  printf '%s\n' "$npm_view_output" >&2
+  fail "could not confirm npm package $NPM_PACKAGE_NAME availability"
+fi
+printf 'npm view found no exact %s package\n' "$NPM_PACKAGE_NAME"
 
 section "benchmark docs consistency"
 benchmark_source="docs/compat-baseline.md"

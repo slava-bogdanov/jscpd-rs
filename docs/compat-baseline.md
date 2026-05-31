@@ -193,6 +193,7 @@ Latest local prepublish check: `scripts/prepublish-check.sh` passed on
 `cargo clippy --all-targets -- -D warnings`, the default release gate, the full
 coverage matrix, the public benchmark/coverage suite, package/install
 verification, crate/tag availability checks, and `cargo publish --dry-run --locked`.
+Refresh this evidence after the npm package gate lands.
 
 Latest GitHub Actions default release-gate check:
 `push` passed on 2026-05-31 at code commit `d24aec1`:

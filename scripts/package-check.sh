@@ -69,3 +69,5 @@ if [[ "$("$INSTALL_ROOT/bin/jscpd-server" --version)" != "$EXPECTED_VERSION" ]];
   printf 'installed server binary version mismatch\n' >&2
   exit 1
 fi
+
+scripts/npm-package-check.sh

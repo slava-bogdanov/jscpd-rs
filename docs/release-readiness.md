@@ -10,7 +10,7 @@ current implementation status.
 
 | Component | Status | Notes |
 | --- | --- | --- |
-| Binary/package surface | ready | `jscpd` binary name, Cargo package include list, publish dry-run, install check, version/help smoke checks. |
+| Binary/package surface | ready | `jscpd` binary name, Cargo package include list, publish dry-run, install check, version/help smoke checks, npm package metadata, and local `npx` smoke checks. |
 | CLI option surface | ready | Main upstream flags are parsed, including visible Commander quirks gated by `scripts/compat-cli.sh`. |
 | Config loading | ready | `.jscpd.json` and `package.json#jscpd`, config-relative paths/ignore, malformed JSON behavior, symlinked explicit config paths. |
 | File discovery | ready | Format filters, custom extensions/names, `.gitignore`, global Git excludes, symlink policy, shebang detection, max size/line filtering. |
@@ -23,7 +23,7 @@ current implementation status.
 | Native Rust API | ready | `jscpd`, `jscpd_with_exit_callback`, `Tokenizer`, `Detector`, `Statistic`, `MemoryStore`, `detect_clones`, `detect_clones_and_statistic`, `detect_clones_and_statistics`, `detect_source_files`, default options, argv option parsing, supported formats, and format lookup helpers expose the app, tokenizer, detector, statistics, and store core for path-based and in-memory integrations. See `docs/api-parity.md`. |
 | Native server | partial | `jscpd-server` exposes `/`, `/api/health`, `/api/stats`, `/api/check`, `/api/recheck`, and `/mcp`; exact help text, stable CLI, HTTP success/error, and MCP contracts are gated; `/api/check` reuses prepared project token maps; exact upstream Streamable HTTP SDK behavior remains follow-up. |
 | Performance harness | ready | Local benchmark script and public benchmark suite with pinned output recording and speedup gates. |
-| Release gates | ready | Default CI gate, full compatibility matrix, package check, reporter/config/CLI/blame gates. |
+| Release gates | ready | Default CI gate, full compatibility matrix, Cargo/npm package checks, reporter/config/CLI/blame gates. |
 
 ## Partial Or Follow-Up
 
@@ -36,7 +36,8 @@ current implementation status.
 | Terminal cosmetics | practical parity | Important messages are gated; exact wrapping/order remains lower priority. |
 | Upstream JavaScript API parity | follow-up | Native Rust helpers cover the practical app/tokenizer/detector/statistics/store concepts, including an embeddable argv runner and tokenizer map generation; exact JS package export shape is not implemented in the Rust crate. See `docs/api-parity.md`. |
 | Server snippet matching | optimized baseline | Native `/api/check` and MCP `check_duplication` are functional and reuse project token maps from the last scan; add a dedicated window index only if real server benchmarks require it. |
-| Latest full publication gate | ready | `scripts/prepublish-check.sh` passed locally on code commit `d24aec1`, including `scripts/release-candidate.sh`, package/install verification, crate/tag availability checks, and `cargo publish --dry-run --locked`. GitHub Actions default `release-gate` passed on code commit `d24aec1`; later documentation-only commits may reuse this evidence. |
+| Npm prebuilt binaries | follow-up | The first npm package is source-build: install/postinstall compiles with Cargo. Add platform-specific prebuilt packages before broad npm promotion if install speed or Rust toolchain requirements become a blocker. |
+| Latest full publication gate | ready | `scripts/prepublish-check.sh` passed locally on code commit `d24aec1`, including `scripts/release-candidate.sh`, package/install verification, crate/tag availability checks, and `cargo publish --dry-run --locked`. GitHub Actions default `release-gate` passed on code commit `d24aec1`; refresh evidence after npm package gate changes before publishing. |
 
 ## Post-MVP
 

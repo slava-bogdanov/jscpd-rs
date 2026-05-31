@@ -14,9 +14,10 @@ scripts/prepublish-check.sh
 
 Passed on 2026-05-31 at code commit `d24aec1`. This includes
 `scripts/release-candidate.sh`, package/install verification, crate/tag
-availability checks, and `cargo publish --dry-run --locked`. Later documentation-only
-commits may reuse this evidence if they do not change code, scripts, package
-metadata, or benchmark configuration.
+availability checks, and `cargo publish --dry-run --locked`. The next release
+evidence refresh must include the new npm package/npx gate. Later
+documentation-only commits may reuse fresh evidence if they do not change code,
+scripts, package metadata, or benchmark configuration.
 
 GitHub Actions default `release-gate` must pass on the exact pushed commit
 being published. Check the current run in GitHub Actions after the final push;
@@ -49,14 +50,17 @@ Before publishing, all of these must be true:
 - GitHub Actions `release-gate` passes on the pushed commit.
 - `scripts/package-check.sh` passes and the package file list excludes
   `jscpd/`, `target/`, `node_modules/`, and `scripts/`.
+- `scripts/npm-package-check.sh` passes, including `npm pack`,
+  `npm publish --dry-run --json`, local install smoke checks for `jscpd-rs`,
+  `jscpd`, and `jscpd-server`, and an `npx --package <tarball>` smoke run.
 - `cargo publish --dry-run --locked` passes for the exact package manifest and
   include list being published.
 - `README.md`, `docs/compat-baseline.md`, and
   `docs/public-benchmark-suite.md` contain the same recorded public benchmark
   numbers.
-- For the first publication, the `jscpd-rs` crate name is still available or
-  already owned by this project, and `v0.1.0` does not already exist locally or
-  on the remote.
+- For the first publication, the `jscpd-rs` crate and npm package names are
+  still available or already owned by this project, and `v0.1.0` does not
+  already exist locally or on the remote.
 - `docs/upstream-bugs.md` contains concrete repro commands for upstream issues
   we plan to file.
 - `docs/upstream-issue-drafts.md` contains reviewed issue drafts ready to
@@ -106,8 +110,9 @@ scripts/prepublish-check.sh
 
 The script checks clean git state, the reviewed `jscpd` submodule reference,
 local and remote tag availability, exact crate-name availability through
-`cargo search`, benchmark-number consistency across release docs, the full
-release-candidate gate, package/install validation, and
+`cargo search`, exact npm package-name availability through `npm view`,
+benchmark-number consistency across release docs, the full release-candidate
+gate, package/install validation, npm pack/npx validation, and
 `cargo publish --dry-run --locked`. Set `RUN_RELEASE_CANDIDATE=0` only when the
 same code commit already has fresh local and CI release-candidate evidence.
 
@@ -117,7 +122,8 @@ full CI-side release-candidate run when needed.
 
 For the first publication candidate checked on 2026-05-31, local and remote
 `v0.1.0` tag lookups returned no entries. `cargo search jscpd-rs --limit 5`
-returned no exact package, and the sparse crates.io index path
+returned no exact crate, `npm view jscpd-rs version` returned `E404`, and the
+sparse crates.io index path
 `https://index.crates.io/js/cp/jscpd-rs` returned 404.
 
 ## Post-Tag Smoke

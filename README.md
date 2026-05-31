@@ -29,6 +29,18 @@ upstream-style warnings and continue where upstream continues.
 
 ## Install
 
+Run with npm/npx:
+
+```bash
+npx jscpd-rs --version
+npx jscpd-rs /path/to/source
+```
+
+The first npm package is a source-build package: install/postinstall compiles
+the native Rust binaries with Cargo. A Rust toolchain must be available on the
+installing machine. Prebuilt platform packages are a follow-up publication
+improvement.
+
 From this repository:
 
 ```bash
@@ -106,6 +118,12 @@ Package/install gate:
 
 ```bash
 scripts/package-check.sh
+```
+
+Npm package/npx gate:
+
+```bash
+scripts/npm-package-check.sh
 ```
 
 Full compatibility matrix:

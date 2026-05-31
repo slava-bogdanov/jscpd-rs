@@ -33,6 +33,8 @@ First release candidate for `jscpd-rs`, a native Rust clone of upstream
   options, argv option parsing, supported format listing, format lookup, and
   both `detect_clones_and_statistic` and
   `detect_clones_and_statistics` spellings.
+- Source-build npm package metadata and bin shims for `npx jscpd-rs`,
+  `jscpd`, and `jscpd-server`.
 - Public benchmark suite on pinned React, Next.js, and Prometheus revisions.
 
 ### Compatibility And Performance
@@ -60,6 +62,8 @@ Recorded release-candidate public benchmark measurements from
 - HTML output is self-contained and practically compatible, not pixel-perfect.
 - The Rust crate exposes a native Rust API, not the upstream JavaScript package
   API.
+- The npm package currently builds native binaries from source during install;
+  prebuilt platform packages are planned as a later publication improvement.
 - Full Prism grammar parity for every long-tail format is not attempted in this
   release. Formats should be promoted from generic tokenization when concrete
   coverage gates show missed upstream lines.

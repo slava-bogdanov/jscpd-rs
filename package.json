@@ -1,0 +1,45 @@
+{
+  "name": "jscpd-rs",
+  "version": "0.1.0",
+  "description": "Fast native Rust clone of jscpd",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vv-bogdanov/jscpd-rs.git"
+  },
+  "homepage": "https://github.com/vv-bogdanov/jscpd-rs#readme",
+  "bugs": {
+    "url": "https://github.com/vv-bogdanov/jscpd-rs/issues"
+  },
+  "keywords": [
+    "jscpd",
+    "copy-paste",
+    "duplication",
+    "clone-detection",
+    "cli"
+  ],
+  "bin": {
+    "jscpd-rs": "npm/bin/jscpd-rs.js",
+    "jscpd": "npm/bin/jscpd-rs.js",
+    "jscpd-server": "npm/bin/jscpd-server.js"
+  },
+  "scripts": {
+    "postinstall": "node npm/scripts/postinstall.js",
+    "test:npm-package": "scripts/npm-package-check.sh"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "Cargo.lock",
+    "Cargo.toml",
+    "LICENSE",
+    "README.md",
+    "npm/**",
+    "src/**"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
