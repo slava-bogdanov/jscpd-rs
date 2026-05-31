@@ -1,5 +1,5 @@
 use super::*;
-use crate::cli::Options;
+use crate::cli::{Mode, Options};
 
 #[test]
 fn tokenizes_non_whitespace_tokens_with_locations() {
@@ -7,6 +7,32 @@ fn tokenizes_non_whitespace_tokens_with_locations() {
         tokenize_for_detection("let a = 1;\nlet b = 2;", "javascript", &Options::default());
     assert_eq!(tokens[0].start.line, 1);
     assert_eq!(tokens[5].start.line, 2);
+}
+
+#[test]
+fn public_tokenizer_generates_source_maps_like_upstream_entrypoint() {
+    let tokenizer = Tokenizer::new();
+
+    let maps = tokenizer.generate_maps("snippet.js", "const a = 1;\nconst b = 2;", "javascript");
+
+    assert_eq!(maps.len(), 1);
+    assert_eq!(maps[0].source_id, "snippet.js");
+    assert_eq!(maps[0].format, "javascript");
+    assert_eq!(maps[0].tokens.len(), 10);
+    assert_eq!(maps[0].lines, 1);
+    assert_eq!(maps[0].tokens[0].start.line, 1);
+}
+
+#[test]
+fn public_tokenizer_uses_configured_options() {
+    let tokenizer = Tokenizer::with_options(Options {
+        mode: Mode::Weak,
+        ..Options::default()
+    });
+
+    let tokens = tokenizer.tokenize("const a = 1; // comment\n", "javascript");
+
+    assert_eq!(tokens.len(), 5);
 }
 
 #[test]

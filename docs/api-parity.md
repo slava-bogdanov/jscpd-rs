@@ -22,7 +22,8 @@ wrapper unless that is chosen as a separate release target.
 | `getDefaultOptions()` | covered | Use `get_default_options()`. Defaults are also available through `Options::default()`. |
 | `getSupportedFormats()` | covered | Use `get_supported_formats()`. The registry is generated from upstream and currently has 223 formats. |
 | `getFormatByFile(path, formatsExts?, formatsNames?)` | covered | Use `get_format_by_file(path)` for default mappings or `get_format_by_file_with_mappings(path, formats_exts, formats_names)` for explicit mappings. |
-| `Tokenizer`, `Detector`, `Statistic`, `MemoryStore` classes | internal/native | Equivalent functionality exists in native modules, but class-shaped API parity is not a first-release target. |
+| `Tokenizer` class | covered natively | Use `Tokenizer::new()` or `Tokenizer::with_options(options)` and `generate_maps(source_id, content, format)`. Exact JavaScript package export shape is not implemented. |
+| `Detector`, `Statistic`, `MemoryStore` classes | internal/native | Equivalent functionality exists in native modules, but class-shaped API parity is not a first-release target. |
 | Validators, subscribers, custom stores, custom reporters | option-surface only | CLI/config options are preserved where practical; dynamic npm loading is intentionally out of scope for the first release. |
 
 ## Server API
@@ -39,5 +40,8 @@ wrapper unless that is chosen as a separate release target.
 - Keep `jscpd(args)` / `jscpd_with_exit_callback(args, callback)` as the native
   embeddable path; add a JavaScript wrapper only if publishing an npm package
   becomes an explicit target.
+- Keep `Tokenizer` native and detection-oriented for now; add exact JavaScript
+  iterator/object-shape wrappers only if an npm/API compatibility release is
+  chosen.
 - Keep custom store/reporter/provider APIs out of the release path until a real
   integration requires native hooks.

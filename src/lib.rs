@@ -17,6 +17,7 @@ pub use app::{JscpdOutcome, jscpd, jscpd_with_exit_callback, run_cli_args};
 pub use cli::{FormatMappings, Options};
 pub use detector::{CloneMatch, DetectionResult};
 pub use files::SourceFile;
+pub use tokenizer::{DetectionToken, Location, SourceTokenMap, TokenMap, Tokenizer};
 
 pub fn get_default_options() -> Options {
     Options::default()

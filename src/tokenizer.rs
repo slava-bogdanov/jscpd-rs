@@ -44,6 +44,75 @@ pub struct TokenMap {
     positions_assigned: bool,
 }
 
+#[derive(Clone, Debug)]
+pub struct SourceTokenMap {
+    pub source_id: String,
+    pub format: String,
+    pub tokens: Vec<DetectionToken>,
+    pub lines: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct Tokenizer {
+    options: Options,
+}
+
+impl Default for Tokenizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Tokenizer {
+    pub fn new() -> Self {
+        Self {
+            options: Options::default(),
+        }
+    }
+
+    pub fn with_options(options: Options) -> Self {
+        Self { options }
+    }
+
+    pub fn options(&self) -> &Options {
+        &self.options
+    }
+
+    pub fn options_mut(&mut self) -> &mut Options {
+        &mut self.options
+    }
+
+    pub fn tokenize(&self, content: &str, format: &str) -> Vec<DetectionToken> {
+        self.tokenize_maps(content, format)
+            .into_iter()
+            .next()
+            .map(|map| map.tokens)
+            .unwrap_or_default()
+    }
+
+    pub fn tokenize_maps(&self, content: &str, format: &str) -> Vec<TokenMap> {
+        tokenize_maps_for_detection(content, format, &self.options)
+    }
+
+    pub fn generate_maps(
+        &self,
+        source_id: impl Into<String>,
+        content: &str,
+        format: &str,
+    ) -> Vec<SourceTokenMap> {
+        let source_id = source_id.into();
+        self.tokenize_maps(content, format)
+            .into_iter()
+            .map(|map| SourceTokenMap {
+                source_id: source_id.clone(),
+                lines: token_map_line_count(&map.tokens),
+                format: map.format,
+                tokens: map.tokens,
+            })
+            .collect()
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TokenKind {
     Comment,
@@ -120,6 +189,13 @@ pub fn tokenize_maps_for_detection(
         }
     }
     maps
+}
+
+fn token_map_line_count(tokens: &[DetectionToken]) -> usize {
+    match (tokens.first(), tokens.last()) {
+        (Some(first), Some(last)) => last.end.line.saturating_sub(first.start.line),
+        _ => 0,
+    }
 }
 
 fn assign_token_positions(

@@ -86,10 +86,11 @@ let clones = jscpd_rs::jscpd(["jscpd", "src", "--silent", "--noTips"])?;
 `jscpd` and `jscpd_with_exit_callback` provide a native embeddable argv runner
 similar to upstream `jscpd(argv, exitCallback?)`. `get_options_from_args` parses
 upstream-style argv into normalized `Options` for native integrations.
-`detect_source_files` accepts in-memory `SourceFile` values, which is the
-foundation for the upstream-style snippet/server workflow. Format helpers are
-available through `get_supported_formats`, `get_format_by_file`, and
-`get_format_by_file_with_mappings`.
+`Tokenizer` provides a native generate-maps entrypoint over the same tokenizer
+used by detection. `detect_source_files` accepts in-memory `SourceFile` values,
+which is the foundation for the upstream-style snippet/server workflow. Format
+helpers are available through `get_supported_formats`, `get_format_by_file`,
+and `get_format_by_file_with_mappings`.
 
 ## Compatibility Gates
 
