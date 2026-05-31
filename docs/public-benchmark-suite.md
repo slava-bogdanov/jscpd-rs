@@ -62,9 +62,9 @@ scripts/release-candidate.sh
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.183285s | 10.080480s | 55.00x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.242917s | 14.249136s | 58.66x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.071890s | 4.542392s | 63.19x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.189897s | 9.879855s | 52.03x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.245680s | 14.249817s | 58.00x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.076644s | 4.509250s | 58.83x | pass |
 
 `kubernetes` was also checked as a Go stress case, but upstream `jscpd` ran out
 of memory with the default Node heap, so it is intentionally not part of the

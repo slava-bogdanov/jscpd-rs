@@ -6,13 +6,15 @@ Policy decisions live in `docs/release-decisions.md`; current evidence lives in
 
 ## Current Release Candidate Evidence
 
-Latest full local release-candidate gate:
+Latest full local prepublish gate:
 
 ```bash
-scripts/release-candidate.sh
+scripts/prepublish-check.sh
 ```
 
-Passed on 2026-05-31 at code commit `d1c759c`. Later documentation-only
+Passed on 2026-05-31 at code commit `6b917b8`. This includes
+`scripts/release-candidate.sh`, package/install verification, crate/tag
+availability checks, and `cargo publish --dry-run --locked`. Later documentation-only
 commits may reuse this evidence if they do not change code, scripts, package
 metadata, or benchmark configuration.
 
@@ -26,16 +28,16 @@ Latest GitHub Actions release-candidate gate:
 workflow_dispatch release_candidate=true public_runs=3
 ```
 
-Passed on 2026-05-31 at code commit `d1c759c`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26700182707
+Passed on 2026-05-31 at code commit `6b917b8`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26700745857
 
 Public benchmark summary from the latest release-candidate run:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.183285s | 10.080480s | 55.00x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.242917s | 14.249136s | 58.66x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.071890s | 4.542392s | 63.19x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.189897s | 9.879855s | 52.03x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.245680s | 14.249817s | 58.00x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.076644s | 4.509250s | 58.83x | pass |
 
 ## Publish Blockers
 

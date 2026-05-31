@@ -56,9 +56,9 @@ printf 'cargo search found no exact %s crate\n' "$CRATE_NAME"
 
 section "benchmark docs consistency"
 required_benchmark_rows=(
-  "0.183285s | 10.080480s | 55.00x"
-  "0.242917s | 14.249136s | 58.66x"
-  "0.071890s | 4.542392s | 63.19x"
+  "0.189897s | 9.879855s | 52.03x"
+  "0.245680s | 14.249817s | 58.00x"
+  "0.076644s | 4.509250s | 58.83x"
 )
 benchmark_docs=(
   "README.md"
