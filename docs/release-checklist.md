@@ -12,7 +12,7 @@ Latest full local prepublish gate:
 scripts/prepublish-check.sh
 ```
 
-Passed on 2026-05-31 at code commit `d811b83`. This includes
+Passed on 2026-05-31 at code commit `4ae0412`. This includes
 `scripts/release-candidate.sh`, package/install verification, crate/tag
 availability checks, and `cargo publish --dry-run --locked`. Later documentation-only
 commits may reuse this evidence if they do not change code, scripts, package
@@ -28,16 +28,16 @@ Latest GitHub Actions default release-gate:
 push
 ```
 
-Passed on 2026-05-31 at code commit `d811b83`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26702850905
+Passed on 2026-05-31 at code commit `4ae0412`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26703182279
 
 Recorded public benchmark baseline for this release candidate:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.192469s | 10.346766s | 53.76x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.252563s | 14.783104s | 58.53x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.080577s | 4.642403s | 57.61x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.190427s | 10.012867s | 52.58x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.256117s | 14.616985s | 57.07x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.080734s | 4.609130s | 57.09x | pass |
 
 ## Publish Blockers
 
