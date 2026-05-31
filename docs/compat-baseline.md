@@ -4,12 +4,12 @@ Baseline date: 2026-05-31.
 
 Latest full release gate:
 `FULL=1 PUBLIC=1 scripts/release-gate.sh`
-passed on 2026-05-31 at code commit `bac2203` as part of
+passed on 2026-05-31 at code commit `d811b83` as part of
 `scripts/prepublish-check.sh`.
 
 Latest public release gate:
 `PUBLIC=1 PUBLIC_RUNS=3 scripts/release-gate.sh`
-passed on 2026-05-31 at code commit `bac2203` as part of
+passed on 2026-05-31 at code commit `d811b83` as part of
 `scripts/prepublish-check.sh`.
 
 Default gate:
@@ -189,22 +189,22 @@ workflow dispatch exposes `full`, `public`, `release_candidate`, and
 release-candidate gates.
 
 Latest local prepublish check: `scripts/prepublish-check.sh` passed on
-2026-05-31 at code commit `bac2203`, covering
+2026-05-31 at code commit `d811b83`, covering
 `cargo clippy --all-targets -- -D warnings`, the default release gate, the full
 coverage matrix, the public benchmark/coverage suite, package/install
 verification, crate/tag availability checks, and `cargo publish --dry-run --locked`.
 
 Latest GitHub Actions default release-gate check:
-`push` passed on 2026-05-31 at code commit `bac2203`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26702488698
+`push` passed on 2026-05-31 at code commit `d811b83`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26702850905
 
 Recorded public benchmark baseline:
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `react` | `f0dfee3` | `javascript` | 0.192096s | 9.946562s | 51.78x | pass |
-| `next` | `2bbb67b9` | `typescript` | 0.248940s | 14.282248s | 57.37x | pass |
-| `prometheus` | `a0524ee` | `go` | 0.082703s | 4.609423s | 55.73x | pass |
+| `react` | `f0dfee3` | `javascript` | 0.192469s | 10.346766s | 53.76x | pass |
+| `next` | `2bbb67b9` | `typescript` | 0.252563s | 14.783104s | 58.53x | pass |
+| `prometheus` | `a0524ee` | `go` | 0.080577s | 4.642403s | 57.61x | pass |
 
 ## Current Matrix
 
@@ -506,9 +506,9 @@ project tree:
 
 | Target | Commit | Format | Rust avg | Upstream avg | Approx speedup |
 | --- | --- | --- | ---: | ---: | ---: |
-| `facebook/react` | `f0dfee3` | `javascript` | `0.192096s` | `9.946562s` | `51.78x` |
-| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.248940s` | `14.282248s` | `57.37x` |
-| `prometheus/prometheus` | `a0524ee` | `go` | `0.082703s` | `4.609423s` | `55.73x` |
+| `facebook/react` | `f0dfee3` | `javascript` | `0.192469s` | `10.346766s` | `53.76x` |
+| `vercel/next.js` | `2bbb67b9` | `typescript` | `0.252563s` | `14.783104s` | `58.53x` |
+| `prometheus/prometheus` | `a0524ee` | `go` | `0.080577s` | `4.642403s` | `57.61x` |
 
 ## Additional Mode Checks
 

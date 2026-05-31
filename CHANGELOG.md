@@ -29,8 +29,9 @@ First release candidate for `jscpd-rs`, a native Rust clone of upstream
 - Native `git blame -w` support in reports.
 - Native Rust API for path-based detection, in-memory `SourceFile` detection,
   an embeddable argv runner, native tokenizer map generation, upstream-style
-  default options, argv option parsing, supported format listing, format lookup, and both
-  `detect_clones_and_statistic` and `detect_clones_and_statistics` spellings.
+  default options, argv option parsing, supported format listing, format
+  lookup, and both `detect_clones_and_statistic` and
+  `detect_clones_and_statistics` spellings.
 - Public benchmark suite on pinned React, Next.js, and Prometheus revisions.
 
 ### Compatibility And Performance
@@ -44,9 +45,9 @@ Recorded release-candidate public benchmark measurements from
 
 | Case | Commit | Format | Rust avg | Upstream avg | Speedup | Compat |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| React | `f0dfee3` | JavaScript | 0.192096s | 9.946562s | 51.78x | pass |
-| Next.js | `2bbb67b9` | TypeScript | 0.248940s | 14.282248s | 57.37x | pass |
-| Prometheus | `a0524ee` | Go | 0.082703s | 4.609423s | 55.73x | pass |
+| React | `f0dfee3` | JavaScript | 0.192469s | 10.346766s | 53.76x | pass |
+| Next.js | `2bbb67b9` | TypeScript | 0.252563s | 14.783104s | 58.53x | pass |
+| Prometheus | `a0524ee` | Go | 0.080577s | 4.642403s | 57.61x | pass |
 
 ### Known First-Release Deviations
 
