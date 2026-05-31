@@ -28,8 +28,8 @@ Latest GitHub Actions release-candidate gate:
 workflow_dispatch release_candidate=true public_runs=3
 ```
 
-Passed on 2026-05-31 at code commit `65cb0c2`:
-https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26701044130
+Passed on 2026-05-31 at code commit `ce5f649`:
+https://github.com/vv-bogdanov/jscpd-rs/actions/runs/26701933084
 
 Recorded public benchmark baseline for this release candidate:
 

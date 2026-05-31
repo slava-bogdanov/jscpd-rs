@@ -36,7 +36,7 @@ current implementation status.
 | Terminal cosmetics | practical parity | Important messages are gated; exact wrapping/order remains lower priority. |
 | Upstream JavaScript API parity | follow-up | Native Rust helpers cover the practical app/tokenizer concepts; exact JS package export shape is not implemented in the Rust crate. See `docs/api-parity.md`. |
 | Server snippet matching | optimized baseline | Native `/api/check` and MCP `check_duplication` are functional and reuse project token maps from the last scan; add a dedicated window index only if real server benchmarks require it. |
-| Latest full publication gate | ready | `scripts/prepublish-check.sh` passed locally on code commit `5c6e70f`, including `scripts/release-candidate.sh`, package/install verification, crate/tag availability checks, and `cargo publish --dry-run --locked`. GitHub Actions `workflow_dispatch release_candidate=true public_runs=3` passed on code commit `65cb0c2`; later documentation-only commits may reuse this evidence. |
+| Latest full publication gate | ready | `scripts/prepublish-check.sh` passed locally on code commit `5c6e70f`, including `scripts/release-candidate.sh`, package/install verification, crate/tag availability checks, and `cargo publish --dry-run --locked`. GitHub Actions `workflow_dispatch release_candidate=true public_runs=3` passed on code commit `ce5f649`; later documentation-only commits may reuse this evidence. |
 
 ## Post-MVP
 
